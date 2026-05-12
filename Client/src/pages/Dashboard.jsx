@@ -1,0 +1,262 @@
+import React from 'react';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, BarChart, Bar, Legend
+} from 'recharts';
+import { UserPlus, Calendar, CreditCard, FileText, ChevronRight, Users } from 'lucide-react';
+import { attendanceData, recentActivity } from '../utils/mockData';
+import SummaryCard from '../components/SummaryCard';
+import { useEmployees } from '../context/EmployeeContext';
+
+import { useNavigate } from 'react-router-dom';
+
+const COLORS = ['#5A67D8', '#48BB78', '#F6AD55', '#F56565'];
+
+const Dashboard = () => {
+  const { employees } = useEmployees();
+  const navigate = useNavigate();
+  const [timeRange, setTimeRange] = React.useState('Last 30 Days');
+
+  // Dynamic Summary Stats
+  const totalEmployees = employees.length;
+  const activeEmployees = employees.filter(e => e.status === 'Active').length;
+  const departments = [...new Set(employees.map(e => e.department))];
+  
+  const deptData = departments.map(dept => ({
+    name: dept,
+    value: employees.filter(e => e.department === dept).length
+  }));
+
+  const dynamicSummaryCards = [
+    {
+      id: 1,
+      title: 'Total Employees',
+      value: totalEmployees.toString(),
+      icon: <Users size={24} />,
+      trend: '+12% from last month',
+      color: 'bg-indigo-500'
+    },
+    {
+      id: 2,
+      title: 'Active Now',
+      value: activeEmployees.toString(),
+      icon: <Calendar size={24} />,
+      trend: '94% attendance rate',
+      color: 'bg-green-500'
+    },
+    {
+      id: 3,
+      title: 'Leave Requests',
+      value: '8',
+      icon: <FileText size={24} />,
+      trend: '2 pending approval',
+      color: 'bg-orange-500'
+    },
+    {
+      id: 4,
+      title: 'Total Payroll',
+      value: '₹45,200',
+      icon: <CreditCard size={24} />,
+      trend: 'April 2026',
+      color: 'bg-purple-500'
+    }
+  ];
+
+  return (
+    <div className="flex flex-col gap-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-1 font-medium">Welcome back! Here's what's happening today.</p>
+        </div>
+        <div className="flex gap-4 w-full sm:w-auto">
+          <select 
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            className="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm cursor-pointer"
+          >
+            <option>Today</option>
+            <option>Last 7 Days</option>
+            <option>Last 30 Days</option>
+            <option>Last 90 Days</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {dynamicSummaryCards.map(card => (
+          <SummaryCard key={card.id} {...card} />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Attendance Overview Chart */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Attendance Overview</h2>
+            <select className="bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-500 px-4 py-2 outline-none cursor-pointer">
+              <option>April 2026</option>
+              <option>March 2026</option>
+            </select>
+          </div>
+          <div className="h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={attendanceData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12, fontWeight: 600}} dy={15} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12, fontWeight: 600}} />
+                <Tooltip 
+                  contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px'}}
+                />
+                <Legend iconType="circle" wrapperStyle={{paddingTop: '30px'}} />
+                <Line type="monotone" dataKey="present" stroke="#48BB78" strokeWidth={4} dot={{r: 6, fill: '#48BB78', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
+                <Line type="monotone" dataKey="absent" stroke="#F56565" strokeWidth={4} dot={{r: 6, fill: '#F56565', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-col gap-4">
+           <h2 className="text-xl font-bold text-gray-900 mb-2">Quick Actions</h2>
+           <button 
+             onClick={() => navigate('/admin/employees')}
+             className="flex items-center gap-4 p-5 bg-indigo-600 text-white rounded-3xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all group"
+           >
+             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+               <UserPlus size={24} />
+             </div>
+             <div className="text-left">
+               <p className="text-lg">Add Employee</p>
+               <p className="text-indigo-100 text-xs font-medium">Onboard new talent</p>
+             </div>
+           </button>
+           <button 
+             onClick={() => navigate('/admin/attendance')}
+             className="flex items-center gap-4 p-5 bg-emerald-600 text-white rounded-3xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all group"
+           >
+             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+               <Calendar size={24} />
+             </div>
+             <div className="text-left">
+               <p className="text-lg">Mark Attendance</p>
+               <p className="text-emerald-100 text-xs font-medium">Daily check-in logs</p>
+             </div>
+           </button>
+           <button 
+             onClick={() => navigate('/admin/payroll')}
+             className="flex items-center gap-4 p-5 bg-purple-600 text-white rounded-3xl font-bold shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all group"
+           >
+             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+               <CreditCard size={24} />
+             </div>
+             <div className="text-left">
+               <p className="text-lg">Generate Payroll</p>
+               <p className="text-purple-100 text-xs font-medium">Monthly salary slips</p>
+             </div>
+           </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Department Distribution */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Departments</h2>
+          <div className="h-[250px] w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={deptData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={90}
+                  paddingAngle={8}
+                  dataKey="value"
+                >
+                  {deptData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+              <span className="text-3xl font-black text-gray-900">{totalEmployees}</span>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</p>
+            </div>
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-4">
+             {deptData.map((item, index) => (
+               <div key={item.name} className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl">
+                 <div className="w-3 h-3 rounded-full shrink-0" style={{backgroundColor: COLORS[index % COLORS.length]}}></div>
+                 <div className="min-w-0">
+                   <p className="text-[10px] font-black text-gray-400 uppercase truncate">{item.name}</p>
+                   <p className="text-sm font-bold text-gray-900">{item.value} Employees</p>
+                 </div>
+               </div>
+             ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
+            <button className="text-primary text-xs font-bold hover:underline flex items-center gap-1">
+              View All <ChevronRight size={14} />
+            </button>
+          </div>
+          <div className="flex flex-col gap-6">
+            {recentActivity.map((activity) => (
+              <div key={activity.id} className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center shadow-sm overflow-hidden border border-gray-100">
+                  <img src={activity.avatar} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline">
+                    <p className="text-sm font-bold text-gray-900 truncate">{activity.name}</p>
+                    <span className="text-[10px] font-bold text-gray-400 ml-2 whitespace-nowrap">{activity.time}</span>
+                  </div>
+                  <p className="text-xs font-medium text-gray-500 mt-0.5 truncate">{activity.action}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Payroll Summary */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Payroll Trends</h2>
+            <span className="text-[10px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">Q2 2026</span>
+          </div>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={deptData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 10, fontWeight: 700}} />
+                <YAxis hide />
+                <Tooltip cursor={{fill: '#F9FAFB'}} />
+                <Bar dataKey="value" fill="#5A67D8" radius={[10, 10, 0, 0]} barSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-6 p-5 bg-indigo-600 rounded-3xl flex items-center justify-between shadow-xl shadow-indigo-100">
+            <div>
+              <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest">Total Monthly Spent</p>
+              <p className="text-2xl font-black text-white mt-1">₹128,450</p>
+            </div>
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white">
+               <CreditCard size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
