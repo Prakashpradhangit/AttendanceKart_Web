@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Building2, 
@@ -12,19 +12,57 @@ import {
 } from 'lucide-react';
 
 const SuperAdminDashboard = () => {
-  const stats = [
-    { label: 'Total Organizations', value: '1,284', change: '+12.5%', isPositive: true, icon: Building2, color: 'blue' },
-    { label: 'Active Users', value: '84,392', change: '+18.2%', isPositive: true, icon: Users, color: 'emerald' },
-    { label: 'Monthly Revenue', value: '$248,500', change: '+24.1%', isPositive: true, icon: CreditCard, color: 'amber' },
-    { label: 'Platform Uptime', value: '99.99%', change: '-0.01%', isPositive: false, icon: Zap, color: 'blue' },
-  ];
+  const [stats, setStats] = useState([
+    { label: 'Total Organizations', value: '0', change: '+0%', isPositive: true, icon: Building2, color: 'blue' },
+    { label: 'Active Users', value: '0', change: '+0%', isPositive: true, icon: Users, color: 'emerald' },
+    { label: 'Monthly Revenue', value: '$0', change: '+0%', isPositive: true, icon: CreditCard, color: 'amber' },
+    { label: 'Platform Uptime', value: '99.99%', change: '0%', isPositive: true, icon: Zap, color: 'blue' },
+  ]);
 
-  const recentOrganizations = [
-    { name: 'Global Tech Solutions', industry: 'Technology', users: 450, joined: '2 hours ago', status: 'Active' },
-    { name: 'Creative Minds Agency', industry: 'Design', users: 120, joined: '5 hours ago', status: 'Pending' },
-    { name: 'HealthCare Plus', industry: 'Medical', users: 890, joined: '1 day ago', status: 'Active' },
-    { name: 'Swift Logistics', industry: 'Logistics', users: 320, joined: '2 days ago', status: 'Inactive' },
-  ];
+  const [recentOrganizations, setRecentOrganizations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // Fetch Admins (Organizations)
+        const adminsResponse = await fetch('/api/admin', { headers });
+        const adminsData = await adminsResponse.json();
+
+        // Fetch Users (All)
+        const usersResponse = await fetch('/api/users', { headers });
+        const usersData = await usersResponse.json();
+
+        // Update Stats
+        setStats([
+          { label: 'Total Organizations', value: adminsData.length.toString(), change: '+12.5%', isPositive: true, icon: Building2, color: 'blue' },
+          { label: 'Active Users', value: usersData.length.toString(), change: '+18.2%', isPositive: true, icon: Users, color: 'emerald' },
+          { label: 'Monthly Revenue', value: `$${(adminsData.length * 199).toLocaleString()}`, change: '+24.1%', isPositive: true, icon: CreditCard, color: 'amber' },
+          { label: 'Platform Uptime', value: '99.99%', change: '-0.01%', isPositive: false, icon: Zap, color: 'blue' },
+        ]);
+
+        // Update Recent Organizations (latest 4)
+        const recent = adminsData.slice(-4).reverse().map(admin => ({
+          name: admin.organisation_name || 'N/A',
+          industry: 'Enterprise', // Backend doesn't have industry, defaulting
+          users: 'N/A', // Backend doesn't return user count per admin easily here
+          joined: admin.starting_date || 'N/A',
+          status: 'Active'
+        }));
+        setRecentOrganizations(recent);
+
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="space-y-8 pb-12">

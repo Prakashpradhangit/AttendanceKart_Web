@@ -18,6 +18,9 @@ public class UserService {
 
     public List<User> getAllUsers() {
         String tenantId = TenantContext.getCurrentTenant();
+        if ("SYSTEM_SUPER_ADMIN".equals(tenantId)) {
+            return userRepository.findAll();
+        }
         return userRepository.findByTenantId(tenantId);
     }
 

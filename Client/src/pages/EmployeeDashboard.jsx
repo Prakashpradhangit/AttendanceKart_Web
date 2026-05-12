@@ -358,11 +358,27 @@ const EmployeeDashboard = () => {
               </div>
 
               <button 
-                onClick={() => {
-                  if (attendanceType === 'Check In') setIsCheckedIn(true);
-                  if (attendanceType === 'Check Out') setIsCheckedOut(true);
-                  alert(`Attendance ${attendanceType} captured successfully!`);
-                  setShowPopup(false);
+                onClick={async () => {
+                  try {
+                    const endpoint = attendanceType === 'Check In' ? '/api/attendance/clock-in' : '/api/attendance/clock-out';
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(endpoint, {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                      if (attendanceType === 'Check In') setIsCheckedIn(true);
+                      if (attendanceType === 'Check Out') setIsCheckedOut(true);
+                      setShowPopup(false);
+                      // In a real app, refresh data here
+                    } else {
+                      const errData = await response.text();
+                      alert(`Failed to ${attendanceType}: ${errData}`);
+                    }
+                  } catch (err) {
+                    console.error(`Error during ${attendanceType}:`, err);
+                    alert(`Error during ${attendanceType}`);
+                  }
                 }}
                 className="w-full bg-[#2563EB] text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all transform active:scale-95 flex items-center justify-center gap-2"
               >

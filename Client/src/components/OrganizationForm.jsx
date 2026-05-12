@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const OrganizationForm = ({ isOpen, onClose, onSubmit }) => {
+const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
   const initialFormState = {
     orgName: '',
     adminName: '',
@@ -20,10 +20,26 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit }) => {
 
   useEffect(() => {
     if (isOpen) {
-      setFormData(initialFormState);
+      if (initialData) {
+        setFormData({
+          orgName: initialData.organisation_name || '',
+          adminName: initialData.name || '',
+          slug: initialData.slug || '',
+          startDate: initialData.starting_date || new Date().toISOString().split('T')[0],
+          duration: initialData.subscription_year === 'ONE_YEAR' ? '1 Year' : 
+                    initialData.subscription_year === 'TWO_YEAR' ? '2 Years' : 
+                    initialData.subscription_year === 'THREE_YEAR' ? '3 Years' : '1 Year',
+          totalUsers: initialData.maxUsers || '',
+          contactNumber: initialData.phone_number || '',
+          orgEmail: initialData.email || '',
+          orgPassword: '' // Keep password empty for security during edit
+        });
+      } else {
+        setFormData(initialFormState);
+      }
       setShowPassword(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -43,8 +59,8 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit }) => {
       >
         <div className="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
           <div>
-            <h2 className="text-2xl font-bold text-[#1E293B]">Add New Organization</h2>
-            <p className="text-sm text-gray-500 font-medium">Register a new company on the platform</p>
+            <h2 className="text-2xl font-bold text-[#1E293B]">{initialData ? 'Edit Organization' : 'Add New Organization'}</h2>
+            <p className="text-sm text-gray-500 font-medium">{initialData ? 'Update organizational details' : 'Register a new company on the platform'}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400">
             <X size={24} />
@@ -160,10 +176,12 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit }) => {
 
             {/* Org Password */}
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Organization Admin Password</label>
+              <label className="text-sm font-bold text-[#1E293B] ml-1">
+                Organization Admin Password {initialData && <span className="text-gray-400 font-medium">(Leave blank to keep current)</span>}
+              </label>
               <div className="relative">
                 <input 
-                  required
+                  required={!initialData}
                   type={showPassword ? "text" : "password"} 
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 pr-12 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
                   value={formData.orgPassword}
@@ -193,7 +211,7 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit }) => {
               type="submit"
               className="flex-1 py-4 bg-[#3B82F6] text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#2563EB] transition-all text-sm"
             >
-              Register Organization
+              {initialData ? 'Update Organization' : 'Register Organization'}
             </button>
           </div>
         </form>

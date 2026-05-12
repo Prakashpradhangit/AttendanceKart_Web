@@ -15,7 +15,8 @@ const SuperAdminSidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    navigate('/superadmin-login');
+    localStorage.clear();
+    navigate('/superadmin/login');
   };
 
   const menuItems = [

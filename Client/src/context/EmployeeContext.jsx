@@ -4,20 +4,39 @@ import { employeesList as initialEmployees } from '../utils/mockData';
 const EmployeeContext = createContext();
 
 export const EmployeeProvider = ({ children }) => {
-  const [employees, setEmployees] = useState(() => {
-    const data = initialEmployees;
-    
-    // Sanitize IDs to ensure uniqueness (fix for existing duplicate ID bug)
-    const idMap = new Set();
-    return data.map((emp, index) => {
-      let uniqueId = emp.id;
-      if (!uniqueId || idMap.has(uniqueId)) {
-        uniqueId = `EMP_FIX_${index}_${Math.random().toString(36).substr(2, 5)}`;
+  const [employees, setEmployees] = useState([]);
+
+  const fetchEmployees = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Map backend User to frontend Employee structure
+        const mappedData = data.map(user => ({
+          id: user.id,
+          empId: user.employeeCode,
+          name: user.name,
+          email: user.email,
+          phone: user.phoneNumber,
+          department: user.department,
+          role: user.designation,
+          userRole: user.role,
+          joiningDate: user.joiningDate,
+          status: 'Active' // We can assume active since no status field in User
+        }));
+        setEmployees(mappedData);
       }
-      idMap.add(uniqueId);
-      return { ...emp, id: uniqueId };
-    });
-  });
+    } catch (err) {
+      console.error('Failed to fetch employees:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
   const generateUniqueId = (currentEmployees) => {
     if (currentEmployees.length === 0) return 'EMP001';
@@ -28,15 +47,38 @@ export const EmployeeProvider = ({ children }) => {
     return `EMP${String(maxId + 1).padStart(3, '0')}`;
   };
 
-  const addEmployee = (employee) => {
-    setEmployees((prev) => [
-      { 
-        ...employee, 
-        id: employee.empId || generateUniqueId(prev),
-        status: 'Active'
-      }, 
-      ...prev
-    ]);
+  const addEmployee = async (employee) => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = {
+        employeeCode: employee.empId || generateUniqueId(employees),
+        name: employee.name,
+        email: employee.email,
+        password: employee.password,
+        phoneNumber: employee.phone,
+        department: employee.department,
+        designation: employee.role,
+        role: 'EMPLOYEE', // default role
+        joiningDate: employee.joiningDate
+      };
+
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (response.ok) {
+        fetchEmployees();
+      } else {
+        console.error('Failed to add employee:', await response.text());
+      }
+    } catch (err) {
+      console.error('Error adding employee:', err);
+    }
   };
 
   const addBulkEmployees = (newEmployees) => {
@@ -55,8 +97,33 @@ export const EmployeeProvider = ({ children }) => {
     });
   };
 
-  const updateEmployee = (id, updatedData) => {
-    setEmployees((prev) => prev.map(emp => emp.id === id ? { ...emp, ...updatedData } : emp));
+  const updateEmployee = async (id, updatedData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = {
+        name: updatedData.name,
+        email: updatedData.email,
+        phoneNumber: updatedData.phone,
+        department: updatedData.department,
+        designation: updatedData.role,
+        joiningDate: updatedData.joiningDate
+      };
+
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (response.ok) {
+        fetchEmployees();
+      }
+    } catch (err) {
+      console.error('Failed to update employee:', err);
+    }
   };
 
   const resetTodayAttendance = (id) => {
@@ -65,8 +132,20 @@ export const EmployeeProvider = ({ children }) => {
     ));
   };
 
-  const deleteEmployee = (id) => {
-    setEmployees((prev) => prev.filter(emp => emp.id !== id));
+  const deleteEmployee = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        fetchEmployees();
+      }
+    } catch (err) {
+      console.error('Failed to delete employee:', err);
+    }
   };
 
   return (
@@ -76,7 +155,8 @@ export const EmployeeProvider = ({ children }) => {
       addBulkEmployees,
       updateEmployee, 
       deleteEmployee,
-      resetTodayAttendance
+      resetTodayAttendance,
+      fetchEmployees
     }}>
       {children}
     </EmployeeContext.Provider>

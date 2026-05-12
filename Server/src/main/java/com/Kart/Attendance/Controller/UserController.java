@@ -65,6 +65,7 @@ public class UserController {
     }
 
     private boolean isAdminRequest(HttpServletRequest request) {
-        return "ADMIN".equals(request.getAttribute("authenticatedRole"));
+        String role = (String) request.getAttribute("authenticatedRole");
+        return "ADMIN".equals(role) || "SUPER_ADMIN".equals(role);
     }
 }
