@@ -30,6 +30,7 @@ const SuperAdminLogin = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('role', data.role);
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('name', data.name || '');
         navigate('/superadmin/dashboard');
       } else {
         setError(data.error || 'Invalid credentials or unauthorized access.');
