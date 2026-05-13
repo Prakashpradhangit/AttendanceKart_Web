@@ -15,8 +15,8 @@ const AttendanceCards = ({ records, totalCount }) => {
   const lateArrivals = records.filter(r => r.status === 'Late').length;
 
   const stats = [
-    { id: 1, title: 'Total Employees', value: totalCount.toString(), change: '+12%', icon: 'users', color: 'bg-blue-500' },
-    { id: 2, title: 'Present Today', value: presentToday.toString(), change: `${totalCount > 0 ? Math.round((presentToday / totalCount) * 100) : 0}%`, icon: 'user-check', color: 'bg-green-500' },
+    { id: 1, title: 'Total Employees', value: totalCount.toString(), change: '+12%', icon: 'users', color: 'bg-[#0061E0]' },
+    { id: 2, title: 'Present Today', value: presentToday.toString(), change: `${totalCount > 0 ? Math.round((presentToday / totalCount) * 100) : 0}%`, icon: 'user-check', color: 'bg-[#22C55E]' },
     { id: 3, title: 'Absent Today', value: absentToday.toString(), change: `${totalCount > 0 ? Math.round((absentToday / totalCount) * 100) : 0}%`, icon: 'user-x', color: 'bg-red-500' },
     { id: 4, title: 'Late Arrivals', value: lateArrivals.toString(), change: `${totalCount > 0 ? Math.round((lateArrivals / totalCount) * 100) : 0}%`, icon: 'clock', color: 'bg-orange-500' },
   ];
@@ -33,15 +33,15 @@ const AttendanceCards = ({ records, totalCount }) => {
                   <Icon size={18} />
                 </div>
               </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                 stat.change.startsWith('+') ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
               }`}>
                 {stat.change}
               </span>
             </div>
             <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{stat.title}</p>
-              <h3 className="text-xl font-black text-gray-900 mt-0.5">{stat.value}</h3>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{stat.title}</p>
+              <h3 className="text-xl font-bold text-gray-900 mt-0.5">{stat.value}</h3>
             </div>
             
             {/* Background Decorative Wave */}

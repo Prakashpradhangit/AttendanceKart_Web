@@ -49,7 +49,7 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
         className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
       >
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <h2 className="text-xl font-bold text-gray-900">{initialData ? 'Edit Employee' : 'Add New Employee'}</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{initialData ? 'Edit Employee' : 'Add New Employee'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
             <X size={20} className="text-gray-500" />
           </button>
@@ -63,7 +63,7 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                 required
                 type="text" 
                 className={`w-full border border-gray-200 rounded-xl py-3 px-4 outline-none transition-all ${
-                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed font-bold' : 'bg-gray-50 focus:ring-2 focus:ring-primary/20'
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed font-semibold' : 'bg-gray-50 focus:ring-2 focus:ring-primary/20'
                 }`}
                 value={formData.empId}
                 onChange={(e) => !initialData && setFormData({...formData, empId: e.target.value})}
@@ -112,7 +112,7 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                 required
                 type="email" 
                 className={`w-full border border-gray-200 rounded-xl py-3 px-4 outline-none transition-all ${
-                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed font-bold' : 'bg-gray-50 focus:ring-2 focus:ring-primary/20'
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed font-semibold' : 'bg-gray-50 focus:ring-2 focus:ring-primary/20'
                 }`}
                 value={formData.email}
                 onChange={(e) => !initialData && setFormData({...formData, email: e.target.value})}
@@ -176,13 +176,13 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button 
               type="submit"
-              className="flex-1 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-hover transition-colors"
+              className="flex-1 py-3 bg-primary text-white rounded-xl font-semibold shadow-lg shadow-primary/20 hover:bg-primary-hover transition-colors"
             >
               {initialData ? 'Update' : 'Add Employee'}
             </button>

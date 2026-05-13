@@ -1,21 +1,51 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
-import { UserPlus, Calendar, CreditCard, FileText, ChevronRight, Users } from 'lucide-react';
+import { UserPlus, Calendar, CreditCard, FileText, ChevronRight, Users, ChartBar } from 'lucide-react';
 import { attendanceData, recentActivity } from '../utils/mockData';
 import SummaryCard from '../components/SummaryCard';
 import { useEmployees } from '../context/EmployeeContext';
 
 import { useNavigate } from 'react-router-dom';
 
-const COLORS = ['#5A67D8', '#48BB78', '#F6AD55', '#F56565'];
+const COLORS = ['#0061E0', '#22C55E', '#F6AD55', '#F56565'];
 
 const Dashboard = () => {
   const { employees } = useEmployees();
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = React.useState('Last 30 Days');
+  const [isCheckingStatus, setIsCheckingStatus] = React.useState(true);
+
+  useEffect(() => {
+    const checkAccountStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/auth/status', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'Inactive') {
+            // Logout if account is deactivated
+            localStorage.clear();
+            navigate('/login');
+          }
+        }
+      } catch (err) {
+        console.error('Status check failed:', err);
+      } finally {
+        setIsCheckingStatus(false);
+      }
+    };
+
+    checkAccountStatus();
+    // Periodically check status every 5 minutes
+    const interval = setInterval(checkAccountStatus, 300000);
+    return () => clearInterval(interval);
+  }, [navigate]);
 
   // Dynamic Summary Stats
   const totalEmployees = employees.length;
@@ -34,7 +64,7 @@ const Dashboard = () => {
       value: totalEmployees.toString(),
       icon: <Users size={24} />,
       trend: '+12% from last month',
-      color: 'bg-indigo-500'
+      color: 'bg-[#0061E0]'
     },
     {
       id: 2,
@@ -42,7 +72,7 @@ const Dashboard = () => {
       value: activeEmployees.toString(),
       icon: <Calendar size={24} />,
       trend: '94% attendance rate',
-      color: 'bg-green-500'
+      color: 'bg-[#22C55E]'
     },
     {
       id: 3,
@@ -67,14 +97,14 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">Dashboard Overview</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1 font-medium">Welcome back! Here's what's happening today.</p>
         </div>
         <div className="flex gap-4 w-full sm:w-auto">
           <select 
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm cursor-pointer"
+            className="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold text-gray-600 outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm cursor-pointer"
           >
             <option>Today</option>
             <option>Last 7 Days</option>
@@ -95,8 +125,8 @@ const Dashboard = () => {
         {/* Attendance Overview Chart */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Attendance Overview</h2>
-            <select className="bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-500 px-4 py-2 outline-none cursor-pointer">
+            <h2 className="text-xl font-semibold text-gray-900">Attendance Overview</h2>
+            <select className="bg-gray-50 border border-gray-100 rounded-xl text-xs font-semibold text-gray-500 px-4 py-2 outline-none cursor-pointer">
               <option>April 2026</option>
               <option>March 2026</option>
             </select>
@@ -111,7 +141,7 @@ const Dashboard = () => {
                   contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px'}}
                 />
                 <Legend iconType="circle" wrapperStyle={{paddingTop: '30px'}} />
-                <Line type="monotone" dataKey="present" stroke="#48BB78" strokeWidth={4} dot={{r: 6, fill: '#48BB78', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
+                <Line type="monotone" dataKey="present" stroke="#22C55E" strokeWidth={4} dot={{r: 6, fill: '#22C55E', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
                 <Line type="monotone" dataKey="absent" stroke="#F56565" strokeWidth={4} dot={{r: 6, fill: '#F56565', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
               </LineChart>
             </ResponsiveContainer>
@@ -120,10 +150,10 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="flex flex-col gap-4">
-           <h2 className="text-xl font-bold text-gray-900 mb-2">Quick Actions</h2>
+           <h2 className="text-xl font-semibold text-gray-900 mb-2">Quick Actions</h2>
            <button 
              onClick={() => navigate('/admin/employees')}
-             className="flex items-center gap-4 p-5 bg-indigo-600 text-white rounded-3xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all group"
+             className="flex items-center gap-4 p-5 bg-[#0061E0] text-white rounded-3xl font-semibold shadow-lg shadow-blue-200 hover:opacity-90 transition-all group"
            >
              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                <UserPlus size={24} />
@@ -135,19 +165,19 @@ const Dashboard = () => {
            </button>
            <button 
              onClick={() => navigate('/admin/attendance')}
-             className="flex items-center gap-4 p-5 bg-emerald-600 text-white rounded-3xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all group"
+             className="flex items-center gap-4 p-5 bg-[#22C55E] text-white rounded-3xl font-semibold shadow-lg shadow-green-200 hover:opacity-90 transition-all group"
            >
              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                <Calendar size={24} />
              </div>
              <div className="text-left">
-               <p className="text-lg">Mark Attendance</p>
+               <p className="text-lg">Check Attendance</p>
                <p className="text-emerald-100 text-xs font-medium">Daily check-in logs</p>
              </div>
            </button>
            <button 
              onClick={() => navigate('/admin/payroll')}
-             className="flex items-center gap-4 p-5 bg-purple-600 text-white rounded-3xl font-bold shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all group"
+             className="flex items-center gap-4 p-5 bg-purple-600 text-white rounded-3xl font-semibold shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all group"
            >
              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                <CreditCard size={24} />
@@ -157,13 +187,25 @@ const Dashboard = () => {
                <p className="text-purple-100 text-xs font-medium">Monthly salary slips</p>
              </div>
            </button>
+           <button 
+             onClick={() => navigate('/admin/reports')}
+             className="flex items-center gap-4 p-5 bg-orange-500 text-white rounded-3xl font-semibold shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all group"
+           >
+             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+               <ChartBar size={24} />
+             </div>
+             <div className="text-left">
+               <p className="text-lg">View Reports</p>
+               <p className="text-orange-100 text-xs font-medium">Performance insights</p>
+             </div>
+           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Department Distribution */}
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Departments</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Departments</h2>
           <div className="h-[250px] w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -184,8 +226,8 @@ const Dashboard = () => {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-              <span className="text-3xl font-black text-gray-900">{totalEmployees}</span>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</p>
+              <span className="text-3xl font-bold text-gray-900">{totalEmployees}</span>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total</p>
             </div>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-4">
@@ -193,8 +235,8 @@ const Dashboard = () => {
                <div key={item.name} className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl">
                  <div className="w-3 h-3 rounded-full shrink-0" style={{backgroundColor: COLORS[index % COLORS.length]}}></div>
                  <div className="min-w-0">
-                   <p className="text-[10px] font-black text-gray-400 uppercase truncate">{item.name}</p>
-                   <p className="text-sm font-bold text-gray-900">{item.value} Employees</p>
+                   <p className="text-[10px] font-bold text-gray-400 uppercase truncate">{item.name}</p>
+                   <p className="text-sm font-semibold text-gray-900">{item.value} Employees</p>
                  </div>
                </div>
              ))}
@@ -204,8 +246,8 @@ const Dashboard = () => {
         {/* Recent Activity */}
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
-            <button className="text-primary text-xs font-bold hover:underline flex items-center gap-1">
+            <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+            <button className="text-primary text-xs font-semibold hover:underline flex items-center gap-1">
               View All <ChevronRight size={14} />
             </button>
           </div>
@@ -217,8 +259,8 @@ const Dashboard = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <p className="text-sm font-bold text-gray-900 truncate">{activity.name}</p>
-                    <span className="text-[10px] font-bold text-gray-400 ml-2 whitespace-nowrap">{activity.time}</span>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{activity.name}</p>
+                    <span className="text-[10px] font-semibold text-gray-400 ml-2 whitespace-nowrap">{activity.time}</span>
                   </div>
                   <p className="text-xs font-medium text-gray-500 mt-0.5 truncate">{activity.action}</p>
                 </div>
@@ -230,8 +272,8 @@ const Dashboard = () => {
         {/* Payroll Summary */}
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Payroll Trends</h2>
-            <span className="text-[10px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">Q2 2026</span>
+            <h2 className="text-xl font-semibold text-gray-900">Payroll Trends</h2>
+            <span className="text-[10px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">Q2 2026</span>
           </div>
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -240,14 +282,14 @@ const Dashboard = () => {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 10, fontWeight: 700}} />
                 <YAxis hide />
                 <Tooltip cursor={{fill: '#F9FAFB'}} />
-                <Bar dataKey="value" fill="#5A67D8" radius={[10, 10, 0, 0]} barSize={32} />
+                <Bar dataKey="value" fill="#0061E0" radius={[10, 10, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-6 p-5 bg-indigo-600 rounded-3xl flex items-center justify-between shadow-xl shadow-indigo-100">
+          <div className="mt-6 p-5 bg-primary rounded-3xl flex items-center justify-between shadow-xl shadow-primary/20">
             <div>
-              <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest">Total Monthly Spent</p>
-              <p className="text-2xl font-black text-white mt-1">₹128,450</p>
+              <p className="text-xs font-semibold text-indigo-200 uppercase tracking-widest">Total Monthly Spent</p>
+              <p className="text-2xl font-bold text-white mt-1">₹128,450</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white">
                <CreditCard size={24} />

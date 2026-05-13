@@ -22,7 +22,7 @@ const SummaryCard = ({ title, value, trend, icon, color }) => {
       </div>
       <div>
         <p className="text-gray-500 text-sm font-medium">{title}</p>
-        <h3 className="text-3xl font-bold text-gray-900 mt-1">{value}</h3>
+        <h3 className="text-3xl font-semibold text-gray-900 mt-1">{value}</h3>
       </div>
     </motion.div>
   );

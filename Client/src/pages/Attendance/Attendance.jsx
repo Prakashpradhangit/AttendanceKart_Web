@@ -58,7 +58,7 @@ const Attendance = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Attendance Management</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Attendance Management</h1>
           <p className="text-[11px] text-gray-500 font-medium">Real-time organizational tracking & insights</p>
         </div>
       </div>

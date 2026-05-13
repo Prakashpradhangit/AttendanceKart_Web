@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Building2, MoreVertical, ExternalLink } from 'lucide-react';
+import { Plus, Search, Filter, Building2, MoreVertical, ExternalLink, Edit2, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import OrganizationForm from '../components/OrganizationForm';
 
@@ -48,7 +48,8 @@ const SuperAdminOrganizations = () => {
         slug: newOrg.slug,
         phone_number: newOrg.contactNumber,
         subscription_year: mapDuration(newOrg.duration),
-        starting_date: newOrg.startDate
+        starting_date: newOrg.startDate,
+        status: newOrg.status || 'Active'
       };
 
       if (newOrg.orgPassword) {
@@ -113,7 +114,7 @@ const SuperAdminOrganizations = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#1E293B] tracking-tight">Organization Management</h1>
+          <h1 className="text-3xl font-semibold text-[#1E293B] tracking-tight">Organization Management</h1>
           <p className="text-gray-500 mt-1 font-medium">Overview and control of all registered companies</p>
         </div>
         <button 
@@ -121,7 +122,7 @@ const SuperAdminOrganizations = () => {
             setEditingOrg(null);
             setIsModalOpen(true);
           }}
-          className="flex items-center justify-center gap-2 bg-[#3B82F6] text-white px-6 py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#2563EB] transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+          className="flex items-center justify-center gap-2 bg-[#3B82F6] text-white px-6 py-3.5 rounded-2xl font-semibold shadow-lg shadow-blue-500/20 hover:bg-[#2563EB] transition-all transform hover:-translate-y-0.5 active:translate-y-0"
         >
           <Plus size={20} />
           <span>Add Organization</span>
@@ -139,11 +140,11 @@ const SuperAdminOrganizations = () => {
           />
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-100 transition-all border border-gray-100">
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 text-gray-600 rounded-xl font-semibold text-sm hover:bg-gray-100 transition-all border border-gray-100">
             <Filter size={18} />
             <span>Filter</span>
           </button>
-          <select className="flex-1 md:flex-none px-4 py-3 bg-gray-50 text-gray-600 rounded-xl font-bold text-sm outline-none border border-gray-100 focus:border-[#3B82F6] transition-all cursor-pointer">
+          <select className="flex-1 md:flex-none px-4 py-3 bg-gray-50 text-gray-600 rounded-xl font-semibold text-sm outline-none border border-gray-100 focus:border-[#3B82F6] transition-all cursor-pointer">
             <option>All Status</option>
             <option>Active</option>
             <option>Pending</option>
@@ -157,7 +158,7 @@ const SuperAdminOrganizations = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-50 bg-gray-50/30">
+              <tr className="text-gray-400 text-[10px] font-bold uppercase tracking-widest border-b border-gray-50 bg-gray-50/30">
                 <th className="px-8 py-5">Organization Info</th>
                 <th className="px-8 py-5">Primary Admin</th>
                 <th className="px-8 py-5">Slug</th>
@@ -171,26 +172,30 @@ const SuperAdminOrganizations = () => {
                 <tr key={org.id} className="hover:bg-blue-50/30 transition-colors group">
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-[#3B82F6] font-black border border-blue-100 shadow-sm group-hover:scale-110 transition-transform">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-[#3B82F6] font-bold border border-blue-100 shadow-sm group-hover:scale-110 transition-transform">
                         {org.organisation_name ? org.organisation_name.charAt(0) : 'O'}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-[#1E293B] group-hover:text-[#3B82F6] transition-colors">{org.organisation_name}</p>
+                        <p className="text-sm font-semibold text-[#1E293B] group-hover:text-[#3B82F6] transition-colors">{org.organisation_name}</p>
                         <p className="text-xs text-gray-400 font-medium">{org.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <p className="text-sm font-bold text-[#1E293B]">{org.name}</p>
+                    <p className="text-sm font-semibold text-[#1E293B]">{org.name}</p>
                     <p className="text-xs text-gray-400 font-medium">Joined {org.starting_date}</p>
                   </td>
                   <td className="px-8 py-5">
-                    <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-1 rounded-md uppercase tracking-tighter">/{org.slug}</span>
+                    <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-md uppercase tracking-tighter">/{org.slug}</span>
                   </td>
-                  <td className="px-8 py-5 text-sm font-bold text-[#1E293B]">N/A</td>
+                  <td className="px-8 py-5 text-sm font-semibold text-[#1E293B]">N/A</td>
                   <td className="px-8 py-5">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-600`}>
-                      Active
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      org.status === 'Inactive' 
+                        ? 'bg-rose-100 text-rose-600' 
+                        : 'bg-emerald-100 text-emerald-600'
+                    }`}>
+                      {org.status || 'Active'}
                     </span>
                   </td>
                   <td className="px-8 py-5 text-right">
@@ -210,19 +215,22 @@ const SuperAdminOrganizations = () => {
                               initial={{ opacity: 0, scale: 0.95, y: -10 }}
                               animate={{ opacity: 1, scale: 1, y: 0 }}
                               exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                              className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-20"
+                              className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 p-1.5 z-20 flex items-center gap-1"
                             >
                               <button 
                                 onClick={() => openEditModal(org)}
-                                className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-blue-50 hover:text-[#3B82F6] rounded-xl transition-all flex items-center gap-2"
+                                title="Edit Organization"
+                                className="p-2 text-gray-600 hover:bg-blue-50 hover:text-[#3B82F6] rounded-lg transition-all flex items-center justify-center"
                               >
-                                Edit Organization
+                                <Edit2 size={18} />
                               </button>
+                              <div className="w-px h-4 bg-gray-100 mx-0.5" />
                               <button 
                                 onClick={() => handleDeleteOrganization(org.id)}
-                                className="w-full text-left px-4 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-50 rounded-xl transition-all flex items-center gap-2"
+                                title="Delete Organization"
+                                className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all flex items-center justify-center"
                               >
-                                Delete Organization
+                                <Trash2 size={18} />
                               </button>
                             </motion.div>
                           </>
@@ -243,11 +251,11 @@ const SuperAdminOrganizations = () => {
           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
             <Building2 className="text-gray-300" size={40} />
           </div>
-          <h3 className="text-xl font-bold text-gray-400">No Organizations Found</h3>
+          <h3 className="text-xl font-semibold text-gray-400">No Organizations Found</h3>
           <p className="text-gray-400 mt-1">Start by adding your first organization.</p>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="mt-6 text-[#3B82F6] font-bold hover:underline"
+            className="mt-6 text-[#3B82F6] font-semibold hover:underline"
           >
             Add Organization Now
           </button>

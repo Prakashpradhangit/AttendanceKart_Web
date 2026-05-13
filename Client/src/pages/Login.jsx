@@ -36,6 +36,12 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok && data.role === "ADMIN") {
+        // Prevent login if organization is inactive
+        if (data.organisation_status === "Inactive") {
+          setError("Your organization account is currently inactive. Please contact Super Admin.");
+          setLoading(false);
+          return;
+        }
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.role);
         localStorage.setItem("isAuthenticated", "true");
@@ -68,7 +74,7 @@ const Login = () => {
                 className="h-16 w-auto"
               />
             </div>
-            <h1 className="text-5xl font-bold text-[#1E293B] ">
+            <h1 className="text-5xl font-semibold text-[#1E293B] ">
               AttendanceKart <br />
               <span className="text-[#3B82F6]">Smart HR Solutions.</span>
             </h1>
@@ -121,7 +127,7 @@ const Login = () => {
                     <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-[#1E293B] mb-1.5">
+                <h2 className="text-2xl font-semibold text-[#1E293B] mb-1.5">
                   AttendanceKart <span className="text-[#3B82F6]">Login</span>
                 </h2>
                 <p className="text-[#64748B] text-sm font-medium">
@@ -204,7 +210,7 @@ const Login = () => {
                   </label>
                   <a
                     href="#"
-                    className="text-xs font-bold text-[#3B82F6] hover:underline"
+                    className="text-xs font-semibold text-[#3B82F6] hover:underline"
                   >
                     Forgot Password?
                   </a>
@@ -213,7 +219,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#2563EB] text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2.5 hover:bg-[#1D4ED8] transition-all shadow-[0_10px_25px_rgba(37,99,235,0.25)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-[#2563EB] text-white py-3.5 rounded-2xl font-semibold flex items-center justify-center gap-2.5 hover:bg-[#1D4ED8] transition-all shadow-[0_10px_25px_rgba(37,99,235,0.25)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <Lock size={16} />
                   <span>
@@ -228,7 +234,7 @@ const Login = () => {
                 Don't have an account?{" "}
                 <a
                   href="#"
-                  className="text-[#3B82F6] font-bold hover:underline"
+                  className="text-[#3B82F6] font-semibold hover:underline"
                 >
                   Contact Sales
                 </a>

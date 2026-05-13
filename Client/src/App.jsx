@@ -11,6 +11,7 @@ import EmployeeDashboard from './pages/EmployeeDashboard';
 import EmployeeAttendance from './pages/EmployeeAttendance';
 import EmployeeLayout from './layouts/EmployeeLayout';
 import EmployeeLeaves from './pages/Employeeleaves';
+import EmployeeSalary from './pages/EmployeeSalary';
 import { EmployeeProvider } from './context/EmployeeContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
@@ -39,6 +40,7 @@ function App() {
           <Route path="/superadmin/login" element={<SuperAdminLogin />} />
 
           <Route element={<ProtectedRoute />} >
+            {/* Admin Routes */}
             <Route element={<AdminLayout />}>
               <Route path="/admin/dashboard" element={<Dashboard />} />
               <Route path="/admin/employees" element={<Employees />} />
@@ -49,12 +51,15 @@ function App() {
               <Route path="/admin/settings" element={<Settings />} />
             </Route>
 
+            {/* Employee Routes */}
             <Route element={<EmployeeLayout />}>
               <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
               <Route path="/employee/attendance" element={<EmployeeAttendance />} />
               <Route path="/employee/leaves" element={<EmployeeLeaves />} />
+              <Route path="/employee/salary" element={<EmployeeSalary />} />
             </Route>
 
+            {/* Super Admin Routes */}
             <Route element={<SuperAdminLayout />}>
               <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
               <Route path="/superadmin/organizations" element={<SuperAdminOrganizations />} />

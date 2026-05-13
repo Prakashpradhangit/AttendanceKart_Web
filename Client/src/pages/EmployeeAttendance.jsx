@@ -72,11 +72,11 @@ const EmployeeAttendance = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Attendance</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Attendance</h1>
           <p className="text-xs md:text-sm text-gray-400 font-medium mt-1">Track and manage your daily attendance records</p>
         </div>
         <div className="flex gap-3">
-          <button className="hidden sm:flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-black text-gray-700 hover:bg-gray-50 transition-all shadow-sm">
+          <button className="hidden sm:flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm">
             <Download size={16} /> Export
           </button>
           <button className="p-3 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-2xl border border-gray-100 shadow-sm">
@@ -87,9 +87,9 @@ const EmployeeAttendance = () => {
       {/* Weekly Shift Overview */}
       <div className="space-y-6">
         <div className="flex items-center justify-between px-2">
-           <h2 className="text-xl font-black text-gray-800 tracking-tight">Weekly Shift Overview</h2>
+           <h2 className="text-xl font-bold text-gray-800 tracking-tight">Weekly Shift Overview</h2>
            <div className="flex gap-2">
-             <button className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 py-1.5 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100 transition-all">Next Week</button>
+             <button className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-1.5 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100 transition-all">Next Week</button>
            </div>
         </div>
         
@@ -109,26 +109,26 @@ const EmployeeAttendance = () => {
                 } hover:shadow-md transition-all cursor-pointer overflow-hidden`}
               >
                 {item.current && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-blue-500 text-[8px] font-black text-white px-3 py-1 rounded-b-xl uppercase tracking-widest">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-blue-500 text-[8px] font-bold text-white px-3 py-1 rounded-b-xl uppercase tracking-widest">
                     Today
                   </div>
                 )}
                 
                 <div className="text-center mt-2">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{item.day}</p>
-                  <p className="text-xs font-black text-gray-900 mb-4">{item.date}</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{item.day}</p>
+                  <p className="text-xs font-bold text-gray-900 mb-4">{item.date}</p>
                   
                   <div className={`w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center ${styles.bg} ${styles.text} shadow-inner group-hover:scale-110 transition-transform duration-300`}>
                     <Icon size={24} />
                   </div>
                   
-                  <h4 className="text-xs font-black text-gray-900 mb-1">{item.shift}</h4>
-                  <div className="flex items-center justify-center gap-1.5 text-[9px] font-bold text-gray-400 mb-4">
+                  <h4 className="text-xs font-bold text-gray-900 mb-1">{item.shift}</h4>
+                  <div className="flex items-center justify-center gap-1.5 text-[9px] font-semibold text-gray-400 mb-4">
                     <Clock size={10} />
                     {item.time}
                   </div>
                   
-                  <span className={`inline-block px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                  <span className={`inline-block px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest ${
                     item.status === 'Present' ? 'bg-green-50 text-green-600' :
                     item.status === 'On Leave' ? 'bg-red-50 text-red-600' :
                     item.status === 'Upcoming' ? 'bg-blue-50 text-blue-600' :
@@ -151,7 +151,7 @@ const EmployeeAttendance = () => {
           {/* Calendar Section */}
           <div className="bg-white rounded-[40px] p-8 shadow-sm border border-gray-50">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-black text-gray-900">{months[currentMonthIndex]}</h3>
+              <h3 className="text-xl font-bold text-gray-900">{months[currentMonthIndex]}</h3>
               <div className="flex items-center gap-2">
                 <button 
                   onClick={handlePreviousMonth}
@@ -170,13 +170,13 @@ const EmployeeAttendance = () => {
 
             <div className="grid grid-cols-7 gap-y-4 sm:gap-y-6 text-center">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                <span key={day} className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{day}</span>
+                <span key={day} className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{day}</span>
               ))}
               
               {/* Previous Month Days (Grayed out) */}
               {Array.from({ length: startDay }).map((_, i) => (
                 <div key={`prev-${i}`} className="flex items-center justify-center">
-                  <span className="text-gray-200 py-2 sm:py-3 text-xs sm:text-sm font-bold opacity-30">
+                  <span className="text-gray-200 py-2 sm:py-3 text-xs sm:text-sm font-semibold opacity-30">
                     {prevMonthDays - startDay + i + 1}
                   </span>
                 </div>
@@ -191,7 +191,7 @@ const EmployeeAttendance = () => {
                 
                 return (
                   <div key={day} className="flex items-center justify-center">
-                    <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-xs sm:text-sm font-black transition-all rounded-full ${
+                    <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-xs sm:text-sm font-bold transition-all rounded-full ${
                       isPresent ? 'border-2 border-[#22C55E] text-[#22C55E]' : 
                       isAbsent ? 'border-2 border-[#EF4444] text-[#EF4444]' : 
                       isSunday ? 'border-2 border-blue-500 text-blue-500 bg-blue-50/30' :
@@ -207,15 +207,15 @@ const EmployeeAttendance = () => {
 
           {/* Today's Activity Section */}
           <div className="bg-white rounded-[40px] p-8 shadow-sm border border-gray-50">
-            <h3 className="text-lg font-black text-gray-800 mb-6 tracking-tight">Today's Activity</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-6 tracking-tight">Today's Activity</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="flex items-center gap-4 bg-gray-50/50 p-6 rounded-[24px] border border-gray-100 group transition-all">
                 <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-[#22C55E] shadow-inner group-hover:scale-105 transition-transform">
                   <LogIn size={24} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-in</p>
-                  <h3 className="text-xl font-black text-gray-900">09:30 AM</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Check-in</p>
+                  <h3 className="text-xl font-bold text-gray-900">09:30 AM</h3>
                 </div>
               </div>
 
@@ -224,8 +224,8 @@ const EmployeeAttendance = () => {
                   <LogOut size={24} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Check-out</p>
-                  <h3 className="text-xl font-black text-gray-900">05:30 PM</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Check-out</p>
+                  <h3 className="text-xl font-bold text-gray-900">05:30 PM</h3>
                 </div>
               </div>
             </div>
@@ -236,8 +236,8 @@ const EmployeeAttendance = () => {
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white rounded-[40px] p-8 shadow-sm border border-gray-50 h-full flex flex-col">
             <div className="flex items-center justify-between mb-8">
-               <h2 className="text-xl font-black text-gray-800 tracking-tight">Recent History</h2>
-               <button className="text-[11px] font-black text-blue-600 hover:underline uppercase tracking-widest">View All</button>
+               <h2 className="text-xl font-bold text-gray-800 tracking-tight">Recent History</h2>
+               <button className="text-[11px] font-bold text-blue-600 hover:underline uppercase tracking-widest">View All</button>
             </div>
 
             <div className="space-y-4 flex-1">
@@ -248,11 +248,11 @@ const EmployeeAttendance = () => {
                       <CalendarIcon size={18} />
                     </div>
                     <div>
-                      <p className="text-xs font-black text-gray-900">{item.date}</p>
-                      <p className="text-[10px] font-bold text-gray-400 mt-0.5">{item.time}</p>
+                      <p className="text-xs font-bold text-gray-900">{item.date}</p>
+                      <p className="text-[10px] font-semibold text-gray-400 mt-0.5">{item.time}</p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
                     item.status === 'Present' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
                   }`}>
                     {item.status}
@@ -261,7 +261,7 @@ const EmployeeAttendance = () => {
               ))}
             </div>
 
-            <button className="w-full bg-[#2563EB] text-white py-4 rounded-[20px] font-black flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all transform hover:-translate-y-1 active:scale-95 mt-8">
+            <button className="w-full bg-[#2563EB] text-white py-4 rounded-[20px] font-bold flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all transform hover:-translate-y-1 active:scale-95 mt-8">
               <Download size={18} />
               <span className="text-sm">Export Full Report</span>
             </button>
