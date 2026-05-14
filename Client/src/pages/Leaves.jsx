@@ -75,7 +75,7 @@ const Leaves = () => {
       {/* Header Section */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Leave Management</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Leave Management</h1>
           <p className="text-gray-500 text-sm mt-1">Manage and track employee leave requests</p>
         </div>
         <div className="flex gap-3">
@@ -97,7 +97,7 @@ const Leaves = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-gray-500 text-sm font-medium">{stat.title}</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</h3>
+                <h3 className="text-3xl font-semibold text-gray-900 mt-2">{stat.value}</h3>
               </div>
               <div className={`p-3 rounded-lg ${stat.color}`}>
                 {getIcon(stat.icon)}
@@ -308,7 +308,7 @@ const Leaves = () => {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-bold text-gray-900">128</span>
+                <span className="text-2xl font-semibold text-gray-900">128</span>
                 <span className="text-xs text-gray-500">Total Leaves</span>
               </div>
             </div>

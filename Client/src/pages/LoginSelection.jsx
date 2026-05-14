@@ -21,7 +21,7 @@ const LoginSelection = () => {
             <div className="flex items-center gap-3 mb-4">
                <img src="/logo-removebg-preview.png" alt="AttendanceKart Logo" className="h-16 w-auto" />
             </div>
-            <h1 className="text-5xl font-bold text-[#1E293B] leading-tight">
+            <h1 className="text-5xl font-semibold text-[#1E293B] leading-tight">
               AttendanceKart <br />
               <span className="text-[#3B82F6]">Smart HR Solutions.</span>
             </h1>
@@ -68,7 +68,7 @@ const LoginSelection = () => {
                     <ShieldCheck size={32} className="text-[#3B82F6]" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-[#1E293B] mb-2">
+                <h2 className="text-2xl font-semibold text-[#1E293B] mb-2">
                   Select <span className="text-[#3B82F6]">Login Type</span>
                 </h2>
                 <p className="text-[#64748B] text-sm font-medium max-w-[280px]">
@@ -86,7 +86,7 @@ const LoginSelection = () => {
                       <ShieldCheck className="text-[#3B82F6]" size={24} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-[#1E293B]">Admin Login</h3>
+                      <h3 className="font-semibold text-[#1E293B]">Admin Login</h3>
                       <p className="text-xs text-[#64748B] font-medium">Manage organization & payroll</p>
                     </div>
                   </div>
@@ -102,7 +102,7 @@ const LoginSelection = () => {
                       <User className="text-[#3B82F6]" size={24} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-[#1E293B]">Employee Login</h3>
+                      <h3 className="font-semibold text-[#1E293B]">Employee Login</h3>
                       <p className="text-xs text-[#64748B] font-medium">View attendance & profile</p>
                     </div>
                   </div>
@@ -112,7 +112,7 @@ const LoginSelection = () => {
               </div>
 
               <p className="text-center mt-10 text-[#64748B] text-xs font-medium">
-                Need help? <a href="#" className="text-[#3B82F6] font-bold hover:underline">Support Center</a>
+                Need help? <a href="#" className="text-[#3B82F6] font-semibold hover:underline">Support Center</a>
               </p>
             </div>
           </div>

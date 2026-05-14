@@ -12,7 +12,8 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
     totalUsers: '',
     contactNumber: '',
     orgEmail: '',
-    orgPassword: ''
+    orgPassword: '',
+    status: 'Active'
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -59,7 +60,7 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
       >
         <div className="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
           <div>
-            <h2 className="text-2xl font-bold text-[#1E293B]">{initialData ? 'Edit Organization' : 'Add New Organization'}</h2>
+            <h2 className="text-2xl font-semibold text-[#1E293B]">{initialData ? 'Edit Organization' : 'Add New Organization'}</h2>
             <p className="text-sm text-gray-500 font-medium">{initialData ? 'Update organizational details' : 'Register a new company on the platform'}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400">
@@ -71,11 +72,14 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Organization Name */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Organization Name</label>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Organization Name</label>
               <input 
                 required
                 type="text" 
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
+                disabled={!!initialData}
+                className={`w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm ${
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]'
+                }`}
                 value={formData.orgName}
                 onChange={(e) => setFormData({...formData, orgName: e.target.value})}
                 placeholder="e.g. Acme Corp"
@@ -84,11 +88,14 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
             {/* Admin Name */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Admin Name</label>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Admin Name</label>
               <input 
                 required
                 type="text" 
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
+                disabled={!!initialData}
+                className={`w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm ${
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]'
+                }`}
                 value={formData.adminName}
                 onChange={(e) => setFormData({...formData, adminName: e.target.value})}
                 placeholder="Primary Admin Name"
@@ -97,11 +104,14 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
             {/* Slug */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Slug (URL Identifier)</label>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Slug (URL Identifier)</label>
               <input 
                 required
                 type="text" 
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
+                disabled={!!initialData}
+                className={`w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm ${
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]'
+                }`}
                 value={formData.slug}
                 onChange={(e) => setFormData({...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
                 placeholder="acme-corp"
@@ -110,11 +120,11 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
             {/* Start Date */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Start Date</label>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Start Date</label>
               <input 
                 required
                 type="date" 
-                className="w-full bg-gray-100 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none text-gray-500 cursor-not-allowed font-bold text-sm"
+                className="w-full bg-gray-100 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none text-gray-500 cursor-not-allowed font-semibold text-sm"
                 value={formData.startDate}
                 disabled
               />
@@ -122,9 +132,12 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
             {/* Duration */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Duration</label>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Duration</label>
               <select 
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
+                disabled={!!initialData}
+                className={`w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm ${
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]'
+                }`}
                 value={formData.duration}
                 onChange={(e) => setFormData({...formData, duration: e.target.value})}
               >
@@ -137,11 +150,14 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
             {/* Total User */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Total Users Allowed</label>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Total Users Allowed</label>
               <input 
                 required
                 type="number" 
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
+                disabled={!!initialData}
+                className={`w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm ${
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]'
+                }`}
                 value={formData.totalUsers}
                 onChange={(e) => setFormData({...formData, totalUsers: e.target.value})}
                 placeholder="e.g. 100"
@@ -150,11 +166,14 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
             {/* Contact Number */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Contact Number</label>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Contact Number</label>
               <input 
                 required
                 type="tel" 
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
+                disabled={!!initialData}
+                className={`w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm ${
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]'
+                }`}
                 value={formData.contactNumber}
                 onChange={(e) => setFormData({...formData, contactNumber: e.target.value})}
                 placeholder="+1 234 567 890"
@@ -163,7 +182,7 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
             {/* Org Email */}
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">Organization Email</label>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Organization Email</label>
               <input 
                 required
                 type="email" 
@@ -175,9 +194,9 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
             </div>
 
             {/* Org Password */}
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="text-sm font-bold text-[#1E293B] ml-1">
-                Organization Admin Password {initialData && <span className="text-gray-400 font-medium">(Leave blank to keep current)</span>}
+            <div className={`space-y-1.5 ${initialData ? 'md:col-span-1' : 'md:col-span-2'}`}>
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">
+                Organization Admin Password {initialData && <span className="text-gray-400 font-medium">(Optional)</span>}
               </label>
               <div className="relative">
                 <input 
@@ -197,19 +216,34 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 </button>
               </div>
             </div>
+
+            {/* Status (Only show when editing) */}
+            {initialData && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-[#1E293B] ml-1">Account Status</label>
+                <select 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm cursor-pointer"
+                  value={formData.status}
+                  onChange={(e) => setFormData({...formData, status: e.target.value})}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 flex gap-4">
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 py-4 border border-gray-200 rounded-2xl font-bold text-gray-500 hover:bg-gray-50 transition-all text-sm"
+              className="flex-1 py-4 border border-gray-200 rounded-2xl font-semibold text-gray-500 hover:bg-gray-50 transition-all text-sm"
             >
               Cancel
             </button>
             <button 
               type="submit"
-              className="flex-1 py-4 bg-[#3B82F6] text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#2563EB] transition-all text-sm"
+              className="flex-1 py-4 bg-[#3B82F6] text-white rounded-2xl font-semibold shadow-lg shadow-blue-500/20 hover:bg-[#2563EB] transition-all text-sm"
             >
               {initialData ? 'Update Organization' : 'Register Organization'}
             </button>

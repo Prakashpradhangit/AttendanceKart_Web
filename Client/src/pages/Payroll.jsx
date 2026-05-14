@@ -8,6 +8,7 @@ import {
   ChevronDown, ArrowRight, Printer, Share2
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import PayslipTemplate from '../components/PayslipTemplate';
 import { 
   payrollData as initialPayrollData, 
   payslipRequests as initialRequests,
@@ -112,6 +113,11 @@ const Payroll = () => {
   };
 
   const handleProcessAction = () => {
+    if ((modalType === 'create' || modalType === 'edit') && modalStep === 'form') {
+      setModalStep('preview');
+      return;
+    }
+
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
@@ -157,7 +163,7 @@ const Payroll = () => {
           <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-[30px] flex items-center justify-center mx-auto mb-6">
             <Lock size={40} />
           </div>
-          <h2 className="text-3xl font-black text-gray-900 mb-2">Payroll Security</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Payroll Security</h2>
           <p className="text-sm text-gray-500 mb-8 font-medium px-4">This section contains sensitive financial data. Please enter your administrator PIN.</p>
           
           <form onSubmit={handlePinSubmit} className="flex flex-col gap-6">
@@ -167,19 +173,19 @@ const Payroll = () => {
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
                 placeholder="• • • •"
-                className="w-full bg-gray-50 border-2 border-gray-100 rounded-[24px] px-6 py-5 text-center text-4xl tracking-[1em] outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 font-black transition-all"
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-[24px] px-6 py-5 text-center text-4xl tracking-[1em] outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 font-bold transition-all"
                 maxLength={4}
                 autoFocus
               />
             </div>
-            {pinError && <p className="text-rose-500 text-sm font-bold animate-shake">{pinError}</p>}
-            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-[24px] transition-all shadow-xl shadow-indigo-200 active:scale-95">
+            {pinError && <p className="text-rose-500 text-sm font-semibold animate-shake">{pinError}</p>}
+            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-[24px] transition-all shadow-xl shadow-indigo-200 active:scale-95">
               Unlock Module
             </button>
           </form>
           <div className="mt-8 flex items-center justify-center gap-2 py-3 bg-gray-50 rounded-2xl">
              <Info size={14} className="text-gray-400" />
-             <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black">Default Access PIN: 1234</p>
+             <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Default Access PIN: 1234</p>
           </div>
         </div>
       </div>
@@ -206,19 +212,19 @@ const Payroll = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Payroll Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Payroll Management</h1>
           <p className="text-base text-gray-500 mt-1 font-medium">Review and manage employee salaries and payslips</p>
         </div>
         <div className="flex items-center gap-4">
           <button 
             onClick={() => openModal('export')}
-            className="flex items-center gap-2 px-6 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-600 hover:bg-gray-50 hover:border-gray-200 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 px-6 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 hover:border-gray-200 transition-all shadow-sm active:scale-95"
           >
             <Download size={20} /> Export Reports
           </button>
           <button 
             onClick={() => openModal('create')}
-            className="flex items-center gap-2 px-7 py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-100 active:scale-95"
+            className="flex items-center gap-2 px-7 py-3.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-100 active:scale-95"
           >
             <Plus size={20} /> Create Payroll
           </button>
@@ -230,13 +236,13 @@ const Payroll = () => {
         {/* Main Total Card */}
         <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-[32px] p-6 text-white shadow-xl shadow-indigo-100/50 relative overflow-hidden flex flex-col justify-between group min-h-[160px]">
           <div className="relative z-10">
-            <p className="text-indigo-100 text-[10px] font-black uppercase tracking-[0.15em] opacity-80">Total Payroll April</p>
-            <h3 className="text-3xl font-black mt-2 flex items-center gap-2">₹20,300</h3>
+            <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-[0.15em] opacity-80">Total Payroll April</p>
+            <h3 className="text-3xl font-bold mt-2 flex items-center gap-2">₹20,300</h3>
           </div>
-          <p className="text-indigo-200 text-[10px] font-bold mt-auto relative z-10 opacity-70">Total amount for April 2024</p>
+          <p className="text-indigo-200 text-[10px] font-semibold mt-auto relative z-10 opacity-70">Total amount for April 2024</p>
           <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000"></div>
           <div className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-lg group-hover:rotate-12 transition-all">
-             <span className="text-white font-black text-xl">₹</span>
+             <span className="text-white font-bold text-xl">₹</span>
           </div>
         </div>
 
@@ -246,9 +252,9 @@ const Payroll = () => {
                <stat.icon size={24} />
             </div>
             <div className="mt-3">
-              <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.1em]">{stat.title}</p>
-              <h3 className="text-xl font-black text-gray-900 mt-1">{stat.value}</h3>
-              <p className="text-gray-400 text-[10px] font-bold mt-0.5 opacity-80">{stat.sub}</p>
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.1em]">{stat.title}</p>
+              <h3 className="text-xl font-bold text-gray-900 mt-1">{stat.value}</h3>
+              <p className="text-gray-400 text-[10px] font-semibold mt-0.5 opacity-80">{stat.sub}</p>
             </div>
           </div>
         ))}
@@ -257,10 +263,10 @@ const Payroll = () => {
       {/* Recent Payrolls Section */}
       <div className="bg-white rounded-[40px] shadow-sm border border-gray-50 overflow-hidden">
         <div className="p-10 border-b border-gray-50 flex flex-col lg:flex-row justify-between lg:items-center gap-6">
-          <h2 className="text-2xl font-black text-gray-900">Recent Payrolls</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Recent Payrolls</h2>
           <div className="flex flex-wrap items-center gap-4">
             <div className="relative group">
-              <select className="appearance-none bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-3 pr-12 text-sm font-black text-gray-600 outline-none focus:border-indigo-500/30 transition-all cursor-pointer">
+              <select className="appearance-none bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-3 pr-12 text-sm font-bold text-gray-600 outline-none focus:border-indigo-500/30 transition-all cursor-pointer">
                 <option>April 2024</option>
                 <option>March 2024</option>
               </select>
@@ -268,7 +274,7 @@ const Payroll = () => {
             </div>
             <button 
               onClick={() => openModal('filter')}
-              className="flex items-center gap-2 px-5 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-600 hover:bg-gray-100 hover:border-gray-200 transition-all active:scale-95"
+              className="flex items-center gap-2 px-5 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-100 hover:border-gray-200 transition-all active:scale-95"
             >
               <Filter size={20} /> Filter
             </button>
@@ -277,7 +283,7 @@ const Payroll = () => {
               <input 
                 type="text" 
                 placeholder="Search employee name or ID..."
-                className="pl-12 pr-6 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500/30 w-72 transition-all"
+                className="pl-12 pr-6 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-semibold outline-none focus:border-indigo-500/30 w-72 transition-all"
               />
             </div>
           </div>
@@ -286,7 +292,7 @@ const Payroll = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-gray-400 text-[10px] font-black uppercase tracking-[0.15em] border-b border-gray-50 bg-gray-50/10">
+              <tr className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.15em] border-b border-gray-50 bg-gray-50/10">
                 <th className="px-8 py-6">Employee</th>
                 <th className="px-6 py-6">Month</th>
                 <th className="px-6 py-6">Base Salary</th>
@@ -303,22 +309,22 @@ const Payroll = () => {
                 <tr key={pay.id} className="hover:bg-indigo-50/5 transition-all group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center text-sm font-black shadow-sm ${avatarColors[pay.avatar] || 'bg-gray-100'}`}>
+                      <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center text-sm font-bold shadow-sm ${avatarColors[pay.avatar] || 'bg-gray-100'}`}>
                         {pay.avatar}
                       </div>
                       <div>
-                        <p className="text-base font-black text-gray-900 group-hover:text-indigo-600 transition-colors">{pay.name}</p>
-                        <p className="text-[11px] font-bold text-gray-400 tracking-wider uppercase">{pay.empId}</p>
+                        <p className="text-base font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{pay.name}</p>
+                        <p className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">{pay.empId}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-sm font-bold text-gray-500">{pay.month}</td>
-                  <td className="px-8 py-6 text-sm font-bold text-gray-500">{pay.base}</td>
-                  <td className="px-8 py-6 text-sm font-bold text-gray-500">{pay.bonus}</td>
-                  <td className="px-8 py-6 text-sm font-bold text-gray-500">{pay.deductions}</td>
-                  <td className="px-8 py-6 text-base font-black text-gray-900">{pay.total}</td>
+                  <td className="px-8 py-6 text-sm font-semibold text-gray-500">{pay.month}</td>
+                  <td className="px-8 py-6 text-sm font-semibold text-gray-500">{pay.base}</td>
+                  <td className="px-8 py-6 text-sm font-semibold text-gray-500">{pay.bonus}</td>
+                  <td className="px-8 py-6 text-sm font-semibold text-gray-500">{pay.deductions}</td>
+                  <td className="px-8 py-6 text-base font-bold text-gray-900">{pay.total}</td>
                   <td className="px-8 py-6 text-center">
-                    <span className={`px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest inline-block shadow-sm ${
+                    <span className={`px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest inline-block shadow-sm ${
                       pay.status === 'Paid' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
                       pay.status === 'Pending' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-gray-100 text-gray-500'
                     }`}>
@@ -329,24 +335,24 @@ const Payroll = () => {
                     {pay.status !== 'Draft' ? (
                       <button 
                         onClick={() => openModal('download', pay)}
-                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-black text-xs group/link"
+                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-xs group/link"
                       >
                         <Download size={16} className="group-hover/link:translate-y-0.5 transition-transform" /> Download PDF
                       </button>
                     ) : (
-                      <span className="text-gray-300 font-bold tracking-widest">—</span>
+                      <span className="text-gray-300 font-semibold tracking-widest">—</span>
                     )}
                   </td>
                   <td className="px-8 py-6 text-center">
                     <div className="flex items-center justify-center gap-3">
                        {pay.status === 'Paid' ? (
-                         <button className="flex items-center gap-2 px-5 py-2 bg-gray-100 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-default border border-transparent">
+                         <button className="flex items-center gap-2 px-5 py-2 bg-gray-100 text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-wider cursor-default border border-transparent">
                             <Check size={14} /> Paid
                          </button>
                        ) : pay.status === 'Pending' ? (
                          <button 
                            onClick={() => openModal('payment', pay)}
-                           className="flex items-center gap-2 px-5 py-2 bg-indigo-50 text-indigo-600 border-2 border-indigo-100 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95"
+                           className="flex items-center gap-2 px-5 py-2 bg-indigo-50 text-indigo-600 border-2 border-indigo-100 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95"
                          >
                             <Wallet size={14} /> Make Payment
                          </button>
@@ -354,7 +360,7 @@ const Payroll = () => {
                          <div className="flex items-center gap-2">
                             <button 
                               onClick={() => openModal('edit', pay)}
-                              className="flex items-center gap-2 px-5 py-2 bg-white border-2 border-gray-100 rounded-xl text-[10px] font-black text-gray-600 uppercase tracking-wider hover:border-indigo-500/30 hover:bg-gray-50 transition-all active:scale-95"
+                              className="flex items-center gap-2 px-5 py-2 bg-white border-2 border-gray-100 rounded-xl text-[10px] font-bold text-gray-600 uppercase tracking-wider hover:border-indigo-500/30 hover:bg-gray-50 transition-all active:scale-95"
                             >
                                <Edit2 size={14} /> Edit
                             </button>
@@ -375,8 +381,8 @@ const Payroll = () => {
           <button className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all disabled:opacity-20" disabled>
              <ChevronLeft size={24} />
           </button>
-          <button className="w-11 h-11 rounded-2xl bg-indigo-600 text-white font-black text-sm shadow-xl shadow-indigo-100">1</button>
-          <button className="w-11 h-11 rounded-2xl text-gray-500 font-black text-sm hover:bg-white border-2 border-transparent hover:border-gray-100 transition-all">2</button>
+          <button className="w-11 h-11 rounded-2xl bg-indigo-600 text-white font-bold text-sm shadow-xl shadow-indigo-100">1</button>
+          <button className="w-11 h-11 rounded-2xl text-gray-500 font-bold text-sm hover:bg-white border-2 border-transparent hover:border-gray-100 transition-all">2</button>
           <button className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all">
              <ChevronRight size={24} />
           </button>
@@ -387,17 +393,17 @@ const Payroll = () => {
       <div className="bg-white rounded-[40px] shadow-sm border border-gray-50 overflow-hidden">
         <div className="p-10 border-b border-gray-50 flex items-center justify-between">
           <div className="flex items-center gap-4">
-             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Payslip Approval Requests</h2>
-             <span className="bg-indigo-50 text-indigo-600 px-3.5 py-1 rounded-2xl text-xs font-black ring-4 ring-indigo-500/5">{requestsList.length}</span>
+             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Payslip Approval Requests</h2>
+             <span className="bg-indigo-50 text-indigo-600 px-3.5 py-1 rounded-2xl text-xs font-bold ring-4 ring-indigo-500/5">{requestsList.length}</span>
           </div>
-          <button className="text-sm font-black text-indigo-600 flex items-center gap-2 hover:translate-x-1 transition-transform">
+          <button className="text-sm font-bold text-indigo-600 flex items-center gap-2 hover:translate-x-1 transition-transform">
              View All Requests <ExternalLink size={18} />
           </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-gray-400 text-[11px] font-black uppercase tracking-[0.2em] border-b border-gray-50 bg-gray-50/30">
+              <tr className="text-gray-400 text-[11px] font-bold uppercase tracking-[0.2em] border-b border-gray-50 bg-gray-50/30">
                 <th className="px-10 py-6">Employee</th>
                 <th className="px-8 py-6 text-center">Month</th>
                 <th className="px-8 py-6">Request Date</th>
@@ -411,19 +417,19 @@ const Payroll = () => {
                 <tr key={req.id} className="hover:bg-gray-50/50 transition-all group">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center text-sm font-black ${avatarColors[req.avatar] || 'bg-gray-100'}`}>
+                      <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center text-sm font-bold ${avatarColors[req.avatar] || 'bg-gray-100'}`}>
                         {req.avatar}
                       </div>
                       <div>
-                        <p className="text-base font-black text-gray-900">{req.name}</p>
-                        <p className="text-[11px] font-bold text-gray-400 tracking-wider uppercase">{req.empId}</p>
+                        <p className="text-base font-bold text-gray-900">{req.name}</p>
+                        <p className="text-[11px] font-semibold text-gray-400 tracking-wider uppercase">{req.empId}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-center text-sm font-bold text-gray-500">{req.month}</td>
-                  <td className="px-8 py-6 text-sm font-bold text-gray-500">{req.requestDate}</td>
+                  <td className="px-8 py-6 text-center text-sm font-semibold text-gray-500">{req.month}</td>
+                  <td className="px-8 py-6 text-sm font-semibold text-gray-500">{req.requestDate}</td>
                   <td className="px-8 py-6 text-center">
-                    <span className="px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-orange-50 text-orange-600 border border-orange-100 shadow-sm">
+                    <span className="px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-orange-50 text-orange-600 border border-orange-100 shadow-sm">
                       {req.status}
                     </span>
                   </td>
@@ -434,13 +440,13 @@ const Payroll = () => {
                      <div className="flex items-center justify-center gap-3">
                         <button 
                           onClick={() => openModal('approve', req)}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-emerald-50 text-emerald-600 border-2 border-emerald-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-sm active:scale-95"
+                          className="flex items-center gap-2 px-6 py-2.5 bg-emerald-50 text-emerald-600 border-2 border-emerald-100 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-sm active:scale-95"
                         >
                            <CheckCircle2 size={16} /> Approve
                         </button>
                         <button 
                           onClick={() => openModal('reject', req)}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-600 border-2 border-rose-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-95"
+                          className="flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-600 border-2 border-rose-100 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-95"
                         >
                            <X size={16} /> Reject
                         </button>
@@ -460,11 +466,13 @@ const Payroll = () => {
         maxWidth={
           modalStep === 'success' ? 'max-w-xl' :
           modalType === 'download' ? 'max-w-5xl' :
+          modalStep === 'preview' ? 'max-w-5xl' :
           (modalType === 'create' || modalType === 'edit') ? 'max-w-4xl' : 
           'max-w-2xl'
         }
         title={
           modalStep === 'success' ? (modalType === 'approve' ? 'Request Approved!' : 'Success!') :
+          modalStep === 'preview' ? 'Confirm Payroll Details' :
           modalType === 'create' ? 'Create Payroll' :
           modalType === 'edit' ? 'Edit Payroll' :
           modalType === 'payment' ? 'Make Payment' :
@@ -482,12 +490,12 @@ const Payroll = () => {
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Employee<span className="text-rose-500 ml-0.5">*</span></label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Employee<span className="text-rose-500 ml-0.5">*</span></label>
                       <div className="relative">
                         <select 
                           value={formData.employeeId}
                           onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none focus:border-indigo-500/30 font-black text-sm appearance-none cursor-pointer"
+                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none focus:border-indigo-500/30 font-bold text-sm appearance-none cursor-pointer"
                         >
                           <option value="">Select Employee</option>
                           {employeesList.map(emp => (
@@ -498,75 +506,75 @@ const Payroll = () => {
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Month<span className="text-rose-500 ml-0.5">*</span></label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Month<span className="text-rose-500 ml-0.5">*</span></label>
                       <div className="relative">
                         <input 
                           type="text" 
                           value={formData.month}
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none font-black text-sm"
+                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none font-bold text-sm"
                           readOnly
                         />
                         <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Base Salary<span className="text-rose-500 ml-0.5">*</span></label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Base Salary<span className="text-rose-500 ml-0.5">*</span></label>
                       <div className="relative">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-black">₹</span>
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                         <input 
                           type="number" 
                           value={formData.base}
                           onChange={(e) => setFormData({...formData, base: e.target.value})}
                           placeholder="0.00"
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-black text-sm"
+                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-bold text-sm"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Bonus</label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Bonus</label>
                       <div className="relative">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-black">₹</span>
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                         <input 
                           type="number" 
                           value={formData.bonus}
                           onChange={(e) => setFormData({...formData, bonus: e.target.value})}
                           placeholder="0.00"
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-black text-sm"
+                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-bold text-sm"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Deductions</label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Deductions</label>
                       <div className="relative">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-black">₹</span>
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                         <input 
                           type="number" 
                           value={formData.deductions}
                           onChange={(e) => setFormData({...formData, deductions: e.target.value})}
                           placeholder="0.00"
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-black text-sm"
+                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-bold text-sm"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Total Amount</label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Total Amount</label>
                       <div className="relative group">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-indigo-400 font-black">₹</span>
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-indigo-400 font-bold">₹</span>
                         <input 
                           type="text" 
                           value={calculateTotal()}
                           readOnly
-                          className="w-full bg-indigo-50/50 border-2 border-indigo-100 text-indigo-600 rounded-2xl py-3.5 pl-10 pr-5 outline-none font-black text-base"
+                          className="w-full bg-indigo-50/50 border-2 border-indigo-100 text-indigo-600 rounded-2xl py-3.5 pl-10 pr-5 outline-none font-bold text-base"
                         />
                       </div>
                     </div>
                     <div className="md:col-span-2 space-y-1.5">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Status</label>
                       <div className="relative">
                         <select 
                           value={formData.status}
                           onChange={(e) => setFormData({...formData, status: e.target.value})}
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none focus:border-indigo-500/30 font-black text-sm appearance-none cursor-pointer"
+                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none focus:border-indigo-500/30 font-bold text-sm appearance-none cursor-pointer"
                         >
                           <option value="DRAFT">DRAFT</option>
                           <option value="PENDING">PENDING</option>
@@ -576,14 +584,14 @@ const Payroll = () => {
                     </div>
                   </div>
                   <div className="flex justify-end gap-4 pt-4">
-                    <button onClick={closeModal} className="px-7 py-3.5 text-sm font-black text-gray-400 hover:text-gray-600 transition-colors">Cancel</button>
+                    <button onClick={closeModal} className="px-7 py-3.5 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors">Cancel</button>
                     {modalType === 'create' && (
-                       <button className="px-7 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-600 hover:bg-gray-50 transition-all">Save Draft</button>
+                       <button className="px-7 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all">Save Draft</button>
                     )}
                     <button 
                       onClick={handleProcessAction}
                       disabled={isLoading}
-                      className="px-10 py-3.5 bg-indigo-600 text-white rounded-[20px] font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
+                      className="px-10 py-3.5 bg-indigo-600 text-white rounded-[20px] font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
                     >
                       {isLoading ? <Loader2 className="animate-spin" size={18} /> : (modalType === 'create' ? 'Generate Payroll' : 'Save Changes')}
                     </button>
@@ -596,19 +604,19 @@ const Payroll = () => {
                 <div className="space-y-6">
                    <div className="space-y-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Month</label>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Month</label>
                         <div className="relative">
-                          <input type="text" value={filterData.month} className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-black text-sm" readOnly />
+                          <input type="text" value={filterData.month} className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-bold text-sm" readOnly />
                           <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Status</label>
                         <div className="relative">
                           <select 
                             value={filterData.status}
                             onChange={(e) => setFilterData({...filterData, status: e.target.value})}
-                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none font-black text-sm appearance-none"
+                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none font-bold text-sm appearance-none"
                           >
                             <option>All Status</option>
                             <option>Paid</option>
@@ -620,8 +628,8 @@ const Payroll = () => {
                       </div>
                    </div>
                    <div className="flex items-center gap-4 pt-4">
-                      <button onClick={closeModal} className="flex-1 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-400 hover:text-gray-600 transition-all">Reset</button>
-                      <button onClick={closeModal} className="flex-[2] py-3.5 bg-indigo-600 text-white rounded-[20px] font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Apply Filter</button>
+                      <button onClick={closeModal} className="flex-1 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-400 hover:text-gray-600 transition-all">Reset</button>
+                      <button onClick={closeModal} className="flex-[2] py-3.5 bg-indigo-600 text-white rounded-[20px] font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Apply Filter</button>
                    </div>
                 </div>
               )}
@@ -631,22 +639,22 @@ const Payroll = () => {
                 <div className="space-y-6">
                    <div className="space-y-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Select Month<span className="text-rose-500 ml-0.5">*</span></label>
-                        <select className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-black text-sm appearance-none outline-none">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Select Month<span className="text-rose-500 ml-0.5">*</span></label>
+                        <select className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-bold text-sm appearance-none outline-none">
                            <option>April 2024</option>
                            <option>March 2024</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Report Type<span className="text-rose-500 ml-0.5">*</span></label>
-                        <select className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-black text-sm appearance-none outline-none">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Report Type<span className="text-rose-500 ml-0.5">*</span></label>
+                        <select className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-bold text-sm appearance-none outline-none">
                            <option>Payroll Report</option>
                            <option>Attendance Report</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Format<span className="text-rose-500 ml-0.5">*</span></label>
-                        <select className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-black text-sm appearance-none outline-none">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Format<span className="text-rose-500 ml-0.5">*</span></label>
+                        <select className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-bold text-sm appearance-none outline-none">
                            <option>Excel (.xlsx)</option>
                            <option>PDF (.pdf)</option>
                            <option>CSV (.csv)</option>
@@ -654,8 +662,8 @@ const Payroll = () => {
                       </div>
                    </div>
                    <div className="flex items-center gap-4 pt-4">
-                      <button onClick={closeModal} className="flex-1 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-400 hover:text-gray-600 transition-all">Cancel</button>
-                      <button onClick={handleProcessAction} className="flex-[2] py-3.5 bg-indigo-600 text-white rounded-[20px] font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Export</button>
+                      <button onClick={closeModal} className="flex-1 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-400 hover:text-gray-600 transition-all">Cancel</button>
+                      <button onClick={handleProcessAction} className="flex-[2] py-3.5 bg-indigo-600 text-white rounded-[20px] font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Export</button>
                    </div>
                 </div>
               )}
@@ -665,22 +673,22 @@ const Payroll = () => {
                 <div className="space-y-8">
                    <div className="space-y-4 text-left bg-gray-50 p-6 rounded-3xl border border-gray-100">
                       <div className="flex justify-between">
-                         <span className="text-xs font-bold text-gray-400 uppercase">Employee</span>
-                         <span className="text-sm font-black text-gray-900">{selectedItem?.name} ({selectedItem?.empId})</span>
+                         <span className="text-xs font-semibold text-gray-400 uppercase">Employee</span>
+                         <span className="text-sm font-bold text-gray-900">{selectedItem?.name} ({selectedItem?.empId})</span>
                       </div>
                       <div className="flex justify-between">
-                         <span className="text-xs font-bold text-gray-400 uppercase">Month</span>
-                         <span className="text-sm font-black text-gray-900">{selectedItem?.month}</span>
+                         <span className="text-xs font-semibold text-gray-400 uppercase">Month</span>
+                         <span className="text-sm font-bold text-gray-900">{selectedItem?.month}</span>
                       </div>
                       <div className="flex justify-between pt-4 border-t border-gray-200">
-                         <span className="text-xs font-black text-indigo-400 uppercase">Total Amount</span>
-                         <span className="text-xl font-black text-indigo-600">{selectedItem?.total}</span>
+                         <span className="text-xs font-bold text-indigo-400 uppercase">Total Amount</span>
+                         <span className="text-xl font-bold text-indigo-600">{selectedItem?.total}</span>
                       </div>
                    </div>
                    <div className="space-y-4">
                       <div className="space-y-1.5">
-                         <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 block text-left">Payment Method<span className="text-rose-500 ml-0.5">*</span></label>
-                         <select className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-black text-sm appearance-none outline-none">
+                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 block text-left">Payment Method<span className="text-rose-500 ml-0.5">*</span></label>
+                         <select className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-bold text-sm appearance-none outline-none">
                             <option>Select Method</option>
                             <option>Bank Transfer</option>
                             <option>UPI</option>
@@ -688,13 +696,13 @@ const Payroll = () => {
                          </select>
                       </div>
                       <div className="space-y-1.5">
-                         <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 block text-left">Transaction ID (Optional)</label>
-                         <input type="text" placeholder="Enter Transaction ID" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-black text-sm outline-none" />
+                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 block text-left">Transaction ID (Optional)</label>
+                         <input type="text" placeholder="Enter Transaction ID" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 font-bold text-sm outline-none" />
                       </div>
                    </div>
                    <div className="flex items-center gap-4">
-                      <button onClick={closeModal} className="flex-1 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-400 hover:text-gray-600 transition-all">Cancel</button>
-                      <button onClick={handleProcessAction} className="flex-[2] py-3.5 bg-indigo-600 text-white rounded-[20px] font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Confirm Payment</button>
+                      <button onClick={closeModal} className="flex-1 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-400 hover:text-gray-600 transition-all">Cancel</button>
+                      <button onClick={handleProcessAction} className="flex-[2] py-3.5 bg-indigo-600 text-white rounded-[20px] font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Confirm Payment</button>
                    </div>
                 </div>
               )}
@@ -704,178 +712,148 @@ const Payroll = () => {
                 <div className="space-y-8">
                    <div className="space-y-4 text-left bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
                       <div className="flex justify-between">
-                         <span className="text-xs font-bold text-emerald-600/60 uppercase">Employee</span>
-                         <span className="text-sm font-black text-emerald-900">{selectedItem?.name} ({selectedItem?.empId})</span>
+                         <span className="text-xs font-semibold text-emerald-600/60 uppercase">Employee</span>
+                         <span className="text-sm font-bold text-emerald-900">{selectedItem?.name} ({selectedItem?.empId})</span>
                       </div>
                       <div className="flex justify-between">
-                         <span className="text-xs font-bold text-emerald-600/60 uppercase">Month</span>
-                         <span className="text-sm font-black text-emerald-900">{selectedItem?.month}</span>
+                         <span className="text-xs font-semibold text-emerald-600/60 uppercase">Month</span>
+                         <span className="text-sm font-bold text-emerald-900">{selectedItem?.month}</span>
                       </div>
                       <div className="pt-4 border-t border-emerald-100">
-                         <p className="text-xs font-bold text-emerald-600/60 uppercase mb-1">Reason</p>
+                         <p className="text-xs font-semibold text-emerald-600/60 uppercase mb-1">Reason</p>
                          <p className="text-sm font-medium text-emerald-800 leading-relaxed">{selectedItem?.reason}</p>
                       </div>
                    </div>
                    <div className="space-y-1.5 text-left">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Add Note (Optional)</label>
-                      <textarea placeholder="Enter note" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-5 font-bold text-sm outline-none min-h-[100px] focus:border-emerald-500/30"></textarea>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Add Note (Optional)</label>
+                      <textarea placeholder="Enter note" className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-5 font-semibold text-sm outline-none min-h-[100px] focus:border-emerald-500/30"></textarea>
                    </div>
                    <div className="flex items-center gap-4">
-                      <button onClick={closeModal} className="flex-1 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-black text-gray-400 hover:text-gray-600 transition-all">Cancel</button>
-                      <button onClick={handleProcessAction} className="flex-[2] py-3.5 bg-emerald-600 text-white rounded-[20px] font-black text-sm shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all">Approve</button>
+                      <button onClick={closeModal} className="flex-1 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-400 hover:text-gray-600 transition-all">Cancel</button>
+                      <button onClick={handleProcessAction} className="flex-[2] py-3.5 bg-emerald-600 text-white rounded-[20px] font-bold text-sm shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all">Approve</button>
                    </div>
+                 </div>
+               )}
+
+               {/* Payroll Preview Step (Side-by-Side Breakdown) */}
+               {modalStep === 'preview' && (
+                <div className="space-y-8">
+                  <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-10">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">Payroll Breakdown</h3>
+                        <p className="text-sm text-gray-500 font-medium">Reviewing details for {employeesList.find(e => e.id === formData.employeeId)?.name || 'Employee'}</p>
+                      </div>
+                      <div className="px-5 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold uppercase tracking-widest">
+                        {formData.month}
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-12">
+                      {/* Earnings */}
+                      <div className="space-y-6">
+                        <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 pb-4">
+                          <span>Earnings</span>
+                          <span>Amount (₹)</span>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center group px-4 py-2 rounded-xl hover:bg-emerald-50/50 transition-all">
+                             <div className="flex items-center gap-3">
+                                <PlusCircle size={18} className="text-emerald-500/40 group-hover:text-emerald-500" />
+                                <span className="text-sm font-semibold text-gray-600">Basic Salary</span>
+                             </div>
+                             <span className="text-sm font-bold text-gray-900">₹ {parseInt(formData.base).toLocaleString()}</span>
+                          </div>
+                          {parseInt(formData.bonus) > 0 && (
+                            <div className="flex justify-between items-center group px-4 py-2 rounded-xl hover:bg-emerald-50/50 transition-all">
+                               <div className="flex items-center gap-3">
+                                  <PlusCircle size={18} className="text-emerald-500/40 group-hover:text-emerald-500" />
+                                  <span className="text-sm font-semibold text-gray-600">Bonus & Incentives</span>
+                               </div>
+                               <span className="text-sm font-bold text-gray-900">₹ {parseInt(formData.bonus).toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-8 bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
+                           <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">Gross Total</span>
+                           <span className="text-xl font-bold text-emerald-700">₹ {(parseInt(formData.base || 0) + parseInt(formData.bonus || 0)).toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Deductions */}
+                      <div className="space-y-6">
+                        <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 pb-4">
+                          <span>Deductions</span>
+                          <span>Amount (₹)</span>
+                        </div>
+                        <div className="space-y-3">
+                           <div className="flex justify-between items-center group px-4 py-2 rounded-xl hover:bg-rose-50/50 transition-all">
+                             <div className="flex items-center gap-3">
+                                <MinusCircle size={18} className="text-rose-500/40 group-hover:text-rose-500" />
+                                <span className="text-sm font-semibold text-gray-600">Tax & Other Deductions</span>
+                             </div>
+                             <span className="text-sm font-bold text-gray-900">₹ {parseInt(formData.deductions).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <div className="mt-8 bg-rose-50 p-6 rounded-2xl border border-rose-100 flex justify-between items-center">
+                           <span className="text-xs font-bold text-rose-700 uppercase tracking-widest">Total Deductions</span>
+                           <span className="text-xl font-bold text-rose-700">₹ {parseInt(formData.deductions || 0).toLocaleString()}</span>
+                        </div>
+                        
+                        {/* Net Salary Payable */}
+                        <div className="mt-6 bg-indigo-600 p-6 rounded-2xl shadow-xl shadow-indigo-100 flex justify-between items-center text-white">
+                           <span className="text-xs font-bold uppercase tracking-widest opacity-80">Net Payable</span>
+                           <span className="text-2xl font-bold">₹ {calculateTotal()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-4">
+                    <button onClick={() => setModalStep('form')} className="px-8 py-4 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors">Back to Edit</button>
+                    <button 
+                      onClick={handleProcessAction}
+                      disabled={isLoading}
+                      className="px-10 py-4 bg-indigo-600 text-white rounded-[20px] font-bold text-sm shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center gap-2"
+                    >
+                      {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Finalize & Generate'}
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Payslip Preview (Step 6) */}
+              {/* Payslip Preview for Downloaded Items */}
               {modalType === 'download' && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                   <div id="printable-payslip" className="bg-gray-900/5 rounded-3xl p-8 border-2 border-dashed border-gray-200 overflow-hidden">
-                      <div className="bg-white rounded-sm shadow-2xl p-12 text-left space-y-10 max-w-[800px] mx-auto border border-gray-100 relative min-h-[900px] flex flex-col">
-                         {/* Watermark/Logo Background */}
-                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
-                            <Briefcase size={400} />
-                         </div>
-
-                         <div className="flex justify-between items-start border-b-4 border-indigo-600 pb-10 relative z-10">
-                            <div>
-                               <h4 className="text-3xl font-black text-gray-900 tracking-tight">ABC Company Pvt. Ltd.</h4>
-                               <p className="text-sm font-bold text-gray-400 mt-2 uppercase tracking-[0.3em]">Official Payslip</p>
-                            </div>
-                            <div className="text-right">
-                               <div className="w-16 h-16 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center ml-auto">
-                                  <Briefcase size={32} className="text-indigo-600" />
-                               </div>
-                               <p className="text-[10px] font-black text-gray-400 mt-3 uppercase tracking-widest">Confidential Document</p>
-                            </div>
-                         </div>
-                         
-                         <div className="grid grid-cols-2 gap-x-16 relative z-10 bg-gray-50/50 p-8 rounded-2xl border border-gray-100">
-                            <div className="space-y-5">
-                               <div className="flex justify-between border-b border-gray-200 pb-2">
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Employee Name</span>
-                                  <span className="text-xs font-black text-gray-900">{selectedItem?.name}</span>
-                               </div>
-                               <div className="flex justify-between border-b border-gray-200 pb-2">
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Employee ID</span>
-                                  <span className="text-xs font-black text-gray-900">{selectedItem?.empId}</span>
-                               </div>
-                               <div className="flex justify-between border-b border-gray-200 pb-2">
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Designation</span>
-                                  <span className="text-xs font-black text-gray-900">Software Engineer</span>
-                               </div>
-                               <div className="flex justify-between border-b border-gray-200 pb-2">
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Department</span>
-                                  <span className="text-xs font-black text-gray-900">Engineering</span>
-                               </div>
-                            </div>
-                            <div className="space-y-5">
-                               <div className="flex justify-between border-b border-gray-200 pb-2">
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Pay Date</span>
-                                  <span className="text-xs font-black text-gray-900">May 01, 2024</span>
-                               </div>
-                               <div className="flex justify-between border-b border-gray-200 pb-2">
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Month & Year</span>
-                                  <span className="text-xs font-black text-gray-900">{selectedItem?.month}</span>
-                               </div>
-                               <div className="flex justify-between border-b border-gray-200 pb-2">
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">PAN Card</span>
-                                  <span className="text-xs font-black text-gray-900 uppercase">A8CPD1234X</span>
-                               </div>
-                               <div className="flex justify-between border-b border-gray-200 pb-2">
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Bank Account</span>
-                                  <span className="text-xs font-black text-gray-900">XXXX XXXX 1234</span>
-                               </div>
-                            </div>
-                         </div>
-
-                         <div className="grid grid-cols-2 gap-16 relative z-10 flex-1">
-                            <div className="space-y-6">
-                               <h5 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] border-b-2 border-indigo-100 pb-3">Earnings Breakdown</h5>
-                               <div className="space-y-4">
-                                  <div className="flex justify-between text-xs font-bold text-gray-600">
-                                     <span>Basic Salary</span>
-                                     <span>{selectedItem?.base}</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs font-bold text-gray-600">
-                                     <span>House Rent Allowance</span>
-                                     <span>₹0</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs font-bold text-gray-600">
-                                     <span>Performance Bonus</span>
-                                     <span>{selectedItem?.bonus}</span>
-                                  </div>
-                               </div>
-                               <div className="flex justify-between text-sm font-black text-gray-900 pt-6 border-t-2 border-gray-100">
-                                  <span>Total Earnings</span>
-                                  <span>{selectedItem?.total}</span>
-                               </div>
-                            </div>
-                            <div className="space-y-6">
-                               <h5 className="text-xs font-black text-rose-600 uppercase tracking-[0.2em] border-b-2 border-rose-100 pb-3">Deductions</h5>
-                               <div className="space-y-4">
-                                  <div className="flex justify-between text-xs font-bold text-gray-600">
-                                     <span>Provident Fund (PF)</span>
-                                     <span>₹0</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs font-bold text-gray-600">
-                                     <span>Professional Tax</span>
-                                     <span>₹0</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs font-bold text-gray-600">
-                                     <span>Income Tax (TDS)</span>
-                                     <span>{selectedItem?.deductions}</span>
-                                  </div>
-                               </div>
-                               <div className="flex justify-between text-sm font-black text-gray-900 pt-6 border-t-2 border-gray-100">
-                                  <span>Total Deductions</span>
-                                  <span>{selectedItem?.deductions}</span>
-                               </div>
-                            </div>
-                         </div>
-
-                         <div className="bg-gray-900 rounded-3xl p-10 flex justify-between items-center text-white shadow-2xl relative z-10 mt-auto overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-full bg-indigo-600/10 pointer-events-none"></div>
-                            <div>
-                               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-300">Net Payable Amount</span>
-                               <p className="text-sm text-gray-400 mt-1 font-bold">In words: Fifty Thousand Rupees Only</p>
-                            </div>
-                            <span className="text-4xl font-black tracking-tight">{selectedItem?.total}</span>
-                         </div>
-                         
-                         <div className="flex justify-between items-end pt-12 relative z-10">
-                            <div className="space-y-4">
-                               <div className="w-40 h-1 bg-gray-100"></div>
-                               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Employee Signature</p>
-                            </div>
-                            <div className="text-right space-y-2">
-                               <p className="text-[10px] text-gray-300 font-bold italic">This is a digitally signed, system generated document.</p>
-                               <div className="flex justify-end gap-1">
-                                  <CheckCircle2 size={12} className="text-emerald-500" />
-                                  <span className="text-[8px] font-black text-emerald-500 uppercase">Verified Secure</span>
-                               </div>
-                            </div>
-                            <div className="space-y-4">
-                               <div className="w-40 h-1 bg-gray-100"></div>
-                               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Authorized Signatory</p>
-                            </div>
-                         </div>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-6 max-w-[800px] mx-auto">
-                      <button 
-                        onClick={handlePrint}
-                        className="flex-1 py-5 bg-white border-2 border-gray-100 rounded-[24px] font-black text-sm text-gray-600 flex items-center justify-center gap-3 hover:bg-gray-50 hover:border-gray-200 transition-all shadow-sm"
-                      >
-                         <Printer size={20} /> Print Document
-                      </button>
-                      <button 
-                        onClick={handlePrint}
-                        className="flex-1 py-5 bg-indigo-600 text-white rounded-[24px] font-black text-sm shadow-2xl shadow-indigo-100 flex items-center justify-center gap-3 hover:bg-indigo-700 hover:scale-[1.02] transition-all"
-                      >
-                         <Download size={20} /> Download PDF File
-                      </button>
-                   </div>
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="bg-gray-50 rounded-3xl p-8 border-2 border-dashed border-gray-200">
+                    <PayslipTemplate 
+                      data={{
+                        orgName: 'AttendanceKart Solutions',
+                        employeeName: selectedItem?.name,
+                        employeeId: selectedItem?.empId,
+                        month: selectedItem?.month.split(' ')[0],
+                        year: selectedItem?.month.split(' ')[1],
+                        earnings: [
+                          { name: 'Base Salary', amount: selectedItem?.base.replace('₹', '') },
+                          { name: 'Bonus', amount: selectedItem?.bonus.replace('₹', '') }
+                        ],
+                        deductions: [
+                          { name: 'Total Deductions', amount: selectedItem?.deductions.replace('₹', '') }
+                        ],
+                        totalEarnings: (parseInt(selectedItem?.base.replace(/\D/g,'')) + parseInt(selectedItem?.bonus.replace(/\D/g,''))).toLocaleString(),
+                        totalDeductions: selectedItem?.deductions.replace('₹', ''),
+                        netSalary: selectedItem?.total.replace('₹', '')
+                      }} 
+                    />
+                  </div>
+                  <div className="flex justify-center gap-4">
+                    <button onClick={handlePrint} className="flex items-center gap-2 px-8 py-4 bg-white border-2 border-gray-100 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-all">
+                       <Printer size={20} /> Print Payslip
+                    </button>
+                    <button onClick={closeModal} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all">
+                       Done
+                    </button>
+                  </div>
                 </div>
               )}
             </>
@@ -888,12 +866,12 @@ const Payroll = () => {
                 <Check size={56} strokeWidth={4} />
               </div>
               <div className="space-y-3">
-                <h3 className="text-3xl font-black text-gray-900">
+                <h3 className="text-3xl font-bold text-gray-900">
                   {modalType === 'create' ? 'Payroll Created Successfully!' :
                    modalType === 'payment' ? 'Payment Successful!' :
                    modalType === 'approve' ? 'Request Approved!' : 'Changes Saved!'}
                 </h3>
-                <p className="text-base text-gray-500 font-bold px-10">
+                <p className="text-base text-gray-500 font-semibold px-10">
                    {modalType === 'create' ? `Payroll for ${employeesList.find(e => e.id === formData.employeeId)?.name} (${formData.month}) has been created.` :
                     modalType === 'payment' ? `Payment of ${selectedItem?.total} to ${selectedItem?.name} has been recorded.` :
                     modalType === 'approve' ? `${selectedItem?.name} can now download the payslip for ${selectedItem?.month}.` :
@@ -901,8 +879,8 @@ const Payroll = () => {
                 </p>
                 {(modalType === 'create' || modalType === 'payment') && (
                    <div className="mt-6">
-                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Total Amount</p>
-                      <p className="text-4xl font-black text-gray-900 mt-2">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Amount</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">
                         {modalType === 'create' ? `₹${calculateTotal()}` : selectedItem?.total}
                       </p>
                    </div>
@@ -910,9 +888,9 @@ const Payroll = () => {
               </div>
               <div className="flex items-center gap-4 px-10">
                 {modalType === 'create' && (
-                  <button onClick={() => setModalStep('preview')} className="flex-1 py-4 bg-indigo-50 text-indigo-600 rounded-[20px] font-black text-sm hover:bg-indigo-100 transition-all">View Payroll</button>
+                  <button onClick={() => setModalStep('preview')} className="flex-1 py-4 bg-indigo-50 text-indigo-600 rounded-[20px] font-bold text-sm hover:bg-indigo-100 transition-all">View Payroll</button>
                 )}
-                <button onClick={closeModal} className="flex-1 py-4 bg-indigo-600 text-white rounded-[20px] font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Close</button>
+                <button onClick={closeModal} className="flex-1 py-4 bg-indigo-600 text-white rounded-[20px] font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Close</button>
               </div>
             </div>
           )}

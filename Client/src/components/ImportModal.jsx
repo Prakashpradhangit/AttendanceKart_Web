@@ -140,7 +140,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
       >
         <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
-            <h2 className="text-2xl font-black text-gray-900">Bulk Import Employees</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Bulk Import Employees</h2>
             <p className="text-sm text-gray-500 font-medium">Add hundreds of employees in seconds</p>
           </div>
           <button onClick={onClose} className="p-3 hover:bg-gray-200 rounded-full transition-colors group">
@@ -152,7 +152,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
           <div className="flex p-1.5 bg-gray-100 rounded-2xl mb-8">
             <button 
               onClick={() => setActiveTab('file')}
-              className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black transition-all ${
+              className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-bold transition-all ${
                 activeTab === 'file' ? 'bg-white text-primary shadow-lg shadow-primary/5' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -160,7 +160,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
             </button>
             <button 
               onClick={() => setActiveTab('google')}
-              className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-black transition-all ${
+              className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-bold transition-all ${
                 activeTab === 'google' ? 'bg-white text-primary shadow-lg shadow-primary/5' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -182,14 +182,14 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                     <FileText size={40} />
                   </div>
                   <div>
-                    <p className="text-xl font-black text-gray-900">{file ? file.name : 'Click or Drag Excel File'}</p>
+                    <p className="text-xl font-bold text-gray-900">{file ? file.name : 'Click or Drag Excel File'}</p>
                     <p className="text-sm text-gray-500 mt-1">Upload .xlsx, .xls or .csv (Max 10MB)</p>
                   </div>
                 </div>
               </div>
               <button 
                 onClick={downloadSampleTemplate}
-                className="inline-flex items-center gap-2 text-primary text-sm font-black hover:underline bg-primary/5 px-4 py-2 rounded-xl"
+                className="inline-flex items-center gap-2 text-primary text-sm font-bold hover:underline bg-primary/5 px-4 py-2 rounded-xl"
               >
                 <Download size={16} /> Download Sample Template
               </button>
@@ -197,7 +197,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
           ) : (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Google Sheet URL</label>
+                <label className="text-sm font-semibold text-gray-700">Google Sheet URL</label>
                 <div className="flex gap-2">
                   <input 
                     type="text" 
@@ -209,7 +209,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                   <button 
                     onClick={handleGoogleSheetImport}
                     disabled={loading || !sheetUrl}
-                    className="px-8 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:bg-primary-hover disabled:opacity-50 flex items-center gap-2 transition-all active:scale-95"
+                    className="px-8 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-hover disabled:opacity-50 flex items-center gap-2 transition-all active:scale-95"
                   >
                     {loading ? <LoaderCircle className="animate-spin" size={20} /> : 'Fetch'}
                   </button>
@@ -220,7 +220,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                   </p>
                   <button 
                     onClick={downloadSampleTemplate}
-                    className="inline-flex items-center gap-2 text-primary text-[11px] font-black hover:underline bg-primary/5 px-4 py-2 rounded-xl uppercase tracking-wider"
+                    className="inline-flex items-center gap-2 text-primary text-[11px] font-bold hover:underline bg-primary/5 px-4 py-2 rounded-xl uppercase tracking-wider"
                   >
                     <Download size={14} /> Download Format Template
                   </button>
@@ -228,10 +228,10 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
               </div>
 
               <div className="p-5 bg-indigo-50/50 rounded-3xl border border-indigo-100/50">
-                 <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Required Spreadsheet Format</h4>
+                 <h4 className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-3">Required Spreadsheet Format</h4>
                  <div className="flex flex-wrap gap-2">
                    {['name', 'email', 'phone', 'department', 'role', 'joiningDate'].map(col => (
-                     <span key={col} className="bg-white border border-indigo-100 px-3 py-1 rounded-lg text-xs font-bold text-indigo-600 shadow-sm">{col}</span>
+                     <span key={col} className="bg-white border border-indigo-100 px-3 py-1 rounded-lg text-xs font-semibold text-indigo-600 shadow-sm">{col}</span>
                    ))}
                  </div>
                  <p className="text-[10px] text-indigo-400 mt-3 font-medium italic">* Column names must match exactly (case-sensitive)</p>
@@ -249,15 +249,15 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
           {preview && preview.length > 0 && (
             <div className="mt-6 border border-gray-100 rounded-2xl overflow-hidden shadow-inner">
               <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Preview (Top 5 rows)</span>
-                <span className="text-[10px] bg-green-100 text-green-600 px-3 py-1 rounded-full font-black uppercase tracking-wider">Valid Format</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Preview (Top 5 rows)</span>
+                <span className="text-[10px] bg-green-100 text-green-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Valid Format</span>
               </div>
               <div className="overflow-x-auto max-h-60">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-white border-b border-gray-100">
                     <tr>
                       {Object.keys(preview[0]).map(key => (
-                        <th key={key} className="px-4 py-4 font-black text-gray-400 uppercase tracking-tighter whitespace-nowrap">{key}</th>
+                        <th key={key} className="px-4 py-4 font-bold text-gray-400 uppercase tracking-tighter whitespace-nowrap">{key}</th>
                       ))}
                     </tr>
                   </thead>
@@ -277,11 +277,11 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
         </div>
 
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="px-6 py-2 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
+          <button onClick={onClose} className="px-6 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100">Cancel</button>
           <button 
             disabled={!preview || loading}
             onClick={handleConfirmImport}
-            className="px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary-hover disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2 bg-primary text-white rounded-xl text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary-hover disabled:opacity-50 flex items-center gap-2"
           >
             <CircleCheck size={18} /> Confirm Import
           </button>

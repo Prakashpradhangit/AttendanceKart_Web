@@ -8,13 +8,14 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#5A67D8',
-          dark: '#4C51BF',
-          light: '#7F9CF5',
+          DEFAULT: '#0061E0',
+          dark: '#004BB5',
+          light: '#3B82F6',
         },
+        success: '#22C55E',
         sidebar: {
-          bg: '#7C83C3',
-          active: '#6B7280', // placeholder
+          bg: '#0061E0',
+          active: '#004BB5',
         },
         dashboard: {
           bg: '#F3F4F6',

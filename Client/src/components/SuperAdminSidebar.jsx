@@ -45,7 +45,7 @@ const SuperAdminSidebar = ({ isOpen, toggleSidebar }) => {
           {isOpen && (
             <div className="flex items-center gap-2">
               <ShieldCheck className="text-[#3B82F6]" size={24} />
-              <h1 className="text-xl font-bold tracking-tight text-[#1E293B]">Super Admin</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-[#1E293B]">Super Admin</h1>
             </div>
           )}
           <button 
@@ -70,7 +70,7 @@ const SuperAdminSidebar = ({ isOpen, toggleSidebar }) => {
               }
             >
               <item.icon size={22} className="min-w-[22px]" />
-              {isOpen && <span className="whitespace-nowrap font-bold text-sm">{item.name}</span>}
+              {isOpen && <span className="whitespace-nowrap font-semibold text-sm">{item.name}</span>}
             </NavLink>
           ))}
         </nav>
@@ -81,7 +81,7 @@ const SuperAdminSidebar = ({ isOpen, toggleSidebar }) => {
             className="flex items-center gap-4 px-4 py-3 text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer rounded-xl w-full"
           >
             <LogOut size={22} className="min-w-[22px]" />
-            {isOpen && <span className="whitespace-nowrap font-bold text-sm">Logout</span>}
+            {isOpen && <span className="whitespace-nowrap font-semibold text-sm">Logout</span>}
           </button>
         </div>
       </aside>
