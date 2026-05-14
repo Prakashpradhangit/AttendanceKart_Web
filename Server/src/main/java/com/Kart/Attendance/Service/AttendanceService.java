@@ -81,4 +81,9 @@ public class AttendanceService {
 
         return attendanceRepository.save(attendance);
     }
+
+    public java.util.List<AttendanceDetails> getMonthlyAttendance(Long userId, String yearMonth) {
+        String tenantId = TenantContext.getCurrentTenant();
+        return attendanceRepository.findByUserIdAndTenantIdAndAttendanceDateStartingWith(String.valueOf(userId), tenantId, yearMonth);
+    }
 }

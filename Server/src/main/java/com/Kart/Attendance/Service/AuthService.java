@@ -8,6 +8,7 @@ import com.Kart.Attendance.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,9 +23,9 @@ public class AuthService {
 
     public Map<String, String> login(String email, String password) {
         
-        Optional<com.Kart.Attendance.Entity.SuperAdmin> superAdminOpt = superAdminRepository.findByEmail(email);
+        Optional<SuperAdmin> superAdminOpt = superAdminRepository.findByEmail(email);
         if (superAdminOpt.isPresent()) {
-            com.Kart.Attendance.Entity.SuperAdmin superAdmin = superAdminOpt.get();
+            SuperAdmin superAdmin = superAdminOpt.get();
             if (password != null && password.equals(superAdmin.getPassword())) {
                 String token = UUID.randomUUID().toString();
                 superAdmin.setAuthToken(token);
@@ -33,6 +34,7 @@ public class AuthService {
                 return Map.of(
                     "message", "Super Admin Login successful",
                     "role", "SUPER_ADMIN",
+                    "name", superAdmin.getName() != null ? superAdmin.getName() : "Super Admin",
                     "token", token
                 );
             }
@@ -74,6 +76,7 @@ public class AuthService {
                     "tenantId", user.getTenantId() != null ? user.getTenantId() : "",
                     "name", user.getName() != null ? user.getName() : "",
                     "email", user.getEmail() != null ? user.getEmail() : "",
+                    "employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "",
                     "token", token
                 );
             }
@@ -136,7 +139,8 @@ public class AuthService {
                     "userRole", user.getRole() != null ? user.getRole().name() : "",
                     "tenantId", user.getTenantId() != null ? user.getTenantId() : "",
                     "name", user.getName() != null ? user.getName() : "",
-                    "email", user.getEmail() != null ? user.getEmail() : ""
+                    "email", user.getEmail() != null ? user.getEmail() : "",
+                    "employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : ""
             );
         }
 

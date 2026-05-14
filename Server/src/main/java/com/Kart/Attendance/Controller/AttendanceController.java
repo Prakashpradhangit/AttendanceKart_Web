@@ -54,4 +54,13 @@ public class AttendanceController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+    @GetMapping("/monthly")
+    public ResponseEntity<?> getMonthlyAttendance(HttpServletRequest request, @RequestParam String month) {
+        if (!"USER".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        Long userId = (Long) request.getAttribute("authenticatedUserId");
+        java.util.List<AttendanceDetails> attendance = attendanceService.getMonthlyAttendance(userId, month);
+        return ResponseEntity.ok(attendance);
+    }
 }

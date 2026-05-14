@@ -2,6 +2,10 @@ import React from 'react';
 import { Bell, User, Menu } from 'lucide-react';
 
 const Navbar = ({ onMenuClick }) => {
+  const userName = localStorage.getItem('name') || 'User';
+  const employeeCode = localStorage.getItem('employeeCode');
+  const userRole = localStorage.getItem('role') || 'Guest';
+
   return (
     <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40">
       <div className="flex items-center gap-4">
@@ -21,11 +25,15 @@ const Navbar = ({ onMenuClick }) => {
         
         <div className="flex items-center gap-3 pl-3 lg:pl-6 border-l border-gray-100">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-gray-900">Admin User</p>
-            <p className="text-xs text-gray-500">Super Admin</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {userRole === 'USER' ? 'Employee' : userName}
+            </p>
+            <p className="text-xs text-gray-500">
+              {userRole === 'USER' ? `${userName} ${employeeCode ? `(${employeeCode})` : ''}` : userRole.replace('_', ' ')}
+            </p>
           </div>
           <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary overflow-hidden border-2 border-primary/20">
-             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" />
+             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} alt={userName} />
           </div>
         </div>
       </div>

@@ -30,6 +30,8 @@ const EmployeeLogin = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('role', data.role);
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('name', data.name || '');
+        localStorage.setItem('employeeCode', data.employeeCode || '');
         navigate('/employee/dashboard');
       } else {
         setError(data.error || 'Invalid credentials or unauthorized access.');

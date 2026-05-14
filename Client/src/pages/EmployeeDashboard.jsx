@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Bell, 
-  Calendar, 
-  UserPlus, 
-  Users, 
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Bell,
+  Calendar,
+  UserPlus,
+  Users,
   TrendingUp,
   Clock,
   X,
@@ -16,31 +16,42 @@ import {
   FileText,
   CheckCircle2,
   Plus,
-  Info
-} from 'lucide-react';
-import { 
+  Info,
+} from "lucide-react";
+import {
   BarChart,
   Bar,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
-  Cell
-} from 'recharts';
+  Cell,
+} from "recharts";
 
 const generateMonthData = () => {
   return Array.from({ length: 31 }, (_, i) => {
     const date = i + 1;
     // Generate some mock data
     const isWeekend = [6, 7, 13, 14, 20, 21, 27, 28].includes(date);
-    const hours = isWeekend ? (Math.random() > 0.8 ? 4 : 0) : (7 + Math.random() * 3).toFixed(1);
-    
+    const hours = isWeekend
+      ? Math.random() > 0.8
+        ? 4
+        : 0
+      : (7 + Math.random() * 3).toFixed(1);
+
     return {
       date: date,
       hours: parseFloat(hours),
       checkIn: hours > 0 ? "09:15 AM" : "---",
-      checkOut: hours > 0 ? `${(9 + Math.floor(hours)) % 12 || 12}:${Math.floor((hours % 1) * 60).toString().padStart(2, '0')} PM` : "---"
+      checkOut:
+        hours > 0
+          ? `${(9 + Math.floor(hours)) % 12 || 12}:${Math.floor(
+              (hours % 1) * 60,
+            )
+              .toString()
+              .padStart(2, "0")} PM`
+          : "---",
     };
   });
 };
@@ -49,44 +60,168 @@ const data = generateMonthData();
 
 const EmployeeDashboard = () => {
   const [showPopup, setShowPopup] = useState(false);
-  const [attendanceType, setAttendanceType] = useState('');
+  const [attendanceType, setAttendanceType] = useState("");
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [isCheckedOut, setIsCheckedOut] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [selectedMonth, setSelectedMonth] = useState('May 2026');
+  const [selectedMonth, setSelectedMonth] = useState("May 2026");
   const [chartData, setChartData] = useState(data);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [leaveType, setLeaveType] = useState('Sick Leave');
-  const [leaveDuration, setLeaveDuration] = useState('Full Day');
+  const [leaveType, setLeaveType] = useState("Sick Leave");
+  const [leaveDuration, setLeaveDuration] = useState("Full Day");
+  const [attendanceRecord, setAttendanceRecord] = useState(null);
+  const [workDuration, setWorkDuration] = useState("00:00:00");
+
+  const fetchTodayAttendance = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/attendance/today", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceRecord(data);
+        if (data) {
+          setIsCheckedIn(!!data.checkInTime);
+          setIsCheckedOut(!!data.checkOutTime);
+        } else {
+          setIsCheckedIn(false);
+          setIsCheckedOut(false);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch today attendance:", err);
+    }
+  };
+
+  const fetchMonthlyAttendance = async (monthStr) => {
+    try {
+      const token = localStorage.getItem("token");
+      // Map "May 2026" to "2026-05"
+      const [monthName, year] = monthStr.split(" ");
+      const monthMap = {
+        January: "01",
+        February: "02",
+        March: "03",
+        April: "04",
+        May: "05",
+        June: "06",
+        July: "07",
+        August: "08",
+        September: "09",
+        October: "10",
+        November: "11",
+        December: "12",
+      };
+      const monthVal = monthMap[monthName];
+      const yearMonth = `${year}-${monthVal}`;
+
+      const response = await fetch(
+        `/api/attendance/monthly?month=${yearMonth}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (response.ok) {
+        const attendanceList = await response.json();
+
+        // Map backend list to chart data structure
+        const daysInMonth = new Date(year, monthVal, 0).getDate();
+        const newChartData = Array.from({ length: daysInMonth }, (_, i) => {
+          const date = i + 1;
+          const dateStr = `${yearMonth}-${String(date).padStart(2, "0")}`;
+          const record = attendanceList.find(
+            (r) => r.attendanceDate === dateStr,
+          );
+
+          if (record) {
+            const parseTime = (timeStr) => {
+              if (!timeStr) return "---";
+              const date = new Date(timeStr);
+              return date.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              });
+            };
+
+            return {
+              date: date,
+              hours: record.workHours
+                ? parseFloat(record.workHours.replace(":", "."))
+                : 0,
+              checkIn: parseTime(record.checkInTime),
+              checkOut: parseTime(record.checkOutTime),
+            };
+          }
+
+          return {
+            date: date,
+            hours: 0,
+            checkIn: "---",
+            checkOut: "---",
+          };
+        });
+
+        setChartData(newChartData);
+      }
+    } catch (err) {
+      console.error("Failed to fetch monthly attendance:", err);
+    }
+  };
 
   useEffect(() => {
-    // Regenerate data when month changes to simulate data fetching
-    setChartData(generateMonthData());
+    fetchTodayAttendance();
+    fetchMonthlyAttendance(selectedMonth);
   }, [selectedMonth]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
+
+      // Update work duration if checked in and not checked out
+      if (attendanceRecord?.checkInTime && !attendanceRecord?.checkOutTime) {
+        const checkIn = new Date(attendanceRecord.checkInTime);
+        const now = new Date();
+        const diff = Math.floor((now - checkIn) / 1000);
+
+        const h = Math.floor(diff / 3600)
+          .toString()
+          .padStart(2, "0");
+        const m = Math.floor((diff % 3600) / 60)
+          .toString()
+          .padStart(2, "0");
+        const s = Math.floor(diff % 60)
+          .toString()
+          .padStart(2, "0");
+
+        setWorkDuration(`${h}:${m}:${s}`);
+      } else if (attendanceRecord?.workHours) {
+        setWorkDuration(attendanceRecord.workHours + ":00");
+      } else {
+        setWorkDuration("00:00:00");
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [attendanceRecord]);
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
     });
   };
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
     });
   };
 
@@ -99,27 +234,15 @@ const EmployeeDashboard = () => {
     <>
       <div className="flex flex-col gap-6 animate-in fade-in duration-700 max-w-7xl mx-auto pb-6">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">Dashboard Overview</h1>
-            <p className="text-xs md:text-sm text-gray-500 mt-1 font-medium">Welcome back! Here's what's happening today.</p>
-          </div>
-          <div className="flex items-center gap-3">
-             <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">{formatDate(currentTime)}</p>
-                <p className="text-sm font-semibold text-gray-900">{formatTime(currentTime)}</p>
-             </div>
-             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary border border-primary/20">
-                <Bell size={20} />
-             </div>
-          </div>
-        </div>
+
         {/* Stats Row - Updated with Total Present, Shift and Leave */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-[#F0FFF4] p-6 rounded-[32px] border border-green-50 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
             <div>
-              <p className="text-[10px] font-semibold text-[#22C55E]/60 uppercase tracking-widest mb-1">Total Present</p>
-              <h3 className="text-2xl font-semibold text-[#22C55E]">24</h3>
+              <p className="text-[10px] font-black text-[#22C55E]/60 uppercase tracking-widest mb-1">
+                Total Present
+              </p>
+              <h3 className="text-2xl font-black text-[#22C55E]">24</h3>
             </div>
             <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#22C55E]">
               <TrendingUp size={24} />
@@ -128,18 +251,26 @@ const EmployeeDashboard = () => {
 
           <div className="bg-[#F0F7FF] p-6 rounded-[32px] border border-blue-50 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
             <div>
-              <p className="text-[10px] font-semibold text-[#0061E0]/60 uppercase tracking-widest mb-1">Current Shift</p>
-              <h3 className="text-2xl font-semibold text-[#0061E0]">09:30 AM - 05:30 PM</h3>
+              <p className="text-[10px] font-black text-[#2563EB]/60 uppercase tracking-widest mb-1">
+                {isCheckedIn && !isCheckedOut ? "Active Time" : "Today's Work"}
+              </p>
+              <h3 className="text-2xl font-black text-[#2563EB]">
+                {workDuration}
+              </h3>
             </div>
-            <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#0061E0]">
+            <div
+              className={`w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#2563EB] ${isCheckedIn && !isCheckedOut ? "animate-pulse" : ""}`}
+            >
               <Clock size={24} />
             </div>
           </div>
 
           <div className="bg-[#FFF7ED] p-6 rounded-[32px] border border-orange-50 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
             <div>
-              <p className="text-[10px] font-semibold text-[#F97316]/60 uppercase tracking-widest mb-1">Leave Taken</p>
-              <h3 className="text-2xl font-semibold text-[#F97316]">6</h3>
+              <p className="text-[10px] font-black text-[#F97316]/60 uppercase tracking-widest mb-1">
+                Leave Taken
+              </p>
+              <h3 className="text-2xl font-black text-[#F97316]">6</h3>
             </div>
             <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#F97316]">
               <Calendar size={24} />
@@ -313,7 +444,46 @@ const EmployeeDashboard = () => {
                   </div>
                   <span className="text-sm font-semibold tracking-tight">Meetings</span>
                 </button>
-             </div>
+              </div>
+
+              {/* Active Time Display Div */}
+              <div className="bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm flex flex-col items-center justify-center group hover:shadow-md transition-all">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                  {isCheckedIn && !isCheckedOut
+                    ? "Work Duration"
+                    : "Current Time"}
+                </p>
+                <div className="flex items-center gap-3">
+                  <Clock size={20} className="text-[#2563EB]" />
+                  <span className="text-2xl font-black text-gray-900 tracking-tight">
+                    {workDuration}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <button
+                onClick={() => setShowLeaveModal(true)}
+                className="bg-white p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg transition-all group w-full text-left"
+              >
+                <div className="p-3 bg-gray-50 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">
+                  <UserPlus size={24} />
+                </div>
+                <span className="text-sm font-black tracking-tight">
+                  Apply Leave
+                </span>
+              </button>
+
+              <button className="bg-white p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg transition-all group">
+                <div className="p-3 bg-gray-50 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">
+                  <Users size={24} />
+                </div>
+                <span className="text-sm font-black tracking-tight">
+                  Meetings
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -321,13 +491,13 @@ const EmployeeDashboard = () => {
       {/* Attendance Modal */}
       {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-[40px] shadow-2xl w-full max-w-md overflow-hidden relative"
           >
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => setShowPopup(false)}
               className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
             >
@@ -349,7 +519,7 @@ const EmployeeDashboard = () => {
                   <User size={80} className="text-[#94A3B8]" />
                 </div>
                 {/* Scanning Animation Circle */}
-                <motion.div 
+                <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                   className="absolute inset-0 rounded-full border-t-4 border-l-4 border-transparent border-t-[#22C55E] border-l-[#22C55E]/30"
@@ -370,23 +540,26 @@ const EmployeeDashboard = () => {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={async () => {
                   try {
-                    const endpoint = attendanceType === 'Check In' ? '/api/attendance/clock-in' : '/api/attendance/clock-out';
-                    const token = localStorage.getItem('token');
+                    const endpoint =
+                      attendanceType === "Check In"
+                        ? "/api/attendance/clock-in"
+                        : "/api/attendance/clock-out";
+                    const token = localStorage.getItem("token");
                     const response = await fetch(endpoint, {
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${token}` }
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
                     });
                     if (response.ok) {
-                      if (attendanceType === 'Check In') setIsCheckedIn(true);
-                      if (attendanceType === 'Check Out') setIsCheckedOut(true);
+                      await fetchTodayAttendance();
                       setShowPopup(false);
-                      // In a real app, refresh data here
                     } else {
-                      const errData = await response.text();
-                      alert(`Failed to ${attendanceType}: ${errData}`);
+                      const errData = await response.json();
+                      alert(
+                        `Failed to ${attendanceType}: ${errData.error || "Unknown error"}`,
+                      );
                     }
                   } catch (err) {
                     console.error(`Error during ${attendanceType}:`, err);
@@ -412,7 +585,7 @@ const EmployeeDashboard = () => {
             className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden relative"
           >
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => setShowLeaveModal(false)}
               className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-20"
             >
@@ -467,7 +640,7 @@ const EmployeeDashboard = () => {
                       </label>
                       <input type="date" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-[11px] font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all" />
                     </div>
-                    {leaveDuration === 'Full Day' ? (
+                    {leaveDuration === "Full Day" ? (
                       <div>
                         <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2 ml-1">To Date</label>
                         <input type="date" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-[11px] font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all" />
@@ -484,30 +657,39 @@ const EmployeeDashboard = () => {
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2 ml-1">Documents (Optional)</label>
+                    <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
+                      Documents (Optional)
+                    </label>
                     <div className="relative group">
-                      <input 
-                        type="file" 
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                      <input
+                        type="file"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
-                      <div className="w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center gap-2 group-hover:border-[#0061E0]/50 group-hover:bg-blue-50/30 transition-all">
-                        <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">
-                          <Upload size={18} className="text-gray-400 group-hover:text-[#0061E0]" />
+                      <div className="w-full bg-white/5 border-2 border-dashed border-white/10 rounded-xl p-6 flex flex-col items-center gap-2 group-hover:border-blue-400/50 transition-all">
+                        <div className="w-9 h-9 bg-white/5 rounded-full flex items-center justify-center">
+                          <Upload
+                            size={18}
+                            className="text-white/40 group-hover:text-blue-400"
+                          />
                         </div>
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest group-hover:text-gray-600 transition-colors">Upload document</p>
+                        <p className="text-[10px] font-black text-white/40 uppercase tracking-widest group-hover:text-white transition-colors">
+                          Upload document
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2 ml-1">Reason</label>
-                    <textarea 
+                    <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
+                      Reason
+                    </label>
+                    <textarea
                       placeholder="Tell us why..."
                       className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all min-h-[90px] resize-none"
                     ></textarea>
                   </div>
 
-                  <button 
+                  <button
                     type="button"
                     onClick={() => {
                       setShowLeaveModal(false);
@@ -520,14 +702,15 @@ const EmployeeDashboard = () => {
                   </button>
                 </form>
 
-                <div className="mt-6 p-4 bg-orange-50 rounded-2xl border border-orange-100 flex gap-3">
-                  <AlertCircle size={18} className="text-orange-500 shrink-0" />
-                  <p className="text-[10px] font-medium text-orange-700 leading-relaxed">
-                    Submit at least 2 days in advance. Ensure all documents are clear.
+                <div className="mt-6 p-4 bg-white/5 rounded-2xl border border-white/5 flex gap-3">
+                  <AlertCircle size={18} className="text-yellow-500 shrink-0" />
+                  <p className="text-[10px] font-medium text-white/60 leading-relaxed">
+                    Submit at least 2 days in advance. Ensure all documents are
+                    clear.
                   </p>
                 </div>
               </div>
-              
+
               {/* Decorative Background Elements */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-32 -mt-32 blur-[80px]"></div>
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-50 rounded-full -ml-24 -mb-24 blur-[80px]"></div>
@@ -539,7 +722,7 @@ const EmployeeDashboard = () => {
       {/* Success Modal */}
       {showSuccessPopup && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
@@ -547,23 +730,26 @@ const EmployeeDashboard = () => {
           >
             {/* Animated Icon Container */}
             <div className="relative mb-10">
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring" }}
                 className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center relative"
               >
                 <motion.div
-                  animate={{ 
+                  animate={{
                     scale: [1, 1.1, 1],
-                    rotate: [0, -5, 5, 0]
+                    rotate: [0, -5, 5, 0],
                   }}
                   transition={{ duration: 3, repeat: Infinity }}
                 >
-                  <Send size={44} className="text-[#0061E0] -rotate-12 translate-x-1" />
+                  <Send
+                    size={44}
+                    className="text-[#0052CC] -rotate-12 translate-x-1"
+                  />
                 </motion.div>
-                
-                <motion.div 
+
+                <motion.div
                   initial={{ scale: 0, rotate: -45 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.5, type: "spring" }}
@@ -572,7 +758,7 @@ const EmployeeDashboard = () => {
                   <CheckCircle2 size={16} className="text-white" />
                 </motion.div>
               </motion.div>
-              
+
               {/* Decorative Pulse Rings */}
               <div className="absolute inset-0 bg-blue-400/20 rounded-full animate-ping -z-10 scale-150 opacity-0 group-hover:opacity-100"></div>
             </div>
@@ -582,13 +768,17 @@ const EmployeeDashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <h2 className="text-2xl font-semibold text-gray-900 mb-3 tracking-tight">Request sent to admin</h2>
+              <h2 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">
+                Request sent to admin
+              </h2>
               <p className="text-sm font-medium text-gray-500 mb-8 leading-relaxed px-4">
-                Your request for the leave <span className="text-[#0061E0] font-semibold">({leaveType})</span> has been sent successfully.
+                Your request for the leave{" "}
+                <span className="text-[#0052CC] font-bold">({leaveType})</span>{" "}
+                has been sent successfully.
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
@@ -597,12 +787,13 @@ const EmployeeDashboard = () => {
               <div className="w-7 h-7 bg-[#0061E0] rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-200">
                 <Info size={14} className="text-white" />
               </div>
-              <p className="text-[11px] font-semibold text-gray-600 leading-normal">
-                You will be notified once the admin approves your request. Check your inbox for updates.
+              <p className="text-[11px] font-bold text-gray-600 leading-normal">
+                You will be notified once the admin approves your request. Check
+                your inbox for updates.
               </p>
             </motion.div>
 
-            <motion.button 
+            <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -613,7 +804,7 @@ const EmployeeDashboard = () => {
             >
               OK, Got it
             </motion.button>
-            
+
             {/* Background Accent */}
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#0061E0] via-blue-400 to-[#0061E0]"></div>
           </motion.div>
