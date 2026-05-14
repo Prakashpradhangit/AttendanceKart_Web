@@ -29,7 +29,7 @@ const Reports = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Reports & Analytics</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Reports & Analytics</h1>
           <p className="text-sm text-gray-500 mt-1">Comprehensive insights across all departments</p>
         </div>
         <div className="flex items-center gap-3">
@@ -53,13 +53,13 @@ const Reports = () => {
               <div className={`p-3 rounded-xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
                 <stat.icon className="w-6 h-6" />
               </div>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${stat.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                 {stat.trend}
               </span>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</h3>
+              <h3 className="text-2xl font-semibold text-gray-900 mt-1">{stat.value}</h3>
             </div>
           </div>
         ))}
@@ -71,7 +71,7 @@ const Reports = () => {
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Attendance Trend</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Attendance Trend</h3>
               <p className="text-sm text-gray-500">Monthly percentage of present employees</p>
             </div>
             <div className="flex gap-2">
@@ -123,7 +123,7 @@ const Reports = () => {
         {/* Leave Distribution */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="mb-8">
-            <h3 className="text-lg font-bold text-gray-900">Leave Distribution</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Leave Distribution</h3>
             <p className="text-sm text-gray-500">Breakdown by leave category</p>
           </div>
           <div className="h-[250px] relative">
@@ -148,7 +148,7 @@ const Reports = () => {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-bold text-gray-900">128</span>
+              <span className="text-2xl font-semibold text-gray-900">128</span>
               <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Total</span>
             </div>
           </div>
@@ -159,7 +159,7 @@ const Reports = () => {
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                   <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">{item.name}</span>
                 </div>
-                <span className="text-sm font-bold text-gray-900">{item.value}%</span>
+                <span className="text-sm font-semibold text-gray-900">{item.value}%</span>
               </div>
             ))}
           </div>
@@ -170,7 +170,7 @@ const Reports = () => {
         {/* Department Payroll */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="mb-8">
-            <h3 className="text-lg font-bold text-gray-900">Department Payroll</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Department Payroll</h3>
             <p className="text-sm text-gray-500">Monthly budget allocation per department</p>
           </div>
           <div className="h-[300px]">
@@ -204,16 +204,16 @@ const Reports = () => {
         {/* Report History */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
           <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900">Report History</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Report History</h3>
             <button className="text-sm font-medium text-indigo-600 hover:text-indigo-700">View All</button>
           </div>
           <div className="flex-1 overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50/50">
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Report Name</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Action</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Report Name</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

@@ -58,7 +58,7 @@ const EmployeeLogin = () => {
             <div className="flex items-center gap-3 mb-4">
                <img src="/logo-removebg-preview.png" alt="AttendanceKart Logo" className="h-16 w-auto" />
             </div>
-            <h1 className="text-5xl font-bold text-[#1E293B] leading-tight">
+            <h1 className="text-5xl font-semibold text-[#1E293B] leading-tight">
               AttendanceKart <br />
               <span className="text-[#3B82F6]">Smart HR Solutions.</span>
             </h1>
@@ -108,7 +108,7 @@ const EmployeeLogin = () => {
                     <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-[#1E293B] mb-1.5">
+                <h2 className="text-2xl font-semibold text-[#1E293B] mb-1.5">
                   Employee <span className="text-[#3B82F6]">Login</span>
                 </h2>
                 <p className="text-[#64748B] text-sm font-medium">
@@ -179,13 +179,13 @@ const EmployeeLogin = () => {
                     </div>
                     <span className="text-xs font-medium text-[#64748B]">Remember me</span>
                   </label>
-                  <a href="#" className="text-xs font-bold text-[#3B82F6] hover:underline">Forgot Password?</a>
+                  <a href="#" className="text-xs font-semibold text-[#3B82F6] hover:underline">Forgot Password?</a>
                 </div>
 
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#2563EB] text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2.5 hover:bg-[#1D4ED8] transition-all shadow-[0_10px_25px_rgba(37,99,235,0.25)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-[#2563EB] text-white py-3.5 rounded-2xl font-semibold flex items-center justify-center gap-2.5 hover:bg-[#1D4ED8] transition-all shadow-[0_10px_25px_rgba(37,99,235,0.25)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <Lock size={16} />
                   <span>{loading ? 'Authenticating...' : 'Sign In to Dashboard'}</span>
@@ -195,7 +195,7 @@ const EmployeeLogin = () => {
 
               {/* Footer text */}
               <p className="text-center mt-8 text-[#64748B] text-xs font-medium">
-                Don't have an account? <a href="#" className="text-[#3B82F6] font-bold hover:underline">Contact Sales</a>
+                Don't have an account? <a href="#" className="text-[#3B82F6] font-semibold hover:underline">Contact Sales</a>
               </p>
             </div>
           </div>

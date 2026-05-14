@@ -58,7 +58,7 @@ const SuperAdminLogin = () => {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-[#1E293B] leading-tight text-center">
+            <h1 className="text-4xl font-semibold text-[#1E293B] leading-tight text-center">
               AttendanceKart <br />
               <span className="text-[#3B82F6]">Super Admin Portal.</span>
             </h1>
@@ -72,7 +72,7 @@ const SuperAdminLogin = () => {
             ].map((feature, index) => (
               <div key={index} className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-blue-100 whitespace-nowrap">
                 <CheckCircle2 size={16} className="text-[#3B82F6]" />
-                <span className="text-[#1E293B] font-bold text-xs">{feature}</span>
+                <span className="text-[#1E293B] font-semibold text-xs">{feature}</span>
               </div>
             ))}
           </div>
@@ -108,7 +108,7 @@ const SuperAdminLogin = () => {
                     <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-[#1E293B] mb-1.5">
+                <h2 className="text-2xl font-semibold text-[#1E293B] mb-1.5">
                   Super Admin <span className="text-[#3B82F6]">Access</span>
                 </h2>
                 <p className="text-[#64748B] text-sm font-medium">
@@ -179,13 +179,13 @@ const SuperAdminLogin = () => {
                     </div>
                     <span className="text-xs font-medium text-[#64748B]">Trusted device</span>
                   </label>
-                  <a href="#" className="text-xs font-bold text-[#3B82F6] hover:underline">Forgot Access Key?</a>
+                  <a href="#" className="text-xs font-semibold text-[#3B82F6] hover:underline">Forgot Access Key?</a>
                 </div>
 
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#2563EB] text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2.5 hover:bg-[#1D4ED8] transition-all shadow-[0_10px_25px_rgba(37,99,235,0.25)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-[#2563EB] text-white py-3.5 rounded-2xl font-semibold flex items-center justify-center gap-2.5 hover:bg-[#1D4ED8] transition-all shadow-[0_10px_25px_rgba(37,99,235,0.25)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <ShieldAlert size={16} />
                   <span>{loading ? 'Authenticating...' : 'Enter Super Admin Dashboard'}</span>
@@ -195,7 +195,7 @@ const SuperAdminLogin = () => {
 
               {/* Footer text */}
               <p className="text-center mt-8 text-[#64748B] text-xs font-medium">
-                Authorized Personnel Only. <a href="/" className="text-[#3B82F6] font-bold hover:underline">Back to Main</a>
+                Authorized Personnel Only. <a href="/" className="text-[#3B82F6] font-semibold hover:underline">Back to Main</a>
               </p>
             </div>
           </div>

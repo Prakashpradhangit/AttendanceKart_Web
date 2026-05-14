@@ -281,188 +281,168 @@ const EmployeeDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           {/* Insights Chart (7 Columns) */}
           <div className="lg:col-span-7 bg-white rounded-[40px] p-8 shadow-sm border border-gray-50 flex flex-col">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
-                  Attendance Trends
-                </p>
-                <div className="flex items-end gap-3">
-                  <h3 className="text-3xl font-black text-gray-900">92%</h3>
-                  <span className="text-sm font-black text-[#22C55E] flex items-center gap-1 mb-1">
-                    +4% <TrendingUp size={16} />
-                  </span>
+             <div className="mb-6 flex items-center justify-between">
+                <div>
+                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Attendance Trends</p>
+                   <div className="flex items-end gap-3">
+                      <h3 className="text-3xl font-semibold text-gray-900">92%</h3>
+                      <span className="text-sm font-semibold text-[#22C55E] flex items-center gap-1 mb-1">
+                         +4% <TrendingUp size={16} />
+                      </span>
+                   </div>
                 </div>
-              </div>
-
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-gray-50 border border-gray-100 rounded-2xl text-[10px] font-black text-gray-500 px-4 py-2.5 outline-none cursor-pointer hover:bg-white hover:shadow-sm transition-all uppercase tracking-widest"
-              >
-                <option value="January 2026">January 2026</option>
-                <option value="February 2026">February 2026</option>
-                <option value="March 2026">March 2026</option>
-                <option value="April 2026">April 2026</option>
-                <option value="May 2026">May 2026</option>
-                <option value="June 2026">June 2026</option>
-              </select>
-            </div>
-
-            <div className="flex-1 min-h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                
+                <select 
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="bg-gray-50 border border-gray-100 rounded-2xl text-[10px] font-semibold text-gray-500 px-4 py-2.5 outline-none cursor-pointer hover:bg-white hover:shadow-sm transition-all uppercase tracking-widest"
                 >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#F3F4F6"
-                  />
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#9CA3AF", fontSize: 8, fontWeight: 800 }}
-                    dy={10}
-                    interval={0} // Show all dates if possible, or adjust to 1
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#9CA3AF", fontSize: 10, fontWeight: 800 }}
-                    domain={[0, 12]}
-                    ticks={[0, 2, 4, 6, 8, 10, 12]}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "#F8FAFC" }}
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const item = payload[0].payload;
-                        return (
-                          <div className="bg-white p-4 rounded-2xl shadow-xl border border-gray-50 animate-in fade-in zoom-in duration-200">
-                            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">
-                              Day {item.date}
-                            </p>
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between gap-4">
-                                <span className="text-xs font-bold text-gray-400">
-                                  Check In:
-                                </span>
-                                <span className="text-xs font-black text-gray-900">
-                                  {item.checkIn}
-                                </span>
-                              </div>
-                              <div className="flex justify-between gap-4">
-                                <span className="text-xs font-bold text-gray-400">
-                                  Check Out:
-                                </span>
-                                <span className="text-xs font-black text-gray-900">
-                                  {item.checkOut}
-                                </span>
-                              </div>
-                              <div className="pt-1.5 border-t border-gray-50 flex justify-between gap-4">
-                                <span className="text-xs font-bold text-[#8B5CF6]">
-                                  Total:
-                                </span>
-                                <span className="text-xs font-black text-[#8B5CF6]">
-                                  {item.hours} hrs
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="hours" radius={[4, 4, 4, 4]} barSize={8}>
-                    {data.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.hours > 0 ? "#86EFAC" : "#F1F5F9"}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+                  <option value="January 2026">January 2026</option>
+                  <option value="February 2026">February 2026</option>
+                  <option value="March 2026">March 2026</option>
+                  <option value="April 2026">April 2026</option>
+                  <option value="May 2026">May 2026</option>
+                  <option value="June 2026">June 2026</option>
+                </select>
+             </div>
+
+             <div className="flex-1 min-h-[250px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                   <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                     <XAxis 
+                       dataKey="date" 
+                       axisLine={false} 
+                       tickLine={false} 
+                       tick={{fill: '#9CA3AF', fontSize: 8, fontWeight: 800}} 
+                       dy={10}
+                       interval={0} // Show all dates if possible, or adjust to 1
+                     />
+                     <YAxis 
+                       axisLine={false} 
+                       tickLine={false} 
+                       tick={{fill: '#9CA3AF', fontSize: 10, fontWeight: 800}}
+                       domain={[0, 12]}
+                       ticks={[0, 2, 4, 6, 8, 10, 12]}
+                     />
+                     <Tooltip 
+                       cursor={{fill: '#F8FAFC'}}
+                       content={({ active, payload }) => {
+                         if (active && payload && payload.length) {
+                           const item = payload[0].payload;
+                           return (
+                             <div className="bg-white p-4 rounded-2xl shadow-xl border border-gray-50 animate-in fade-in zoom-in duration-200">
+                               <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Day {item.date}</p>
+                               <div className="space-y-1.5">
+                                 <div className="flex justify-between gap-4">
+                                   <span className="text-xs font-semibold text-gray-400">Check In:</span>
+                                   <span className="text-xs font-semibold text-gray-900">{item.checkIn}</span>
+                                 </div>
+                                 <div className="flex justify-between gap-4">
+                                   <span className="text-xs font-semibold text-gray-400">Check Out:</span>
+                                   <span className="text-xs font-semibold text-gray-900">{item.checkOut}</span>
+                                 </div>
+                                 <div className="pt-1.5 border-t border-gray-50 flex justify-between gap-4">
+                                   <span className="text-xs font-semibold text-[#8B5CF6]">Total:</span>
+                                   <span className="text-xs font-semibold text-[#8B5CF6]">{item.hours} hrs</span>
+                                 </div>
+                               </div>
+                             </div>
+                           );
+                         }
+                         return null;
+                       }}
+                     />
+                     <Bar 
+                       dataKey="hours" 
+                       radius={[4, 4, 4, 4]} 
+                       barSize={8}
+                     >
+                       {data.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.hours > 0 ? '#22C55E' : '#F1F5F9'} 
+                          />
+                       ))}
+                     </Bar>
+                   </BarChart>
+                 </ResponsiveContainer>
+             </div>
           </div>
 
           {/* Quick Actions (5 Columns) */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            <div className="flex-1 flex flex-col gap-4">
-              <div className="flex gap-4">
-                <button
-                  onClick={() =>
-                    !isCheckedIn && handleAttendanceClick("Check In")
-                  }
-                  disabled={isCheckedIn}
-                  className={`flex-1 p-4 rounded-[24px] flex flex-col items-center justify-center gap-2 transition-all transform hover:-translate-y-1 active:scale-95 group ${
-                    isCheckedIn
-                      ? "bg-[#22C55E] text-white shadow-xl shadow-green-100 opacity-80 cursor-not-allowed"
-                      : "bg-white text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg"
-                  }`}
-                >
-                  <div
-                    className={`p-2 rounded-[14px] transition-all ${
-                      isCheckedIn
-                        ? "bg-white/20"
-                        : "bg-gray-50 text-gray-400 group-hover:bg-green-50 group-hover:text-green-500"
-                    }`}
-                  >
-                    <Clock size={20} />
-                  </div>
-                  <div className="text-center">
-                    <p
-                      className={`text-[8px] font-black uppercase tracking-widest mb-0 ${
-                        isCheckedIn ? "text-white/60" : "text-gray-400"
+               <div className="flex-1 flex flex-col gap-4">
+                 <div className="flex gap-4">
+                    <button 
+                      onClick={() => handleAttendanceClick('Check In')}
+                      className={`flex-1 p-4 rounded-[24px] flex flex-col items-center justify-center gap-2 transition-all transform hover:-translate-y-1 active:scale-95 group ${
+                        isCheckedIn 
+                          ? 'bg-[#22C55E] text-white shadow-xl shadow-green-100' 
+                          : 'bg-white text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg'
                       }`}
                     >
-                      Start Day
-                    </p>
-                    <span className="text-sm font-black tracking-tight">
-                      Check In
-                    </span>
+                      <div className={`p-2 rounded-[14px] transition-all ${
+                        isCheckedIn ? 'bg-white/20' : 'bg-gray-50 text-gray-400 group-hover:bg-green-50 group-hover:text-green-500'
+                      }`}>
+                        <Clock size={20} />
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-[8px] font-semibold uppercase tracking-widest mb-0 ${
+                          isCheckedIn ? 'text-white/60' : 'text-gray-400'
+                        }`}>Start Day</p>
+                        <span className="text-sm font-semibold tracking-tight">Check In</span>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => handleAttendanceClick('Check Out')}
+                      className={`flex-1 p-4 rounded-[24px] flex flex-col items-center justify-center gap-2 transition-all transform hover:-translate-y-1 active:scale-95 group ${
+                        isCheckedOut 
+                          ? 'bg-[#EF4444] text-white shadow-xl shadow-red-100' 
+                          : 'bg-white text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-[14px] transition-all ${
+                        isCheckedOut ? 'bg-white/20' : 'bg-gray-50 text-gray-400 group-hover:bg-red-50 group-hover:text-red-500'
+                      }`}>
+                        <Clock size={20} />
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-[8px] font-semibold uppercase tracking-widest mb-0 ${
+                          isCheckedOut ? 'text-white/60' : 'text-gray-400'
+                        }`}>End Day</p>
+                        <span className="text-sm font-semibold tracking-tight">Check Out</span>
+                      </div>
+                    </button>
+                 </div>
+                 
+                 {/* Active Time Display Div */}
+                 <div className="bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm flex flex-col items-center justify-center group hover:shadow-md transition-all">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Current Time</p>
+                    <div className="flex items-center gap-3">
+                       <Clock size={20} className="text-[#0061E0]" />
+                       <span className="text-2xl font-semibold text-gray-900 tracking-tight">{formatTime(currentTime)}</span>
+                    </div>
+                 </div>
+               </div>
+
+             <div className="grid grid-cols-2 gap-6">
+                <button 
+                  onClick={() => setShowLeaveModal(true)}
+                  className="bg-white p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg transition-all group w-full text-left"
+                >
+                  <div className="p-3 bg-gray-50 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-[#0061E0] transition-all">
+                     <UserPlus size={24} />
                   </div>
+                  <span className="text-sm font-semibold tracking-tight">Apply Leave</span>
                 </button>
 
-                <button
-                  onClick={() =>
-                    isCheckedIn &&
-                    !isCheckedOut &&
-                    handleAttendanceClick("Check Out")
-                  }
-                  disabled={!isCheckedIn || isCheckedOut}
-                  className={`flex-1 p-4 rounded-[24px] flex flex-col items-center justify-center gap-2 transition-all transform hover:-translate-y-1 active:scale-95 group ${
-                    isCheckedOut
-                      ? "bg-[#EF4444] text-white shadow-xl shadow-red-100 opacity-80 cursor-not-allowed"
-                      : !isCheckedIn
-                        ? "bg-gray-50 text-gray-300 border border-gray-100 cursor-not-allowed"
-                        : "bg-white text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg"
-                  }`}
-                >
-                  <div
-                    className={`p-2 rounded-[14px] transition-all ${
-                      isCheckedOut
-                        ? "bg-white/20"
-                        : "bg-gray-50 text-gray-400 group-hover:bg-red-50 group-hover:text-red-500"
-                    }`}
-                  >
-                    <Clock size={20} />
+                <button className="bg-white p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg transition-all group">
+                  <div className="p-3 bg-gray-50 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-[#0061E0] transition-all">
+                     <Users size={24} />
                   </div>
-                  <div className="text-center">
-                    <p
-                      className={`text-[8px] font-black uppercase tracking-widest mb-0 ${
-                        isCheckedOut ? "text-white/60" : "text-gray-400"
-                      }`}
-                    >
-                      End Day
-                    </p>
-                    <span className="text-sm font-black tracking-tight">
-                      Check Out
-                    </span>
-                  </div>
+                  <span className="text-sm font-semibold tracking-tight">Meetings</span>
                 </button>
               </div>
 
@@ -526,12 +506,8 @@ const EmployeeDashboard = () => {
 
             <div className="p-8 flex flex-col items-center text-center">
               <div className="mb-6">
-                <h2 className="text-2xl font-black text-gray-900">
-                  {attendanceType}
-                </h2>
-                <p className="text-sm font-medium text-gray-500 mt-1">
-                  Please authenticate your face to proceed
-                </p>
+                <h2 className="text-2xl font-semibold text-gray-900">{attendanceType}</h2>
+                <p className="text-sm font-medium text-gray-500 mt-1">Please authenticate your face to proceed</p>
               </div>
 
               {/* Face Auth Simulation UI */}
@@ -551,25 +527,16 @@ const EmployeeDashboard = () => {
               </div>
 
               <div className="mb-8">
-                <p className="text-[#22C55E] font-black tracking-widest text-xs uppercase mb-2">
-                  Face Authentication
-                </p>
+                <p className="text-[#22C55E] font-semibold tracking-widest text-xs uppercase mb-2">Face Authentication</p>
                 <div className="flex flex-col items-center">
-                  <span
-                    className={`text-4xl font-black ${
-                      attendanceType === "Check In" &&
-                      (currentTime.getHours() > 10 ||
-                        (currentTime.getHours() === 10 &&
-                          currentTime.getMinutes() >= 30))
-                        ? "text-red-500"
-                        : "text-[#1E293B]"
-                    }`}
-                  >
+                  <span className={`text-4xl font-semibold ${
+                    attendanceType === 'Check In' && (currentTime.getHours() > 10 || (currentTime.getHours() === 10 && currentTime.getMinutes() >= 30))
+                      ? 'text-red-500' 
+                      : 'text-[#1E293B]'
+                  }`}>
                     {formatTime(currentTime)}
                   </span>
-                  <span className="text-gray-400 text-sm font-bold mt-1">
-                    {formatDate(currentTime)}
-                  </span>
+                  <span className="text-gray-400 text-sm font-semibold mt-1">{formatDate(currentTime)}</span>
                 </div>
               </div>
 
@@ -599,7 +566,7 @@ const EmployeeDashboard = () => {
                     alert(`Error during ${attendanceType}`);
                   }
                 }}
-                className="w-full bg-[#2563EB] text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-[#0061E0] text-white py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-blue-100 hover:bg-[#0052cc] transition-all transform active:scale-95 flex items-center justify-center gap-2"
               >
                 <Camera size={20} />
                 Capture
@@ -611,16 +578,16 @@ const EmployeeDashboard = () => {
 
       {/* Leave Application Modal */}
       {showLeaveModal && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <motion.div
+        <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <motion.div 
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            className="bg-[#1E293B] rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden relative text-white"
+            className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden relative"
           >
             {/* Close Button */}
             <button
               onClick={() => setShowLeaveModal(false)}
-              className="absolute top-6 right-6 p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all z-20"
+              className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-20"
             >
               <X size={20} />
             </button>
@@ -628,83 +595,62 @@ const EmployeeDashboard = () => {
             <div className="p-8 relative overflow-hidden">
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md">
-                    <Plus size={20} className="text-blue-400" />
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <Plus size={20} className="text-[#0061E0]" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black tracking-tight">
-                      Apply for Leave
-                    </h2>
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-0.5">
-                      Submit your request
-                    </p>
+                    <h2 className="text-xl font-semibold text-gray-900 tracking-tight">Apply for Leave</h2>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-0.5">Submit your request</p>
                   </div>
                 </div>
 
                 <form className="space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
-                        Leave Type
-                      </label>
-                      <select
+                      <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2 ml-1">Leave Type</label>
+                      <select 
                         value={leaveType}
                         onChange={(e) => setLeaveType(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-xs font-bold outline-none focus:border-blue-400 transition-all cursor-pointer appearance-none"
+                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all cursor-pointer appearance-none"
                       >
-                        <option className="bg-[#1E293B]">Sick Leave</option>
-                        <option className="bg-[#1E293B]">Casual Leave</option>
-                        <option className="bg-[#1E293B]">Annual Leave</option>
-                        <option className="bg-[#1E293B]">Half Day</option>
+                        <option>Sick Leave</option>
+                        <option>Casual Leave</option>
+                        <option>Annual Leave</option>
+                        <option>Half Day</option>
                       </select>
                     </div>
                     <div>
-                      <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
-                        Duration
-                      </label>
-                      <select
+                      <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2 ml-1">Duration</label>
+                      <select 
                         value={leaveDuration}
                         onChange={(e) => setLeaveDuration(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-xs font-bold outline-none focus:border-blue-400 transition-all cursor-pointer appearance-none"
+                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all cursor-pointer appearance-none"
                       >
-                        <option className="bg-[#1E293B]">Full Day</option>
-                        <option className="bg-[#1E293B]">First Half</option>
-                        <option className="bg-[#1E293B]">Second Half</option>
+                        <option>Full Day</option>
+                        <option>First Half</option>
+                        <option>Second Half</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
-                        {leaveDuration === "Full Day" ? "From Date" : "Date"}
+                      <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2 ml-1">
+                        {leaveDuration === 'Full Day' ? 'From Date' : 'Date'}
                       </label>
-                      <input
-                        type="date"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-[11px] font-bold outline-none focus:border-blue-400 transition-all [color-scheme:dark]"
-                      />
+                      <input type="date" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-[11px] font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all" />
                     </div>
                     {leaveDuration === "Full Day" ? (
                       <div>
-                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
-                          To Date
-                        </label>
-                        <input
-                          type="date"
-                          className="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-[11px] font-bold outline-none focus:border-blue-400 transition-all [color-scheme:dark]"
-                        />
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2 ml-1">To Date</label>
+                        <input type="date" className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-[11px] font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all" />
                       </div>
                     ) : (
                       <div>
-                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
-                          Time
-                        </label>
-                        <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                          <Clock size={16} className="text-blue-400" />
-                          <input
-                            type="time"
-                            className="bg-transparent border-none outline-none text-[11px] font-bold w-full [color-scheme:dark]"
-                          />
+                        <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2 ml-1">Time</label>
+                        <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
+                          <Clock size={16} className="text-[#0061E0]" />
+                          <input type="time" className="bg-transparent border-none outline-none text-[11px] font-semibold text-gray-700 w-full" />
                         </div>
                       </div>
                     )}
@@ -739,7 +685,7 @@ const EmployeeDashboard = () => {
                     </label>
                     <textarea
                       placeholder="Tell us why..."
-                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-xs font-bold outline-none focus:border-blue-400 transition-all min-h-[90px] resize-none"
+                      className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all min-h-[90px] resize-none"
                     ></textarea>
                   </div>
 
@@ -749,7 +695,7 @@ const EmployeeDashboard = () => {
                       setShowLeaveModal(false);
                       setShowSuccessPopup(true);
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-900/40 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-1 active:scale-95"
+                    className="w-full bg-[#0061E0] hover:bg-[#0052cc] text-white py-4 rounded-2xl font-semibold text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-1 active:scale-95"
                   >
                     <Send size={18} />
                     Submit Request
@@ -766,8 +712,8 @@ const EmployeeDashboard = () => {
               </div>
 
               {/* Decorative Background Elements */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-[80px]"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-600/10 rounded-full -ml-24 -mb-24 blur-[80px]"></div>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-32 -mt-32 blur-[80px]"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-50 rounded-full -ml-24 -mb-24 blur-[80px]"></div>
             </div>
           </motion.div>
         </div>
@@ -838,7 +784,7 @@ const EmployeeDashboard = () => {
               transition={{ delay: 0.4 }}
               className="w-full bg-blue-50/80 border border-blue-100 rounded-3xl p-5 mb-10 flex items-start gap-4 text-left"
             >
-              <div className="w-7 h-7 bg-[#0052CC] rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-200">
+              <div className="w-7 h-7 bg-[#0061E0] rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-200">
                 <Info size={14} className="text-white" />
               </div>
               <p className="text-[11px] font-bold text-gray-600 leading-normal">
@@ -853,14 +799,14 @@ const EmployeeDashboard = () => {
               transition={{ delay: 0.5 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-[#0052CC] to-[#0747A6] text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-blue-200 transition-all"
+              className="w-full bg-gradient-to-r from-[#0061E0] to-[#0052cc] text-white py-5 rounded-2xl font-semibold text-sm uppercase tracking-widest shadow-2xl shadow-blue-200 transition-all"
               onClick={() => setShowSuccessPopup(false)}
             >
               OK, Got it
             </motion.button>
 
             {/* Background Accent */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#0052CC] via-blue-400 to-[#0052CC]"></div>
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#0061E0] via-blue-400 to-[#0061E0]"></div>
           </motion.div>
         </div>
       )}

@@ -73,7 +73,7 @@ const Employees = () => {
               notification.type === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'
             }`}>
               {notification.type === 'success' ? <CircleCheck size={20} /> : <CircleAlert size={20} />}
-              <span className="font-bold text-sm md:text-base">{notification.message}</span>
+              <span className="font-semibold text-sm md:text-base">{notification.message}</span>
             </div>
           </motion.div>
         )}
@@ -82,19 +82,19 @@ const Employees = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Employee Management</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">Employee Management</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1 font-medium">Manage and view all your organization employees</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <button 
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
           >
             <Upload size={18} /> Import
           </button>
           <button 
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-primary text-white px-6 py-3 rounded-2xl font-bold hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+            className="bg-primary text-white px-6 py-3 rounded-2xl font-semibold hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
           >
             <Plus size={18} /> Add Employee
           </button>
@@ -117,7 +117,7 @@ const Employees = () => {
           <select 
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="bg-gray-50 border border-gray-200 rounded-2xl text-xs font-bold text-gray-600 px-5 py-3 outline-none cursor-pointer focus:ring-2 focus:ring-primary/20 transition-all"
+            className="bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-600 px-5 py-3 outline-none cursor-pointer focus:ring-2 focus:ring-primary/20 transition-all"
           >
             {departments.map(dept => (
               <option key={dept} value={dept}>{dept}</option>
@@ -131,7 +131,7 @@ const Employees = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-400 text-[10px] font-black uppercase tracking-[0.1em]">
+              <tr className="bg-gray-50/80 border-b border-gray-100 text-gray-400 text-[10px] font-bold uppercase tracking-[0.1em]">
                 <th className="px-8 py-5">Employee ID</th>
                 <th className="px-8 py-5">Name</th>
                 <th className="px-8 py-5">Role</th>
@@ -144,20 +144,20 @@ const Employees = () => {
             <tbody className="divide-y divide-gray-50">
               {filteredEmployees.length > 0 ? filteredEmployees.map((emp) => (
                 <tr key={emp.id} className="hover:bg-primary/[0.02] transition-colors group">
-                  <td className="px-8 py-5 text-sm font-bold text-gray-900">{emp.id}</td>
+                  <td className="px-8 py-5 text-sm font-semibold text-gray-900">{emp.id}</td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm shadow-sm">
+                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shadow-sm">
                         {emp.name.charAt(0)}
                       </div>
-                      <span className="text-sm font-bold text-gray-900">{emp.name}</span>
+                      <span className="text-sm font-semibold text-gray-900">{emp.name}</span>
                     </div>
                   </td>
                   <td className="px-8 py-5 text-sm font-medium text-gray-600">{emp.role}</td>
                   <td className="px-8 py-5 text-sm font-medium text-gray-500">{emp.email}</td>
                   <td className="px-8 py-5 text-sm font-medium text-gray-500">{emp.phone}</td>
                   <td className="px-8 py-5 text-center">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       emp.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                     }`}>
                       {emp.status}
@@ -218,7 +218,7 @@ const Employees = () => {
                          <Search size={40} />
                        </div>
                        <div className="max-w-xs">
-                         <p className="text-lg font-bold text-gray-600">No employees found</p>
+                         <p className="text-lg font-semibold text-gray-600">No employees found</p>
                          <p className="text-sm mt-1">Try adjusting your search or filter to find what you're looking for.</p>
                        </div>
                     </div>
@@ -231,11 +231,11 @@ const Employees = () => {
         
         {/* Pagination */}
         <div className="px-8 py-6 border-t border-gray-50 flex items-center justify-between bg-gray-50/30">
-          <p className="text-sm text-gray-500 font-bold">Showing <span className="text-gray-900">{filteredEmployees.length}</span> of <span className="text-gray-900">{employees.length}</span> entries</p>
+          <p className="text-sm text-gray-500 font-semibold">Showing <span className="text-gray-900">{filteredEmployees.length}</span> of <span className="text-gray-900">{employees.length}</span> entries</p>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-400 cursor-not-allowed bg-white">Previous</button>
-            <button className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20">1</button>
-            <button className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 bg-white">Next</button>
+            <button className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-400 cursor-not-allowed bg-white">Previous</button>
+            <button className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/20">1</button>
+            <button className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 bg-white">Next</button>
           </div>
         </div>
       </div>
