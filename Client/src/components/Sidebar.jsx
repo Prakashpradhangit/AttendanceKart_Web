@@ -17,6 +17,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    localStorage.clear();
     navigate('/admin/login');
   };
   const menuItems = [

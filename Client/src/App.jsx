@@ -12,6 +12,7 @@ import EmployeeAttendance from './pages/EmployeeAttendance';
 import EmployeeLayout from './layouts/EmployeeLayout';
 import EmployeeLeaves from './pages/Employeeleaves';
 import { EmployeeProvider } from './context/EmployeeContext';
+import ProtectedRoute from './routes/ProtectedRoute';
 
 // Import Pages
 import Attendance from './pages/Attendance/Attendance';
@@ -35,29 +36,31 @@ function App() {
           <Route path="/login" element={<LoginSelection />} />
           <Route path="/admin/login" element={<Login />} />
           <Route path="/employee/login" element={<EmployeeLogin />} />
-          <Route path="/superadmin-login" element={<SuperAdminLogin />} />
+          <Route path="/superadmin/login" element={<SuperAdminLogin />} />
 
-          <Route element={<AdminLayout />}>
-            <Route path="/admin/dashboard" element={<Dashboard />} />
-            <Route path="/admin/employees" element={<Employees />} />
-            <Route path="/admin/attendance" element={<Attendance />} />
-            <Route path="/admin/payroll" element={<Payroll />} />
-            <Route path="/admin/leaves" element={<Leaves />} />
-            <Route path="/admin/reports" element={<Reports />} />
-            <Route path="/admin/settings" element={<Settings />} />
-          </Route>
+          <Route element={<ProtectedRoute />} >
+            <Route element={<AdminLayout />}>
+              <Route path="/admin/dashboard" element={<Dashboard />} />
+              <Route path="/admin/employees" element={<Employees />} />
+              <Route path="/admin/attendance" element={<Attendance />} />
+              <Route path="/admin/payroll" element={<Payroll />} />
+              <Route path="/admin/leaves" element={<Leaves />} />
+              <Route path="/admin/reports" element={<Reports />} />
+              <Route path="/admin/settings" element={<Settings />} />
+            </Route>
 
-          <Route element={<EmployeeLayout />}>
-            <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
-            <Route path="/employee/attendance" element={<EmployeeAttendance />} />
-            <Route path="/employee/leaves" element={<EmployeeLeaves />} />
-          </Route>
+            <Route element={<EmployeeLayout />}>
+              <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+              <Route path="/employee/attendance" element={<EmployeeAttendance />} />
+              <Route path="/employee/leaves" element={<EmployeeLeaves />} />
+            </Route>
 
-          <Route element={<SuperAdminLayout />}>
-            <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
-            <Route path="/superadmin/organizations" element={<SuperAdminOrganizations />} />
-            <Route path="/superadmin/payments" element={<SuperAdminPayments />} />
-            <Route path="/superadmin/settings" element={<SuperAdminSettings />} />
+            <Route element={<SuperAdminLayout />}>
+              <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
+              <Route path="/superadmin/organizations" element={<SuperAdminOrganizations />} />
+              <Route path="/superadmin/payments" element={<SuperAdminPayments />} />
+              <Route path="/superadmin/settings" element={<SuperAdminSettings />} />
+            </Route>
           </Route>
 
           <Route path="/" element={<Navigate to="/login" replace />} />

@@ -8,11 +8,38 @@ const SuperAdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate('/superadmin/dashboard');
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.role === 'SUPER_ADMIN') {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('name', data.name || '');
+        navigate('/superadmin/dashboard');
+      } else {
+        setError(data.error || 'Invalid credentials or unauthorized access.');
+      }
+    } catch (err) {
+      setError('Failed to connect to the server. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -89,6 +116,12 @@ const SuperAdminLogin = () => {
                 </p>
               </div>
 
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-500 text-xs font-medium text-center">
+                  {error}
+                </div>
+              )}
+
               <form className="space-y-5" onSubmit={handleSubmit}>
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-semibold text-[#1E293B] ml-1">Admin Email</label>
@@ -151,11 +184,12 @@ const SuperAdminLogin = () => {
 
                 <button 
                   type="submit"
-                  className="w-full bg-[#2563EB] text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2.5 hover:bg-[#1D4ED8] transition-all shadow-[0_10px_25px_rgba(37,99,235,0.25)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 text-sm"
+                  disabled={loading}
+                  className="w-full bg-[#2563EB] text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2.5 hover:bg-[#1D4ED8] transition-all shadow-[0_10px_25px_rgba(37,99,235,0.25)] hover:shadow-[0_15px_30px_rgba(37,99,235,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <ShieldAlert size={16} />
-                  <span>Enter Super Admin Dashboard</span>
-                  <ArrowRight size={16} />
+                  <span>{loading ? 'Authenticating...' : 'Enter Super Admin Dashboard'}</span>
+                  {!loading && <ArrowRight size={16} />}
                 </button>
               </form>
 

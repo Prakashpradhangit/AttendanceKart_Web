@@ -1,28 +1,111 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Building2, MoreVertical, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import OrganizationForm from '../components/OrganizationForm';
 
 const SuperAdminOrganizations = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [organizations, setOrganizations] = useState([
-    { id: 1, name: 'Global Tech Solutions', admin: 'John Doe', slug: 'global-tech', joined: '2024-05-10', users: 450, status: 'Active', email: 'admin@globaltech.com' },
-    { id: 2, name: 'Creative Minds Agency', admin: 'Jane Smith', slug: 'creative-minds', joined: '2024-05-12', users: 120, status: 'Pending', email: 'jane@creativeminds.com' },
-    { id: 3, name: 'HealthCare Plus', admin: 'Robert Brown', slug: 'healthcare-plus', joined: '2024-04-28', users: 890, status: 'Active', email: 'robert@healthcare.com' },
-  ]);
+  const [organizations, setOrganizations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingOrg, setEditingOrg] = useState(null);
+  const [activeMenuId, setActiveMenuId] = useState(null);
 
-  const handleAddOrganization = (newOrg) => {
-    const orgEntry = {
-      id: organizations.length + 1,
-      name: newOrg.orgName,
-      admin: newOrg.adminName,
-      slug: newOrg.slug,
-      joined: newOrg.startDate,
-      users: newOrg.totalUsers,
-      status: 'Active',
-      email: newOrg.orgEmail
-    };
-    setOrganizations([orgEntry, ...organizations]);
+  useEffect(() => {
+    fetchOrganizations();
+  }, []);
+
+  const fetchOrganizations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch organizations:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mapDuration = (durationStr) => {
+    if (durationStr === '1 Year') return 'ONE_YEAR';
+    if (durationStr === '2 Years') return 'TWO_YEAR';
+    if (durationStr === '3 Years') return 'THREE_YEAR';
+    return 'ONE_YEAR';
+  };
+
+  const handleAddOrganization = async (newOrg) => {
+    try {
+      const token = localStorage.getItem('token');
+      const adminData = {
+        name: newOrg.adminName,
+        email: newOrg.orgEmail,
+        organisation_name: newOrg.orgName,
+        slug: newOrg.slug,
+        phone_number: newOrg.contactNumber,
+        subscription_year: mapDuration(newOrg.duration),
+        starting_date: newOrg.startDate
+      };
+
+      if (newOrg.orgPassword) {
+        adminData.password = newOrg.orgPassword;
+      }
+
+      const method = editingOrg ? 'PUT' : 'POST';
+      const url = editingOrg ? `/api/admin/${editingOrg.id}` : '/api/admin';
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(adminData)
+      });
+
+      if (response.ok) {
+        fetchOrganizations();
+        setIsModalOpen(false);
+        setEditingOrg(null);
+      } else {
+        const errData = await response.text();
+        console.error('Failed to save organization:', errData);
+      }
+    } catch (err) {
+      console.error('Failed to save organization:', err);
+    }
+  };
+
+  const handleDeleteOrganization = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this organization?')) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        fetchOrganizations();
+      } else {
+        console.error('Failed to delete organization');
+      }
+    } catch (err) {
+      console.error('Failed to delete organization:', err);
+    }
+  };
+
+  const openEditModal = (org) => {
+    setEditingOrg(org);
+    setIsModalOpen(true);
+    setActiveMenuId(null);
   };
 
   return (
@@ -34,7 +117,10 @@ const SuperAdminOrganizations = () => {
           <p className="text-gray-500 mt-1 font-medium">Overview and control of all registered companies</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setEditingOrg(null);
+            setIsModalOpen(true);
+          }}
           className="flex items-center justify-center gap-2 bg-[#3B82F6] text-white px-6 py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#2563EB] transition-all transform hover:-translate-y-0.5 active:translate-y-0"
         >
           <Plus size={20} />
@@ -86,38 +172,62 @@ const SuperAdminOrganizations = () => {
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-[#3B82F6] font-black border border-blue-100 shadow-sm group-hover:scale-110 transition-transform">
-                        {org.name.charAt(0)}
+                        {org.organisation_name ? org.organisation_name.charAt(0) : 'O'}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-[#1E293B] group-hover:text-[#3B82F6] transition-colors">{org.name}</p>
+                        <p className="text-sm font-bold text-[#1E293B] group-hover:text-[#3B82F6] transition-colors">{org.organisation_name}</p>
                         <p className="text-xs text-gray-400 font-medium">{org.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <p className="text-sm font-bold text-[#1E293B]">{org.admin}</p>
-                    <p className="text-xs text-gray-400 font-medium">Joined {org.joined}</p>
+                    <p className="text-sm font-bold text-[#1E293B]">{org.name}</p>
+                    <p className="text-xs text-gray-400 font-medium">Joined {org.starting_date}</p>
                   </td>
                   <td className="px-8 py-5">
                     <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-1 rounded-md uppercase tracking-tighter">/{org.slug}</span>
                   </td>
-                  <td className="px-8 py-5 text-sm font-bold text-[#1E293B]">{org.users}</td>
+                  <td className="px-8 py-5 text-sm font-bold text-[#1E293B]">N/A</td>
                   <td className="px-8 py-5">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      org.status === 'Active' ? 'bg-emerald-100 text-emerald-600' : 
-                      org.status === 'Pending' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {org.status}
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-600`}>
+                      Active
                     </span>
                   </td>
                   <td className="px-8 py-5 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 text-gray-400 hover:text-[#3B82F6] hover:bg-blue-50 rounded-lg transition-all">
-                        <ExternalLink size={18} />
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-[#3B82F6] hover:bg-blue-50 rounded-lg transition-all">
+                    <div className="flex items-center justify-end gap-2 relative">
+                      <button 
+                        onClick={() => setActiveMenuId(activeMenuId === org.id ? null : org.id)}
+                        className="p-2 text-gray-400 hover:text-[#3B82F6] hover:bg-blue-50 rounded-lg transition-all"
+                      >
                         <MoreVertical size={18} />
                       </button>
+
+                      <AnimatePresence>
+                        {activeMenuId === org.id && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                              className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-20"
+                            >
+                              <button 
+                                onClick={() => openEditModal(org)}
+                                className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-blue-50 hover:text-[#3B82F6] rounded-xl transition-all flex items-center gap-2"
+                              >
+                                Edit Organization
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteOrganization(org.id)}
+                                className="w-full text-left px-4 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-50 rounded-xl transition-all flex items-center gap-2"
+                              >
+                                Delete Organization
+                              </button>
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </td>
                 </tr>
@@ -149,8 +259,12 @@ const SuperAdminOrganizations = () => {
         {isModalOpen && (
           <OrganizationForm 
             isOpen={isModalOpen} 
-            onClose={() => setIsModalOpen(false)} 
+            onClose={() => {
+              setIsModalOpen(false);
+              setEditingOrg(null);
+            }} 
             onSubmit={handleAddOrganization}
+            initialData={editingOrg}
           />
         )}
       </AnimatePresence>

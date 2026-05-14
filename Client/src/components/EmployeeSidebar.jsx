@@ -18,7 +18,8 @@ const EmployeeSidebar = ({ isOpen, toggleSidebar }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    navigate('/login');
+    localStorage.clear();
+    navigate('/employee/login');
   };
 
   const menuItems = [
