@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw } from 'lucide-react';
+import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw, Trash2 } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
 import EmployeeForm from '../components/EmployeeForm';
 import ImportModal from '../components/ImportModal';
@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Employees = () => {
-  const { employees, addEmployee, addBulkEmployees, updateEmployee, resetTodayAttendance } = useEmployees();
+  const { employees, addEmployee, addBulkEmployees, updateEmployee, deleteEmployee, resetTodayAttendance } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -56,6 +56,14 @@ const Employees = () => {
   const handleEditClick = (emp) => {
     setEditingEmployee(emp);
     setActiveMenuId(null);
+  };
+
+  const handleDeleteEmployee = (id) => {
+    if (window.confirm('Are you sure you want to delete this employee?')) {
+      deleteEmployee(id);
+      showNotification('Employee deleted successfully!');
+      setActiveMenuId(null);
+    }
   };
 
   return (
@@ -201,6 +209,13 @@ const Employees = () => {
                                   className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"
                                 >
                                   <Edit2 size={18} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteEmployee(emp.id)}
+                                  title="Delete Employee"
+                                  className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors shadow-sm"
+                                >
+                                  <Trash2 size={18} />
                                 </button>
                               </motion.div>
                             </>

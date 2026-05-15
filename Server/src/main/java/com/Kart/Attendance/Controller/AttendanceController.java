@@ -63,4 +63,22 @@ public class AttendanceController {
         java.util.List<AttendanceDetails> attendance = attendanceService.getMonthlyAttendance(userId, month);
         return ResponseEntity.ok(attendance);
     }
+
+    @GetMapping("/admin/today/count")
+    public ResponseEntity<?> getTodayPresentCount(HttpServletRequest request) {
+        if (!"ADMIN".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        return ResponseEntity.ok(Map.of("count", attendanceService.getTodayPresentCount()));
+    }
+
+    @GetMapping("/admin/trends")
+    public ResponseEntity<?> getTrends(
+            @RequestParam(required = false) String month,
+            HttpServletRequest request) {
+        if (!"ADMIN".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        return ResponseEntity.ok(attendanceService.getAttendanceTrends(month));
+    }
 }

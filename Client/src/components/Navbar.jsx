@@ -1,16 +1,40 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Bell, User, Menu, MessageSquare, Users, UserCircle, X, ChevronRight, Send, Paperclip, Smile } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useEmployees } from '../context/EmployeeContext';
+import React, { useState, useEffect } from 'react';
+import { Bell, User, Menu } from 'lucide-react';
 
 const Navbar = ({ onMenuClick }) => {
-  const [showNotifications, setShowNotifications] = useState(false);
-  const { activeChat, setActiveChat, selectedEmployee, setSelectedEmployee } = useEmployees();
-  const [message, setMessage] = useState('');
-  const notificationRef = useRef(null);
-  const userName = localStorage.getItem('name') || 'User';
-  const employeeCode = localStorage.getItem('employeeCode');
-  const userRole = localStorage.getItem('role') || 'Guest';
+  const [profile, setProfile] = useState({
+    name: localStorage.getItem('name') || 'User',
+    role: localStorage.getItem('role') || 'Guest',
+    employeeCode: localStorage.getItem('employeeCode') || ''
+  });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch('/api/auth/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setProfile(data);
+          // Sync with localStorage for other components
+          localStorage.setItem('name', data.name);
+          localStorage.setItem('role', data.role);
+          if (data.employeeCode) localStorage.setItem('employeeCode', data.employeeCode);
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile:', err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const { name: userName, role: userRole, employeeCode } = profile;
 
   // Close dropdown when clicking outside
   useEffect(() => {

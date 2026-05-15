@@ -146,4 +146,48 @@ public class AuthService {
 
         return null;
     }
+
+    public Map<String, Object> getProfile(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+
+        Optional<SuperAdmin> superAdminOpt = superAdminRepository.findByAuthToken(token);
+        if (superAdminOpt.isPresent()) {
+            SuperAdmin sa = superAdminOpt.get();
+            return Map.of(
+                    "role", "SUPER_ADMIN",
+                    "name", sa.getName() != null ? sa.getName() : "Super Admin",
+                    "email", sa.getEmail() != null ? sa.getEmail() : ""
+            );
+        }
+
+        Optional<Admin> adminOpt = adminRepository.findByAuthToken(token);
+        if (adminOpt.isPresent()) {
+            Admin admin = adminOpt.get();
+            return Map.of(
+                    "role", "ADMIN",
+                    "name", admin.getName() != null ? admin.getName() : "Admin",
+                    "email", admin.getEmail() != null ? admin.getEmail() : "",
+                    "organization", admin.getOrganisation_name() != null ? admin.getOrganisation_name() : "",
+                    "tenantId", admin.getTenantId() != null ? admin.getTenantId() : ""
+            );
+        }
+
+        Optional<User> userOpt = userRepository.findByAuthToken(token);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            return Map.of(
+                    "role", "USER",
+                    "name", user.getName() != null ? user.getName() : "",
+                    "email", user.getEmail() != null ? user.getEmail() : "",
+                    "employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "",
+                    "department", user.getDepartment() != null ? user.getDepartment() : "",
+                    "designation", user.getDesignation() != null ? user.getDesignation() : "",
+                    "tenantId", user.getTenantId() != null ? user.getTenantId() : ""
+            );
+        }
+
+        return null;
+    }
 }
