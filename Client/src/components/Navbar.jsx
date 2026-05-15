@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, User, Menu } from 'lucide-react';
+import { Bell, User, Menu, Users, UserCircle, Paperclip, Send, X, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useEmployees } from '../context/EmployeeContext';
 
 const Navbar = ({ onMenuClick }) => {
+  const { activeChat, setActiveChat, selectedEmployee, setSelectedEmployee } = useEmployees();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [message, setMessage] = useState('');
+  const notificationRef = React.useRef(null);
+  
   const [profile, setProfile] = useState({
     name: localStorage.getItem('name') || 'User',
     role: localStorage.getItem('role') || 'Guest',

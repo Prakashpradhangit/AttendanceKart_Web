@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
-import { UserPlus, Calendar, CreditCard, FileText, ChevronRight, Users, ChartBar } from 'lucide-react';
+import { UserPlus, Calendar, CreditCard, FileText, ChevronRight, Users, ChartBar, UserCheck, UserX, Loader2 } from 'lucide-react';
 import { attendanceData, recentActivity } from '../utils/mockData';
 import SummaryCard from '../components/SummaryCard';
 import { useEmployees } from '../context/EmployeeContext';
@@ -137,16 +137,16 @@ const Dashboard = () => {
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">Dashboard Overview</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1 font-medium">Welcome back, {localStorage.getItem('name') || 'Admin'}! Here's what's happening today.</p>
         </div>
-        <div className="flex gap-4 w-full sm:w-auto">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          {isCheckingStatus && <Loader2 className="animate-spin text-primary" size={20} />}
           <select 
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold text-gray-600 outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm cursor-pointer"
+            className="bg-white/70 backdrop-blur-md border border-white/40 rounded-2xl text-xs font-bold text-gray-500 px-4 py-2.5 outline-none cursor-pointer hover:bg-white hover:shadow-sm transition-all"
           >
-            <option>Today</option>
-            <option>Last 7 Days</option>
             <option>Last 30 Days</option>
-            <option>Last 90 Days</option>
+            <option>Last 7 Days</option>
+            <option>This Month</option>
           </select>
         </div>
       </div>
