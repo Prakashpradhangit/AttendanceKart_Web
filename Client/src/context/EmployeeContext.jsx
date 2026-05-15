@@ -5,6 +5,8 @@ const EmployeeContext = createContext();
 
 export const EmployeeProvider = ({ children }) => {
   const [employees, setEmployees] = useState([]);
+  const [activeChat, setActiveChat] = useState(null); // 'team' or 'employee'
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const fetchEmployees = async () => {
     try {
@@ -156,7 +158,11 @@ export const EmployeeProvider = ({ children }) => {
       updateEmployee, 
       deleteEmployee,
       resetTodayAttendance,
-      fetchEmployees
+      fetchEmployees,
+      activeChat,
+      setActiveChat,
+      selectedEmployee,
+      setSelectedEmployee
     }}>
       {children}
     </EmployeeContext.Provider>

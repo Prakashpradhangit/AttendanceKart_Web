@@ -18,7 +18,7 @@ export default {
           active: '#004BB5',
         },
         dashboard: {
-          bg: '#F3F4F6',
+          bg: '#F4F7FE',
           card: '#FFFFFF',
         }
       },

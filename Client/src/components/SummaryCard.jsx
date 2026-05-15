@@ -10,7 +10,7 @@ const SummaryCard = ({ title, value, trend, icon, color }) => {
   return (
     <motion.div 
       whileHover={{ y: -5 }}
-      className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 flex flex-col gap-4"
+      className="bg-white/70 backdrop-blur-md rounded-3xl shadow-sm p-6 border border-white/40 transition-all duration-300 flex flex-col gap-4"
     >
       <div className="flex items-center justify-between">
         <div className={`p-3 rounded-2xl ${color} text-white shadow-lg shadow-current/20`}>

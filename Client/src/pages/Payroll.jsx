@@ -5,7 +5,8 @@ import {
   Edit2, MoreVertical, Check, X, Wallet, Clock, 
   FileEdit, CalendarDays, ExternalLink, Lock,
   AlertCircle, DollarSign, User, Briefcase, Info,
-  ChevronDown, ArrowRight, Printer, Share2
+  ChevronDown, ArrowRight, Printer, Share2,
+  PlusCircle, MinusCircle
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import PayslipTemplate from '../components/PayslipTemplate';
@@ -35,9 +36,20 @@ const Payroll = () => {
   const [formData, setFormData] = useState({
     employeeId: '',
     month: 'May 2024',
-    base: '',
-    bonus: '',
-    deductions: '0',
+    // Earnings
+    basicSalary: '',
+    hra: '',
+    conveyanceAllowance: '',
+    medicalAllowance: '',
+    specialAllowance: '',
+    otherAllowances: '',
+    performanceBonus: '',
+    // Deductions
+    providentFund: '',
+    professionalTax: '',
+    incomeTax: '',
+    esi: '',
+    otherDeductions: '',
     status: 'DRAFT'
   });
 
@@ -61,10 +73,33 @@ const Payroll = () => {
 
   // Calculated Total
   const calculateTotal = () => {
-    const base = parseInt(formData.base) || 0;
-    const bonus = parseInt(formData.bonus) || 0;
-    const deductions = parseInt(formData.deductions) || 0;
-    return (base + bonus - deductions).toLocaleString();
+    const earnings = [
+      formData.basicSalary, formData.hra, formData.conveyanceAllowance, 
+      formData.medicalAllowance, formData.specialAllowance, 
+      formData.otherAllowances, formData.performanceBonus
+    ].reduce((acc, val) => acc + (parseInt(val) || 0), 0);
+
+    const deductions = [
+      formData.providentFund, formData.professionalTax, 
+      formData.incomeTax, formData.esi, formData.otherDeductions
+    ].reduce((acc, val) => acc + (parseInt(val) || 0), 0);
+
+    return (earnings - deductions).toLocaleString();
+  };
+
+  const getGrossEarnings = () => {
+    return [
+      formData.basicSalary, formData.hra, formData.conveyanceAllowance, 
+      formData.medicalAllowance, formData.specialAllowance, 
+      formData.otherAllowances, formData.performanceBonus
+    ].reduce((acc, val) => acc + (parseInt(val) || 0), 0);
+  };
+
+  const getTotalDeductions = () => {
+    return [
+      formData.providentFund, formData.professionalTax, 
+      formData.incomeTax, formData.esi, formData.otherDeductions
+    ].reduce((acc, val) => acc + (parseInt(val) || 0), 0);
   };
 
   const handlePinSubmit = (e) => {
@@ -86,14 +121,40 @@ const Payroll = () => {
     setIsLoading(false);
     
     if (type === 'create') {
-      setFormData({ employeeId: '', month: 'May 2024', base: '', bonus: '', deductions: '0', status: 'DRAFT' });
+      setFormData({ 
+        employeeId: '', 
+        month: 'May 2024', 
+        basicSalary: '', 
+        hra: '', 
+        conveyanceAllowance: '', 
+        medicalAllowance: '', 
+        specialAllowance: '', 
+        otherAllowances: '', 
+        performanceBonus: '', 
+        providentFund: '', 
+        professionalTax: '', 
+        incomeTax: '', 
+        esi: '', 
+        otherDeductions: '', 
+        status: 'DRAFT' 
+      });
     } else if (type === 'edit' && item) {
+      // For simplicity in this demo, mapping back to the same fields
       setFormData({ 
         employeeId: item.empId, 
         month: item.month, 
-        base: item.base.replace(/\D/g,''), 
-        bonus: item.bonus.replace(/\D/g,''), 
-        deductions: item.deductions.replace(/\D/g,''), 
+        basicSalary: item.base.replace(/\D/g,''), 
+        hra: '0', 
+        conveyanceAllowance: '0', 
+        medicalAllowance: '0', 
+        specialAllowance: '0', 
+        otherAllowances: '0', 
+        performanceBonus: item.bonus.replace(/\D/g,''), 
+        providentFund: item.deductions.replace(/\D/g,''), 
+        professionalTax: '0', 
+        incomeTax: '0', 
+        esi: '0', 
+        otherDeductions: '0', 
         status: item.status.toUpperCase() 
       });
     }
@@ -129,9 +190,9 @@ const Payroll = () => {
           name: emp?.name || 'New Employee',
           empId: formData.employeeId,
           month: formData.month,
-          base: `₹${parseInt(formData.base).toLocaleString()}`,
-          bonus: `₹${parseInt(formData.bonus).toLocaleString()}`,
-          deductions: `₹${parseInt(formData.deductions).toLocaleString()}`,
+          base: `₹${parseInt(formData.basicSalary || 0).toLocaleString()}`,
+          bonus: `₹${(getGrossEarnings() - parseInt(formData.basicSalary || 0)).toLocaleString()}`,
+          deductions: `₹${getTotalDeductions().toLocaleString()}`,
           total: `₹${calculateTotal()}`,
           status: formData.status.charAt(0).toUpperCase() + formData.status.slice(1).toLowerCase(),
           avatar: emp?.name.split(' ').map(n => n[0]).join('') || 'NE'
@@ -144,9 +205,9 @@ const Payroll = () => {
       } else if (modalType === 'edit') {
         setPayrollList(payrollList.map(p => p.id === selectedItem.id ? {
           ...p,
-          base: `₹${parseInt(formData.base).toLocaleString()}`,
-          bonus: `₹${parseInt(formData.bonus).toLocaleString()}`,
-          deductions: `₹${parseInt(formData.deductions).toLocaleString()}`,
+          base: `₹${parseInt(formData.basicSalary || 0).toLocaleString()}`,
+          bonus: `₹${(getGrossEarnings() - parseInt(formData.basicSalary || 0)).toLocaleString()}`,
+          deductions: `₹${getTotalDeductions().toLocaleString()}`,
           total: `₹${calculateTotal()}`,
           status: formData.status.charAt(0).toUpperCase() + formData.status.slice(1).toLowerCase()
         } : p));
@@ -488,98 +549,130 @@ const Payroll = () => {
               {/* Create / Edit Form */}
               {(modalType === 'create' || modalType === 'edit') && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Employee<span className="text-rose-500 ml-0.5">*</span></label>
-                      <div className="relative">
-                        <select 
-                          value={formData.employeeId}
-                          onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none focus:border-indigo-500/30 font-bold text-sm appearance-none cursor-pointer"
-                        >
-                          <option value="">Select Employee</option>
-                          {employeesList.map(emp => (
-                            <option key={emp.id} value={emp.id}>{emp.name} ({emp.id})</option>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Left Column: General & Earnings */}
+                    <div className="space-y-6">
+                      <div className="bg-gray-50/50 p-6 rounded-[32px] border border-gray-100 space-y-5">
+                        <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                          <User size={18} className="text-indigo-600" /> General Info
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Employee<span className="text-rose-500 ml-0.5">*</span></label>
+                            <div className="relative">
+                              <select 
+                                value={formData.employeeId}
+                                onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                                className="w-full bg-white border border-gray-200 rounded-2xl py-3 px-5 outline-none focus:border-indigo-500/50 font-bold text-sm appearance-none cursor-pointer"
+                              >
+                                <option value="">Select Employee</option>
+                                {employeesList.map(emp => (
+                                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.id})</option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Month<span className="text-rose-500 ml-0.5">*</span></label>
+                            <div className="relative">
+                              <input 
+                                type="text" 
+                                value={formData.month}
+                                className="w-full bg-white border border-gray-200 rounded-2xl py-3 px-5 outline-none font-bold text-sm"
+                                readOnly
+                              />
+                              <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-emerald-50/30 p-6 rounded-[32px] border border-emerald-100/50 space-y-5">
+                        <h3 className="text-sm font-bold text-emerald-700 flex items-center gap-2">
+                          <PlusCircle size={18} /> Earnings (₹)
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {[
+                            { id: 'basicSalary', label: 'Basic Salary' },
+                            { id: 'hra', label: 'HRA' },
+                            { id: 'conveyanceAllowance', label: 'Conveyance' },
+                            { id: 'medicalAllowance', label: 'Medical' },
+                            { id: 'specialAllowance', label: 'Special' },
+                            { id: 'otherAllowances', label: 'Other' },
+                            { id: 'performanceBonus', label: 'Bonus' },
+                          ].map(field => (
+                            <div key={field.id} className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">{field.label}</label>
+                              <input 
+                                type="number" 
+                                value={formData[field.id]}
+                                onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
+                                placeholder="0"
+                                className="w-full bg-white border border-gray-100 rounded-xl py-2.5 px-4 outline-none focus:border-emerald-500/50 font-bold text-sm"
+                              />
+                            </div>
                           ))}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Month<span className="text-rose-500 ml-0.5">*</span></label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.month}
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none font-bold text-sm"
-                          readOnly
-                        />
-                        <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+
+                    {/* Right Column: Deductions & Summary */}
+                    <div className="space-y-6">
+                      <div className="bg-rose-50/30 p-6 rounded-[32px] border border-rose-100/50 space-y-5">
+                        <h3 className="text-sm font-bold text-rose-700 flex items-center gap-2">
+                          <MinusCircle size={18} /> Deductions (₹)
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {[
+                            { id: 'providentFund', label: 'Provident Fund' },
+                            { id: 'professionalTax', label: 'Prof. Tax' },
+                            { id: 'incomeTax', label: 'Income Tax' },
+                            { id: 'esi', label: 'ESI' },
+                            { id: 'otherDeductions', label: 'Other' },
+                          ].map(field => (
+                            <div key={field.id} className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">{field.label}</label>
+                              <input 
+                                type="number" 
+                                value={formData[field.id]}
+                                onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
+                                placeholder="0"
+                                className="w-full bg-white border border-gray-100 rounded-xl py-2.5 px-4 outline-none focus:border-rose-500/50 font-bold text-sm"
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Base Salary<span className="text-rose-500 ml-0.5">*</span></label>
-                      <div className="relative">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
-                        <input 
-                          type="number" 
-                          value={formData.base}
-                          onChange={(e) => setFormData({...formData, base: e.target.value})}
-                          placeholder="0.00"
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-bold text-sm"
-                        />
+
+                      <div className="bg-indigo-600 p-8 rounded-[32px] text-white shadow-xl shadow-indigo-200 space-y-6">
+                        <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                          <span className="text-xs font-bold uppercase tracking-widest opacity-80">Gross Earnings</span>
+                          <span className="text-xl font-bold">₹ {getGrossEarnings().toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                          <span className="text-xs font-bold uppercase tracking-widest opacity-80">Total Deductions</span>
+                          <span className="text-xl font-bold">₹ {getTotalDeductions().toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-black uppercase tracking-[0.2em]">Net Payout</span>
+                          <span className="text-3xl font-black">₹ {calculateTotal()}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Bonus</label>
-                      <div className="relative">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
-                        <input 
-                          type="number" 
-                          value={formData.bonus}
-                          onChange={(e) => setFormData({...formData, bonus: e.target.value})}
-                          placeholder="0.00"
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-bold text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Deductions</label>
-                      <div className="relative">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
-                        <input 
-                          type="number" 
-                          value={formData.deductions}
-                          onChange={(e) => setFormData({...formData, deductions: e.target.value})}
-                          placeholder="0.00"
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-5 outline-none focus:border-indigo-500/30 font-bold text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Total Amount</label>
-                      <div className="relative group">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-indigo-400 font-bold">₹</span>
-                        <input 
-                          type="text" 
-                          value={calculateTotal()}
-                          readOnly
-                          className="w-full bg-indigo-50/50 border-2 border-indigo-100 text-indigo-600 rounded-2xl py-3.5 pl-10 pr-5 outline-none font-bold text-base"
-                        />
-                      </div>
-                    </div>
-                    <div className="md:col-span-2 space-y-1.5">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Status</label>
-                      <div className="relative">
-                        <select 
-                          value={formData.status}
-                          onChange={(e) => setFormData({...formData, status: e.target.value})}
-                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none focus:border-indigo-500/30 font-bold text-sm appearance-none cursor-pointer"
-                        >
-                          <option value="DRAFT">DRAFT</option>
-                          <option value="PENDING">PENDING</option>
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                        <div className="relative">
+                          <select 
+                            value={formData.status}
+                            onChange={(e) => setFormData({...formData, status: e.target.value})}
+                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none focus:border-indigo-500/30 font-bold text-sm appearance-none cursor-pointer"
+                          >
+                            <option value="DRAFT">DRAFT</option>
+                            <option value="PENDING">PENDING</option>
+                          </select>
+                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -757,26 +850,27 @@ const Payroll = () => {
                           <span>Amount (₹)</span>
                         </div>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-center group px-4 py-2 rounded-xl hover:bg-emerald-50/50 transition-all">
-                             <div className="flex items-center gap-3">
-                                <PlusCircle size={18} className="text-emerald-500/40 group-hover:text-emerald-500" />
-                                <span className="text-sm font-semibold text-gray-600">Basic Salary</span>
-                             </div>
-                             <span className="text-sm font-bold text-gray-900">₹ {parseInt(formData.base).toLocaleString()}</span>
-                          </div>
-                          {parseInt(formData.bonus) > 0 && (
-                            <div className="flex justify-between items-center group px-4 py-2 rounded-xl hover:bg-emerald-50/50 transition-all">
+                          {[
+                            { id: 'basicSalary', label: 'Basic Salary' },
+                            { id: 'hra', label: 'House Rent Allowance (HRA)' },
+                            { id: 'conveyanceAllowance', label: 'Conveyance Allowance' },
+                            { id: 'medicalAllowance', label: 'Medical Allowance' },
+                            { id: 'specialAllowance', label: 'Special Allowance' },
+                            { id: 'otherAllowances', label: 'Other Allowances' },
+                            { id: 'performanceBonus', label: 'Performance Bonus' },
+                          ].filter(f => parseInt(formData[f.id]) > 0).map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center group px-4 py-2 rounded-xl hover:bg-emerald-50/50 transition-all">
                                <div className="flex items-center gap-3">
                                   <PlusCircle size={18} className="text-emerald-500/40 group-hover:text-emerald-500" />
-                                  <span className="text-sm font-semibold text-gray-600">Bonus & Incentives</span>
+                                  <span className="text-sm font-semibold text-gray-600">{item.label}</span>
                                </div>
-                               <span className="text-sm font-bold text-gray-900">₹ {parseInt(formData.bonus).toLocaleString()}</span>
+                               <span className="text-sm font-bold text-gray-900">₹ {parseInt(formData[item.id] || 0).toLocaleString()}</span>
                             </div>
-                          )}
+                          ))}
                         </div>
                         <div className="mt-8 bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
                            <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">Gross Total</span>
-                           <span className="text-xl font-bold text-emerald-700">₹ {(parseInt(formData.base || 0) + parseInt(formData.bonus || 0)).toLocaleString()}</span>
+                           <span className="text-xl font-bold text-emerald-700">₹ {getGrossEarnings().toLocaleString()}</span>
                         </div>
                       </div>
 
@@ -787,17 +881,25 @@ const Payroll = () => {
                           <span>Amount (₹)</span>
                         </div>
                         <div className="space-y-3">
-                           <div className="flex justify-between items-center group px-4 py-2 rounded-xl hover:bg-rose-50/50 transition-all">
-                             <div className="flex items-center gap-3">
-                                <MinusCircle size={18} className="text-rose-500/40 group-hover:text-rose-500" />
-                                <span className="text-sm font-semibold text-gray-600">Tax & Other Deductions</span>
-                             </div>
-                             <span className="text-sm font-bold text-gray-900">₹ {parseInt(formData.deductions).toLocaleString()}</span>
-                          </div>
+                          {[
+                            { id: 'providentFund', label: 'Provident Fund (PF)' },
+                            { id: 'professionalTax', label: 'Professional Tax' },
+                            { id: 'incomeTax', label: 'Income Tax (TDS)' },
+                            { id: 'esi', label: 'ESI' },
+                            { id: 'otherDeductions', label: 'Other Deductions' },
+                          ].filter(f => parseInt(formData[f.id]) > 0).map((item, idx) => (
+                             <div key={idx} className="flex justify-between items-center group px-4 py-2 rounded-xl hover:bg-rose-50/50 transition-all">
+                               <div className="flex items-center gap-3">
+                                  <MinusCircle size={18} className="text-rose-500/40 group-hover:text-rose-500" />
+                                  <span className="text-sm font-semibold text-gray-600">{item.label}</span>
+                               </div>
+                               <span className="text-sm font-bold text-gray-900">₹ {parseInt(formData[item.id] || 0).toLocaleString()}</span>
+                            </div>
+                          ))}
                         </div>
                         <div className="mt-8 bg-rose-50 p-6 rounded-2xl border border-rose-100 flex justify-between items-center">
                            <span className="text-xs font-bold text-rose-700 uppercase tracking-widest">Total Deductions</span>
-                           <span className="text-xl font-bold text-rose-700">₹ {parseInt(formData.deductions || 0).toLocaleString()}</span>
+                           <span className="text-xl font-bold text-rose-700">₹ {getTotalDeductions().toLocaleString()}</span>
                         </div>
                         
                         {/* Net Salary Payable */}

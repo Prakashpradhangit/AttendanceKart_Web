@@ -237,7 +237,7 @@ const EmployeeDashboard = () => {
 
         {/* Stats Row - Updated with Total Present, Shift and Leave */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-[#F0FFF4] p-6 rounded-[32px] border border-green-50 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] border border-white/40 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
             <div>
               <p className="text-[10px] font-black text-[#22C55E]/60 uppercase tracking-widest mb-1">
                 Total Present
@@ -249,7 +249,7 @@ const EmployeeDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-[#F0F7FF] p-6 rounded-[32px] border border-blue-50 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] border border-white/40 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
             <div>
               <p className="text-[10px] font-black text-[#2563EB]/60 uppercase tracking-widest mb-1">
                 {isCheckedIn && !isCheckedOut ? "Active Time" : "Today's Work"}
@@ -265,7 +265,7 @@ const EmployeeDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-[#FFF7ED] p-6 rounded-[32px] border border-orange-50 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] border border-white/40 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
             <div>
               <p className="text-[10px] font-black text-[#F97316]/60 uppercase tracking-widest mb-1">
                 Leave Taken
@@ -280,7 +280,7 @@ const EmployeeDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           {/* Insights Chart (7 Columns) */}
-          <div className="lg:col-span-7 bg-white rounded-[40px] p-8 shadow-sm border border-gray-50 flex flex-col">
+          <div className="lg:col-span-7 bg-white/70 backdrop-blur-md rounded-[40px] p-8 shadow-sm border border-white/40 flex flex-col">
              <div className="mb-6 flex items-center justify-between">
                 <div>
                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Attendance Trends</p>
@@ -295,7 +295,7 @@ const EmployeeDashboard = () => {
                 <select 
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="bg-gray-50 border border-gray-100 rounded-2xl text-[10px] font-black text-gray-500 px-4 py-2.5 outline-none cursor-pointer hover:bg-white hover:shadow-sm transition-all uppercase tracking-widest"
+                  className="bg-white/40 border border-white/20 rounded-2xl text-[10px] font-black text-gray-500 px-4 py-2.5 outline-none cursor-pointer hover:bg-white/60 hover:shadow-sm transition-all uppercase tracking-widest"
                 >
                   <option value="January 2026">January 2026</option>
                   <option value="February 2026">February 2026</option>
@@ -383,7 +383,7 @@ const EmployeeDashboard = () => {
                       }`}
                     >
                       <div className={`p-2 rounded-[14px] transition-all ${
-                        isCheckedIn ? 'bg-white/20' : 'bg-gray-50 text-gray-400 group-hover:bg-green-50 group-hover:text-green-500'
+                        isCheckedIn ? 'bg-white/20' : 'bg-white/40 text-gray-400 group-hover:bg-green-50 group-hover:text-green-500'
                       }`}>
                         <Clock size={20} />
                       </div>
@@ -404,7 +404,7 @@ const EmployeeDashboard = () => {
                       }`}
                     >
                       <div className={`p-2 rounded-[14px] transition-all ${
-                        isCheckedOut ? 'bg-white/20' : 'bg-gray-50 text-gray-400 group-hover:bg-red-50 group-hover:text-red-500'
+                        isCheckedOut ? 'bg-white/20' : 'bg-white/40 text-gray-400 group-hover:bg-red-50 group-hover:text-red-500'
                       }`}>
                         <Clock size={20} />
                       </div>
@@ -418,7 +418,7 @@ const EmployeeDashboard = () => {
                  </div>
                  
                  {/* Active Time Display Div */}
-                 <div className="bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm flex flex-col items-center justify-center group hover:shadow-md transition-all">
+                 <div className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] border border-white/40 shadow-sm flex flex-col items-center justify-center group hover:shadow-md transition-all">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Current Time</p>
                     <div className="flex items-center gap-3">
                        <Clock size={20} className="text-[#2563EB]" />
@@ -430,16 +430,16 @@ const EmployeeDashboard = () => {
              <div className="grid grid-cols-2 gap-6">
                 <button 
                   onClick={() => setShowLeaveModal(true)}
-                  className="bg-white p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg transition-all group w-full text-left"
+                  className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-white/40 shadow-sm hover:shadow-lg transition-all group w-full text-left"
                 >
-                  <div className="p-3 bg-gray-50 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">
+                  <div className="p-3 bg-white/40 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">
                      <UserPlus size={24} />
                   </div>
                   <span className="text-sm font-black tracking-tight">Apply Leave</span>
                 </button>
 
-                <button className="bg-white p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-gray-100 shadow-sm hover:shadow-lg transition-all group">
-                  <div className="p-3 bg-gray-50 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">
+                <button className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-white/40 shadow-sm hover:shadow-lg transition-all group">
+                  <div className="p-3 bg-white/40 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">
                      <Users size={24} />
                   </div>
                   <span className="text-sm font-black tracking-tight">Meetings</span>

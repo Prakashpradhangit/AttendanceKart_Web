@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Calendar, 
-  Clock, 
-  CheckCircle2, 
-  FileText, 
-  Send, 
+import {
+  Calendar,
+  Clock,
+  CheckCircle2,
+  FileText,
+  Send,
   Plus,
   AlertCircle,
   MoreVertical,
@@ -53,7 +53,7 @@ const EmployeeLeaves = () => {
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {leaveStats.map((stat, index) => (
-          <motion.div 
+          <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -97,9 +97,8 @@ const EmployeeLeaves = () => {
                   <tr key={index} className="group hover:bg-gray-50/50 transition-colors">
                     <td className="py-5 px-2">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          leave.type === 'Sick Leave' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'
-                        }`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${leave.type === 'Sick Leave' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'
+                          }`}>
                           <FileText size={16} />
                         </div>
                         <div>
@@ -115,11 +114,10 @@ const EmployeeLeaves = () => {
                       <p className="text-sm font-bold text-gray-900">{leave.days}</p>
                     </td>
                     <td className="py-5 px-2 text-center">
-                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest inline-block ${
-                        leave.status === 'Approved' ? 'bg-green-50 text-green-600' : 
-                        leave.status === 'Rejected' ? 'bg-red-50 text-red-600' : 
-                        'bg-yellow-50 text-yellow-600'
-                      }`}>
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest inline-block ${leave.status === 'Approved' ? 'bg-green-50 text-green-600' :
+                          leave.status === 'Rejected' ? 'bg-red-50 text-red-600' :
+                            'bg-yellow-50 text-yellow-600'
+                        }`}>
                         {leave.status}
                       </span>
                     </td>
@@ -137,7 +135,7 @@ const EmployeeLeaves = () => {
 
         {/* Right Side - Form (4 Columns) */}
         <div className="lg:col-span-4 bg-[#1E293B] rounded-[40px] p-8 shadow-xl text-white relative overflow-hidden min-h-[600px] flex flex-col">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="relative z-10 flex flex-col h-full"
@@ -153,7 +151,7 @@ const EmployeeLeaves = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Leave Type</label>
-                  <select 
+                  <select
                     value={leaveType}
                     onChange={(e) => setLeaveType(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all cursor-pointer appearance-none"
@@ -166,7 +164,7 @@ const EmployeeLeaves = () => {
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Duration</label>
-                  <select 
+                  <select
                     value={leaveDuration}
                     onChange={(e) => setLeaveDuration(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all cursor-pointer appearance-none"
@@ -204,9 +202,9 @@ const EmployeeLeaves = () => {
               <div>
                 <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Attach Documents (Optional)</label>
                 <div className="relative group">
-                  <input 
-                    type="file" 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                  <input
+                    type="file"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
                   <div className="w-full bg-white/5 border-2 border-dashed border-white/10 rounded-2xl p-6 flex flex-col items-center gap-2 group-hover:border-blue-400/50 transition-all">
                     <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center">
@@ -219,13 +217,13 @@ const EmployeeLeaves = () => {
 
               <div>
                 <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Reason</label>
-                <textarea 
+                <textarea
                   placeholder="Tell us why you need this leave..."
                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all min-h-[100px] resize-none"
                 ></textarea>
               </div>
 
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowSuccessPopup(true)}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-[24px] font-bold text-sm uppercase tracking-widest shadow-xl shadow-blue-900/20 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 mt-4"
@@ -242,7 +240,7 @@ const EmployeeLeaves = () => {
               </p>
             </div>
           </motion.div>
-          
+
           {/* Decorative Background Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-600/10 rounded-full -ml-24 -mb-24 blur-3xl"></div>
@@ -252,7 +250,7 @@ const EmployeeLeaves = () => {
       {/* Success Modal - Centered in main viewport */}
       {showSuccessPopup && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
@@ -260,14 +258,14 @@ const EmployeeLeaves = () => {
           >
             {/* Animated Icon Container */}
             <div className="relative mb-10">
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring" }}
                 className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center relative"
               >
                 <motion.div
-                  animate={{ 
+                  animate={{
                     scale: [1, 1.1, 1],
                     rotate: [0, -5, 5, 0]
                   }}
@@ -275,8 +273,8 @@ const EmployeeLeaves = () => {
                 >
                   <Send size={44} className="text-[#0052CC] -rotate-12 translate-x-1" />
                 </motion.div>
-                
-                <motion.div 
+
+                <motion.div
                   initial={{ scale: 0, rotate: -45 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.5, type: "spring" }}
@@ -298,7 +296,7 @@ const EmployeeLeaves = () => {
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
@@ -312,7 +310,7 @@ const EmployeeLeaves = () => {
               </p>
             </motion.div>
 
-            <motion.button 
+            <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -323,7 +321,7 @@ const EmployeeLeaves = () => {
             >
               OK, Got it
             </motion.button>
-            
+
             {/* Background Accent */}
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#0052CC] via-blue-400 to-[#0052CC]"></div>
           </motion.div>

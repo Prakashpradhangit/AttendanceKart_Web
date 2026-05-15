@@ -26,8 +26,8 @@ const EmployeeSidebar = ({ isOpen, toggleSidebar }) => {
     { name: 'Attendance', icon: CalendarCheck, path: '/employee/attendance', comingSoon: false },
     { name: 'Leave', icon: CalendarRange, path: '/employee/leaves', comingSoon: false },
     { name: 'Salary', icon: Wallet, path: '/employee/salary', comingSoon: false },
-    { name: 'Profile', icon: Users, path: '#', comingSoon: true },
-    { name: 'Settings', icon: Settings, path: '#', comingSoon: true },
+    { name: 'Profile', icon: Users, path: '/employee/profile', comingSoon: false },
+    { name: 'Settings', icon: Settings, path: '/employee/settings', comingSoon: false },
   ];
 
   return (

@@ -10,7 +10,8 @@ import {
   FileText,
   ArrowDown,
   X,
-  ChevronDown
+  ChevronDown,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -63,11 +64,31 @@ const trendData = [
 
 const EmployeeSalary = () => {
   const [showPayslip, setShowPayslip] = React.useState(false);
+  const [showRequestSuccess, setShowRequestSuccess] = React.useState(false);
+  const [showRequestModal, setShowRequestModal] = React.useState(false);
+  const [requestReason, setRequestReason] = React.useState('');
+  const [reasonError, setReasonError] = React.useState('');
   const [selectedMonth, setSelectedMonth] = React.useState('May 2025');
 
   const months = [
     'January 2025', 'February 2025', 'March 2025', 'April 2025', 'May 2025'
   ];
+
+  const handleOpenRequestModal = () => {
+    setRequestReason('');
+    setReasonError('');
+    setShowRequestModal(true);
+  };
+
+  const handleSubmitRequest = () => {
+    if (!requestReason.trim()) {
+      setReasonError('Please provide a reason for your request.');
+      return;
+    }
+    setShowRequestModal(false);
+    setShowRequestSuccess(true);
+    setTimeout(() => setShowRequestSuccess(false), 5000);
+  };
 
   const handleDownloadPayslip = () => {
     // In a real application, this would be an API call to fetch the PDF blob
@@ -87,6 +108,139 @@ const EmployeeSalary = () => {
 
   return (
     <div className="px-6 lg:px-10 pt-2 pb-10 bg-[#F8FAFC] min-h-screen relative">
+      {/* Request Success Toast */}
+      <AnimatePresence>
+        {showRequestSuccess && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 20, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            className="fixed top-4 left-1/2 z-[100] bg-white border border-emerald-100 shadow-2xl shadow-emerald-200/50 rounded-2xl px-6 py-4 flex items-center gap-4 min-w-[320px]"
+          >
+            <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center shrink-0">
+              <CheckCircle2 className="text-emerald-600" size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Request Sent Successfully</p>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">Admin will review your request shortly.</p>
+            </div>
+            <button onClick={() => setShowRequestSuccess(false)} className="ml-auto text-gray-400 hover:text-gray-600">
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Request Payslip Modal */}
+      <AnimatePresence>
+        {showRequestModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+            onClick={(e) => e.target === e.currentTarget && setShowRequestModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="p-8 pb-6 flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
+                    <FileText className="text-[#0061E0]" size={22} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Request Payslip</h2>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">{selectedMonth}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowRequestModal(false)}
+                  className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="px-8 pb-8 space-y-6">
+                {/* Purpose Selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Purpose of Request<span className="text-rose-500 ml-0.5">*</span></label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['Loan Application', 'Visa Processing', 'Income Proof', 'Other'].map((purpose) => (
+                      <button
+                        key={purpose}
+                        onClick={() => setRequestReason(purpose)}
+                        className={`py-3 px-4 rounded-2xl text-xs font-bold border-2 transition-all ${
+                          requestReason === purpose
+                            ? 'border-[#0061E0] bg-blue-50 text-[#0061E0]'
+                            : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
+                        }`}
+                      >
+                        {purpose}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Reason Textarea */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Additional Details</label>
+                  <textarea
+                    value={requestReason === 'Loan Application' || requestReason === 'Visa Processing' || requestReason === 'Income Proof'
+                      ? ''
+                      : requestReason.startsWith('Other') || !['Loan Application','Visa Processing','Income Proof'].includes(requestReason)
+                        ? requestReason
+                        : ''}
+                    onChange={(e) => setRequestReason(e.target.value)}
+                    placeholder="Briefly describe why you need this payslip..."
+                    rows={4}
+                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-5 text-sm font-medium text-gray-700 outline-none focus:border-[#0061E0]/30 focus:ring-4 focus:ring-blue-500/5 resize-none transition-all placeholder:text-gray-300"
+                  />
+                  {reasonError && (
+                    <p className="text-xs text-rose-500 font-semibold ml-1 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-rose-500 rounded-full inline-block"></span>
+                      {reasonError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Info Banner */}
+                <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
+                  <CheckCircle2 size={16} className="text-blue-400 shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-600 font-medium leading-relaxed">
+                    Your request will be sent to HR/Admin. You will be notified once the payslip is approved and ready for download.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowRequestModal(false)}
+                    className="flex-1 py-4 rounded-2xl border-2 border-gray-100 text-sm font-bold text-gray-400 hover:text-gray-600 hover:border-gray-200 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitRequest}
+                    className="flex-[2] py-4 rounded-2xl bg-[#0061E0] hover:bg-[#0052cc] text-white text-sm font-bold shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <FileText size={16} />
+                    Submit Request
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -280,7 +434,7 @@ const EmployeeSalary = () => {
             <div className="flex flex-col items-center gap-8 my-auto py-4">
               <div 
                 className="relative group cursor-pointer"
-                onClick={() => setShowPayslip(true)}
+                onClick={handleOpenRequestModal}
               >
                 <div className="w-24 h-28 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center bg-gray-50 group-hover:border-[#0061E0]/50 group-hover:bg-blue-50/30 transition-all">
                    <FileText size={48} className="text-gray-300 group-hover:text-[#0061E0]/50 transition-colors" />
@@ -295,11 +449,11 @@ const EmployeeSalary = () => {
               </div>
               
               <button 
-                onClick={() => setShowPayslip(true)}
+                onClick={handleOpenRequestModal}
                 className="w-full bg-[#0061E0] hover:bg-[#0052cc] text-white py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0 mt-4"
               >
                 <FileText size={20} />
-                View Payslip
+                Request Payslip
               </button>
             </div>
           </motion.div>

@@ -16,7 +16,11 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="h-screen bg-dashboard-bg flex overflow-hidden">
+    <div className="h-screen bg-[#F4F7FE] flex overflow-hidden relative">
+      {/* Decorative background accents */}
+      <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[20%] w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
+      
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       
       <main 

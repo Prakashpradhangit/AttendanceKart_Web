@@ -123,7 +123,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Attendance Overview Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
+        <div className="lg:col-span-2 bg-white/70 backdrop-blur-md rounded-3xl shadow-sm p-6 border border-white/40 transition-all duration-300">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Attendance Overview</h2>
             <select className="bg-gray-50 border border-gray-100 rounded-xl text-xs font-semibold text-gray-500 px-4 py-2 outline-none cursor-pointer">
@@ -204,7 +204,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Department Distribution */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-sm p-6 border border-white/40 transition-all duration-300">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Departments</h2>
           <div className="h-[250px] w-full relative">
             <ResponsiveContainer width="100%" height="100%">
@@ -232,7 +232,7 @@ const Dashboard = () => {
           </div>
           <div className="mt-8 grid grid-cols-2 gap-4">
              {deptData.map((item, index) => (
-               <div key={item.name} className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl">
+               <div key={item.name} className="flex items-center gap-3 bg-white/40 p-3 rounded-2xl border border-white/20">
                  <div className="w-3 h-3 rounded-full shrink-0" style={{backgroundColor: COLORS[index % COLORS.length]}}></div>
                  <div className="min-w-0">
                    <p className="text-[10px] font-bold text-gray-400 uppercase truncate">{item.name}</p>
@@ -244,7 +244,7 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-sm p-6 border border-white/40 transition-all duration-300">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
             <button className="text-primary text-xs font-semibold hover:underline flex items-center gap-1">
@@ -254,7 +254,7 @@ const Dashboard = () => {
           <div className="flex flex-col gap-6">
             {recentActivity.map((activity) => (
               <div key={activity.id} className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center shadow-sm overflow-hidden border border-gray-100">
+                <div className="w-12 h-12 rounded-2xl bg-white/40 flex items-center justify-center shadow-sm overflow-hidden border border-white/20">
                   <img src={activity.avatar} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -270,7 +270,7 @@ const Dashboard = () => {
         </div>
 
         {/* Payroll Summary */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-sm p-6 border border-white/40 transition-all duration-300">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Payroll Trends</h2>
             <span className="text-[10px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">Q2 2026</span>

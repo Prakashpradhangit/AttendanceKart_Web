@@ -12,6 +12,8 @@ import EmployeeAttendance from './pages/EmployeeAttendance';
 import EmployeeLayout from './layouts/EmployeeLayout';
 import EmployeeLeaves from './pages/Employeeleaves';
 import EmployeeSalary from './pages/EmployeeSalary';
+import EmployeeProfile from './pages/EmployeeProfile';
+import EmployeeSettings from './pages/EmployeeSettings';
 import { EmployeeProvider } from './context/EmployeeContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
@@ -57,6 +59,8 @@ function App() {
               <Route path="/employee/attendance" element={<EmployeeAttendance />} />
               <Route path="/employee/leaves" element={<EmployeeLeaves />} />
               <Route path="/employee/salary" element={<EmployeeSalary />} />
+              <Route path="/employee/profile" element={<EmployeeProfile />} />
+              <Route path="/employee/settings" element={<EmployeeSettings />} />
             </Route>
 
             {/* Super Admin Routes */}
