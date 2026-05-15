@@ -6,7 +6,7 @@ const EmployeeContext = createContext();
 export const EmployeeProvider = ({ children }) => {
   const [employees, setEmployees] = useState([]);
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = React.useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('/api/users', {
@@ -15,24 +15,26 @@ export const EmployeeProvider = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         // Map backend User to frontend Employee structure
-        const mappedData = data.map(user => ({
-          id: user.id,
-          empId: user.employeeCode,
-          name: user.name,
-          email: user.email,
-          phone: user.phoneNumber,
-          department: user.department,
-          role: user.designation,
-          userRole: user.role,
-          joiningDate: user.joiningDate,
-          status: 'Active' // We can assume active since no status field in User
-        }));
+        const mappedData = data
+          .filter(user => user.role !== 'ADMIN') // Exclude Admin accounts from employee details
+          .map(user => ({
+            id: user.id,
+            empId: user.employeeCode,
+            name: user.name,
+            email: user.email,
+            phone: user.phoneNumber,
+            department: user.department,
+            role: user.designation,
+            userRole: user.role,
+            joiningDate: user.joiningDate,
+            status: 'Active' // We can assume active since no status field in User
+          }));
         setEmployees(mappedData);
       }
     } catch (err) {
       console.error('Failed to fetch employees:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchEmployees();
@@ -106,6 +108,7 @@ export const EmployeeProvider = ({ children }) => {
         phoneNumber: updatedData.phone,
         department: updatedData.department,
         designation: updatedData.role,
+        role: updatedData.userRole, // Send the enum role back
         joiningDate: updatedData.joiningDate
       };
 

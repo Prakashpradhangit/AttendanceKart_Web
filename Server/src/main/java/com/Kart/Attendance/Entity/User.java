@@ -40,6 +40,7 @@ public class User {
     private String email;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private User_Role role;
     
     @Column(nullable = false)
@@ -60,8 +61,5 @@ public class User {
     private String authToken;
 
     private String gender;
-
-    @Enumerated(EnumType.STRING)
-    private User_Role User_ROle;
 
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend
@@ -13,10 +13,42 @@ import { useNavigate } from 'react-router-dom';
 const COLORS = ['#0061E0', '#22C55E', '#F6AD55', '#F56565'];
 
 const Dashboard = () => {
-  const { employees } = useEmployees();
+  const { employees, fetchEmployees } = useEmployees();
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = React.useState('Last 30 Days');
   const [isCheckingStatus, setIsCheckingStatus] = React.useState(true);
+  const [pendingLeaveCount, setPendingLeaveCount] = React.useState(0);
+  const [todayPresentCount, setTodayPresentCount] = React.useState(0);
+  const [trendsData, setTrendsData] = React.useState([]);
+  const [selectedMonth, setSelectedMonth] = React.useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+
+  const fetchDashboardStats = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      const [leaveRes, attendanceRes, trendsRes] = await Promise.all([
+        fetch('/api/leaves/admin/pending/count', { headers }),
+        fetch('/api/attendance/admin/today/count', { headers }),
+        fetch(`/api/attendance/admin/trends?month=${selectedMonth}`, { headers })
+      ]);
+
+      if (leaveRes.ok) {
+        const data = await leaveRes.json();
+        setPendingLeaveCount(data.count);
+      }
+      if (attendanceRes.ok) {
+        const data = await attendanceRes.json();
+        setTodayPresentCount(data.count);
+      }
+      if (trendsRes.ok) {
+        const data = await trendsRes.json();
+        setTrendsData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard stats:', err);
+    }
+  }, [selectedMonth]);
 
   useEffect(() => {
     const checkAccountStatus = async () => {
@@ -42,10 +74,15 @@ const Dashboard = () => {
     };
 
     checkAccountStatus();
+    fetchEmployees();
+    fetchDashboardStats();
     // Periodically check status every 5 minutes
-    const interval = setInterval(checkAccountStatus, 300000);
+    const interval = setInterval(() => {
+      checkAccountStatus();
+      fetchDashboardStats();
+    }, 300000);
     return () => clearInterval(interval);
-  }, [navigate]);
+  }, [navigate, fetchEmployees, fetchDashboardStats, selectedMonth]);
 
   // Dynamic Summary Stats
   const totalEmployees = employees.length;
@@ -68,18 +105,18 @@ const Dashboard = () => {
     },
     {
       id: 2,
-      title: 'Active Now',
-      value: activeEmployees.toString(),
+      title: 'Present Today',
+      value: todayPresentCount.toString(),
       icon: <Calendar size={24} />,
-      trend: '94% attendance rate',
+      trend: `${totalEmployees > 0 ? Math.round((todayPresentCount / totalEmployees) * 100) : 0}% attendance rate`,
       color: 'bg-[#22C55E]'
     },
     {
       id: 3,
       title: 'Leave Requests',
-      value: '8',
+      value: pendingLeaveCount.toString(),
       icon: <FileText size={24} />,
-      trend: '2 pending approval',
+      trend: `${pendingLeaveCount} pending approval`,
       color: 'bg-orange-500'
     },
     {
@@ -98,7 +135,7 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">Dashboard Overview</h1>
-          <p className="text-xs md:text-sm text-gray-500 mt-1 font-medium">Welcome back! Here's what's happening today.</p>
+          <p className="text-xs md:text-sm text-gray-500 mt-1 font-medium">Welcome back, {localStorage.getItem('name') || 'Admin'}! Here's what's happening today.</p>
         </div>
         <div className="flex gap-4 w-full sm:w-auto">
           <select 
@@ -126,23 +163,25 @@ const Dashboard = () => {
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-100 transition-all duration-300 shadow-sm border-gray-100">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Attendance Overview</h2>
-            <select className="bg-gray-50 border border-gray-100 rounded-xl text-xs font-semibold text-gray-500 px-4 py-2 outline-none cursor-pointer">
-              <option>April 2026</option>
-              <option>March 2026</option>
-            </select>
+            <input 
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-gray-50 border border-gray-100 rounded-xl text-xs font-semibold text-gray-500 px-4 py-2 outline-none cursor-pointer focus:ring-2 focus:ring-primary/20 transition-all"
+            />
           </div>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={attendanceData}>
+              <LineChart data={trendsData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12, fontWeight: 600}} dy={15} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12, fontWeight: 600}} />
+                <YAxis allowDecimals={false} domain={[0, 'auto']} axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12, fontWeight: 600}} />
                 <Tooltip 
                   contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px'}}
                 />
                 <Legend iconType="circle" wrapperStyle={{paddingTop: '30px'}} />
-                <Line type="monotone" dataKey="present" stroke="#22C55E" strokeWidth={4} dot={{r: 6, fill: '#22C55E', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
-                <Line type="monotone" dataKey="absent" stroke="#F56565" strokeWidth={4} dot={{r: 6, fill: '#F56565', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
+                <Line type="monotone" name="Present" dataKey="present" stroke="#22C55E" strokeWidth={4} dot={{r: 6, fill: '#22C55E', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
+                <Line type="monotone" name="On Leave" dataKey="onLeave" stroke="#F6AD55" strokeWidth={4} dot={{r: 6, fill: '#F6AD55', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
               </LineChart>
             </ResponsiveContainer>
           </div>

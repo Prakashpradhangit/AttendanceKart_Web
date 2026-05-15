@@ -53,4 +53,19 @@ public class AuthController {
 
         return ResponseEntity.ok(session);
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        String token = null;
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            token = authorization.substring(7);
+        }
+
+        Map<String, Object> profile = authService.getProfile(token);
+        if (profile == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid session"));
+        }
+
+        return ResponseEntity.ok(profile);
+    }
 }

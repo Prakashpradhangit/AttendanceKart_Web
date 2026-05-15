@@ -72,6 +72,11 @@ const EmployeeDashboard = () => {
   const [leaveDuration, setLeaveDuration] = useState("Full Day");
   const [attendanceRecord, setAttendanceRecord] = useState(null);
   const [workDuration, setWorkDuration] = useState("00:00:00");
+  const [presentCount, setPresentCount] = useState(0);
+  const [leaveCount, setLeaveCount] = useState(0);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [reason, setReason] = useState("");
 
   const fetchTodayAttendance = async () => {
     try {
@@ -166,9 +171,58 @@ const EmployeeDashboard = () => {
         });
 
         setChartData(newChartData);
+        setPresentCount(attendanceList.length);
+        fetchLeaveCount();
       }
     } catch (err) {
       console.error("Failed to fetch monthly attendance:", err);
+    }
+  };
+
+  const fetchLeaveCount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/leaves/count", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLeaveCount(data.count);
+      }
+    } catch (err) {
+      console.error("Failed to fetch leave count:", err);
+    }
+  };
+
+  const handleLeaveSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/leaves", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          leaveType,
+          duration: leaveDuration,
+          fromDate,
+          toDate,
+          reason,
+        }),
+      });
+
+      if (response.ok) {
+        setShowLeaveModal(false);
+        setShowSuccessPopup(true);
+        fetchLeaveCount();
+      } else {
+        alert("Failed to submit leave request");
+      }
+    } catch (err) {
+      console.error("Failed to submit leave:", err);
+      alert("An error occurred");
     }
   };
 
@@ -230,6 +284,44 @@ const EmployeeDashboard = () => {
     setShowPopup(true);
   };
 
+  const handleCapture = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const endpoint =
+        attendanceType === "Check In"
+          ? "/api/attendance/clock-in"
+          : "/api/attendance/clock-out";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceRecord(data);
+        if (attendanceType === "Check In") setIsCheckedIn(true);
+        if (attendanceType === "Check Out") setIsCheckedOut(true);
+
+        alert(`Attendance ${attendanceType} captured successfully!`);
+        setShowPopup(false);
+
+        // Refetch to sync everything
+        fetchTodayAttendance();
+        fetchMonthlyAttendance(selectedMonth);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || `Failed to ${attendanceType}`);
+      }
+    } catch (err) {
+      console.error(`Failed to capture ${attendanceType}:`, err);
+      alert("An error occurred. Please try again.");
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col gap-6 animate-in fade-in duration-700 max-w-7xl mx-auto pb-6">
@@ -242,7 +334,7 @@ const EmployeeDashboard = () => {
               <p className="text-[10px] font-black text-[#22C55E]/60 uppercase tracking-widest mb-1">
                 Total Present
               </p>
-              <h3 className="text-2xl font-black text-[#22C55E]">24</h3>
+              <h3 className="text-2xl font-black text-[#22C55E]">{presentCount}</h3>
             </div>
             <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#22C55E]">
               <TrendingUp size={24} />
@@ -270,7 +362,7 @@ const EmployeeDashboard = () => {
               <p className="text-[10px] font-black text-[#F97316]/60 uppercase tracking-widest mb-1">
                 Leave Taken
               </p>
-              <h3 className="text-2xl font-black text-[#F97316]">6</h3>
+              <h3 className="text-2xl font-black text-[#F97316]">{leaveCount}</h3>
             </div>
             <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#F97316]">
               <Calendar size={24} />
@@ -353,18 +445,18 @@ const EmployeeDashboard = () => {
                          return null;
                        }}
                      />
-                     <Bar 
-                       dataKey="hours" 
-                       radius={[4, 4, 4, 4]} 
-                       barSize={8}
-                     >
-                       {data.map((entry, index) => (
-                         <Cell 
-                           key={`cell-${index}`} 
-                           fill={entry.hours > 0 ? '#86EFAC' : '#F1F5F9'} 
-                         />
-                       ))}
-                     </Bar>
+                      <Bar 
+                        dataKey="hours" 
+                        radius={[4, 4, 4, 4]} 
+                        barSize={8}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.hours > 0 ? '#22C55E' : '#F1F5F9'} 
+                          />
+                        ))}
+                      </Bar>
                    </BarChart>
                  </ResponsiveContainer>
              </div>
@@ -417,14 +509,6 @@ const EmployeeDashboard = () => {
                     </button>
                  </div>
                  
-                 {/* Active Time Display Div */}
-                 <div className="bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm flex flex-col items-center justify-center group hover:shadow-md transition-all">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Current Time</p>
-                    <div className="flex items-center gap-3">
-                       <Clock size={20} className="text-[#2563EB]" />
-                       <span className="text-2xl font-black text-gray-900 tracking-tight">{formatTime(currentTime)}</span>
-                    </div>
-                 </div>
                </div>
 
              <div className="grid grid-cols-2 gap-6">
@@ -501,13 +585,8 @@ const EmployeeDashboard = () => {
                 </div>
               </div>
 
-              <button 
-                onClick={() => {
-                  if (attendanceType === 'Check In') setIsCheckedIn(true);
-                  if (attendanceType === 'Check Out') setIsCheckedOut(true);
-                  alert(`Attendance ${attendanceType} captured successfully!`);
-                  setShowPopup(false);
-                }}
+              <button
+                onClick={handleCapture}
                 className="w-full bg-[#2563EB] text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all transform active:scale-95 flex items-center justify-center gap-2"
               >
                 <Camera size={20} />
@@ -546,60 +625,72 @@ const EmployeeDashboard = () => {
                   </div>
                 </div>
 
-                <form className="space-y-5">
+                <form className="space-y-5" onSubmit={handleLeaveSubmit}>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">Leave Type</label>
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">Leave Type</label>
                       <select 
                         value={leaveType}
                         onChange={(e) => setLeaveType(e.target.value)}
                         className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all cursor-pointer appearance-none"
                       >
-                        <option>Sick Leave</option>
-                        <option>Casual Leave</option>
-                        <option>Annual Leave</option>
-                        <option>Half Day</option>
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Casual Leave">Casual Leave</option>
+                        <option value="Annual Leave">Annual Leave</option>
+                        <option value="Half Day">Half Day</option>
                       </select>
                     </div>
                     <div>
-                      <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">Duration</label>
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">Duration</label>
                       <select 
                         value={leaveDuration}
                         onChange={(e) => setLeaveDuration(e.target.value)}
                         className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all cursor-pointer appearance-none"
                       >
-                        <option>Full Day</option>
-                        <option>First Half</option>
-                        <option>Second Half</option>
+                        <option value="Full Day">Full Day</option>
+                        <option value="First Half">First Half</option>
+                        <option value="Second Half">Second Half</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">
                         {leaveDuration === 'Full Day' ? 'From Date' : 'Date'}
                       </label>
-                      <input type="date" className="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-[11px] font-bold outline-none focus:border-blue-400 transition-all [color-scheme:dark]" />
+                      <input 
+                        type="date" 
+                        value={fromDate}
+                        onChange={(e) => setFromDate(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] transition-all" 
+                        required
+                      />
                     </div>
                     {leaveDuration === "Full Day" ? (
                       <div>
-                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">To Date</label>
-                        <input type="date" className="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-[11px] font-bold outline-none focus:border-blue-400 transition-all [color-scheme:dark]" />
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">To Date</label>
+                        <input 
+                          type="date" 
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3.5 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] transition-all" 
+                          required
+                        />
                       </div>
                     ) : (
                       <div>
-                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">Time</label>
-                        <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">Time</label>
+                        <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
                           <Clock size={16} className="text-blue-400" />
-                          <input type="time" className="bg-transparent border-none outline-none text-[11px] font-bold w-full [color-scheme:dark]" />
+                          <input type="time" className="bg-transparent border-none outline-none text-xs font-semibold w-full" />
                         </div>
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">
                       Documents (Optional)
                     </label>
                     <div className="relative group">
@@ -607,14 +698,14 @@ const EmployeeDashboard = () => {
                         type="file"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
-                      <div className="w-full bg-white/5 border-2 border-dashed border-white/10 rounded-xl p-6 flex flex-col items-center gap-2 group-hover:border-blue-400/50 transition-all">
-                        <div className="w-9 h-9 bg-white/5 rounded-full flex items-center justify-center">
+                      <div className="w-full bg-gray-50 border-2 border-dashed border-gray-100 rounded-xl p-6 flex flex-col items-center gap-2 group-hover:border-blue-400/50 transition-all">
+                        <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">
                           <Upload
                             size={18}
-                            className="text-white/40 group-hover:text-blue-400"
+                            className="text-gray-400 group-hover:text-blue-400"
                           />
                         </div>
-                        <p className="text-[10px] font-black text-white/40 uppercase tracking-widest group-hover:text-white transition-colors">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-gray-600 transition-colors">
                           Upload document
                         </p>
                       </div>
@@ -622,21 +713,20 @@ const EmployeeDashboard = () => {
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-black text-white/40 uppercase tracking-widest block mb-2">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">
                       Reason
                     </label>
                     <textarea
                       placeholder="Tell us why..."
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
                       className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-xs font-semibold text-gray-700 outline-none focus:border-[#0061E0] focus:ring-4 focus:ring-blue-500/5 transition-all min-h-[90px] resize-none"
+                      required
                     ></textarea>
                   </div>
 
                   <button
-                    type="button"
-                    onClick={() => {
-                      setShowLeaveModal(false);
-                      setShowSuccessPopup(true);
-                    }}
+                    type="submit"
                     className="w-full bg-[#0061E0] hover:bg-[#0052cc] text-white py-4 rounded-2xl font-semibold text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-1 active:scale-95"
                   >
                     <Send size={18} />

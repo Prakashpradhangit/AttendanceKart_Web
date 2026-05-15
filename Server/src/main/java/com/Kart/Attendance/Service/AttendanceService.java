@@ -12,7 +12,9 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+import com.Kart.Attendance.Entity.LeaveRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ public class AttendanceService {
 
     private final Attendance_Details attendanceRepository;
     private final UserRepository userRepository;
+    private final com.Kart.Attendance.Repository.LeaveRepository leaveRepository;
 
     public Optional<AttendanceDetails> getTodayAttendance(Long userId) {
         String tenantId = TenantContext.getCurrentTenant();
@@ -85,5 +88,75 @@ public class AttendanceService {
     public java.util.List<AttendanceDetails> getMonthlyAttendance(Long userId, String yearMonth) {
         String tenantId = TenantContext.getCurrentTenant();
         return attendanceRepository.findByUserIdAndTenantIdAndAttendanceDateStartingWith(String.valueOf(userId), tenantId, yearMonth);
+    }
+
+    public long getTodayPresentCount() {
+        String tenantId = TenantContext.getCurrentTenant();
+        String today = LocalDate.now().toString();
+        return attendanceRepository.countByTenantIdAndAttendanceDate(tenantId, today);
+    }
+
+    public List<Map<String, Object>> getAttendanceTrends(String monthStr) {
+        String tenantId = TenantContext.getCurrentTenant();
+        LocalDate now = LocalDate.now();
+        
+        LocalDate firstDay;
+        int daysInMonth;
+        String queryYearMonth;
+
+        if (monthStr != null && !monthStr.isBlank()) {
+            // Assume format "YYYY-MM"
+            String[] parts = monthStr.split("-");
+            int year = Integer.parseInt(parts[0]);
+            int month = Integer.parseInt(parts[1]);
+            firstDay = LocalDate.of(year, month, 1);
+            daysInMonth = firstDay.lengthOfMonth();
+            queryYearMonth = monthStr;
+        } else {
+            firstDay = now.withDayOfMonth(1);
+            daysInMonth = now.lengthOfMonth();
+            queryYearMonth = now.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        }
+
+        // Fetch all attendance for the month
+        List<AttendanceDetails> attendanceList = attendanceRepository.findByTenantIdAndAttendanceDateStartingWith(tenantId, queryYearMonth);
+        
+        // Fetch all approved leaves for the tenant
+        List<LeaveRequest> leaveList = leaveRepository.findByTenantId(tenantId).stream()
+                .filter(l -> "APPROVED".equals(l.getStatus()))
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> trends = new ArrayList<>();
+        
+        // Loop through all days of the selected month
+        for (int i = 1; i <= daysInMonth; i++) {
+            LocalDate date = firstDay.withDayOfMonth(i);
+            String dateStr = date.toString();
+            String label = date.format(DateTimeFormatter.ofPattern("dd MMM"));
+
+            long presentCount = attendanceList.stream()
+                    .filter(a -> dateStr.equals(a.getAttendanceDate()))
+                    .count();
+
+            long leaveCount = leaveList.stream()
+                    .filter(l -> {
+                        try {
+                            LocalDate start = LocalDate.parse(l.getFromDate());
+                            LocalDate end = LocalDate.parse(l.getToDate());
+                            return !date.isBefore(start) && !date.isAfter(end);
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    })
+                    .count();
+
+            Map<String, Object> dayData = new HashMap<>();
+            dayData.put("name", label);
+            dayData.put("present", presentCount);
+            dayData.put("onLeave", leaveCount);
+            trends.add(dayData);
+        }
+
+        return trends;
     }
 }

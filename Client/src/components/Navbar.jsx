@@ -1,10 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, User, Menu } from 'lucide-react';
 
 const Navbar = ({ onMenuClick }) => {
-  const userName = localStorage.getItem('name') || 'User';
-  const employeeCode = localStorage.getItem('employeeCode');
-  const userRole = localStorage.getItem('role') || 'Guest';
+  const [profile, setProfile] = useState({
+    name: localStorage.getItem('name') || 'User',
+    role: localStorage.getItem('role') || 'Guest',
+    employeeCode: localStorage.getItem('employeeCode') || ''
+  });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch('/api/auth/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setProfile(data);
+          // Sync with localStorage for other components
+          localStorage.setItem('name', data.name);
+          localStorage.setItem('role', data.role);
+          if (data.employeeCode) localStorage.setItem('employeeCode', data.employeeCode);
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile:', err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const { name: userName, role: userRole, employeeCode } = profile;
 
   return (
     <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40">
