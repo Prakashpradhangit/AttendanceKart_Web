@@ -78,7 +78,7 @@ public class AdminService {
             return;
         }
 
-        User adminUser = userRepository.findFirstByTenantIdAndRole(admin.getTenantId(), User_Role.ADMIN)
+        User adminUser = userRepository.findByEmail(admin.getEmail())
                 .orElseGet(User::new);
         adminUser.setName(admin.getName());
         adminUser.setTenantId(admin.getTenantId());
@@ -89,5 +89,27 @@ public class AdminService {
         adminUser.setDesignation("Organization Admin");
         adminUser.setJoiningDate(admin.getStarting_date());
         userRepository.save(adminUser);
+    }
+
+    public Admin getAdminByTenantId(String tenantId) {
+        return adminRepository.findByTenantId(tenantId)
+                .orElseThrow(() -> new RuntimeException("Admin settings not found"));
+    }
+
+    @Transactional
+    public Admin updateSettings(String tenantId, java.util.Map<String, Object> settings) {
+        Admin admin = adminRepository.findByTenantId(tenantId)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+        
+        if (settings.containsKey("lateThresholdTime")) admin.setLateThresholdTime((String) settings.get("lateThresholdTime"));
+        if (settings.containsKey("defaultCheckInTime")) admin.setDefaultCheckInTime((String) settings.get("defaultCheckInTime"));
+        if (settings.containsKey("defaultCheckOutTime")) admin.setDefaultCheckOutTime((String) settings.get("defaultCheckOutTime"));
+        if (settings.containsKey("gracePeriod")) {
+            Object gp = settings.get("gracePeriod");
+            if (gp instanceof Integer) admin.setGracePeriod((Integer) gp);
+            else if (gp instanceof String) admin.setGracePeriod(Integer.parseInt((String) gp));
+        }
+        
+        return adminRepository.save(admin);
     }
 }

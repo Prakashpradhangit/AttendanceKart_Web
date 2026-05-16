@@ -81,4 +81,28 @@ public class AttendanceController {
         }
         return ResponseEntity.ok(attendanceService.getAttendanceTrends(month));
     }
+
+    @GetMapping("/admin/today/all")
+    public ResponseEntity<?> getAllTodayAttendance(HttpServletRequest request) {
+        if (!"ADMIN".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        return ResponseEntity.ok(attendanceService.getAllTodayAttendance());
+    }
+
+    @GetMapping("/admin/today/stats")
+    public ResponseEntity<?> getTodayStats(HttpServletRequest request) {
+        if (!"ADMIN".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        return ResponseEntity.ok(attendanceService.getTodayStats());
+    }
+
+    @GetMapping("/admin/stats/7days")
+    public ResponseEntity<?> get7DayTrends(HttpServletRequest request) {
+        if (!"ADMIN".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        return ResponseEntity.ok(attendanceService.get7DayTrends());
+    }
 }

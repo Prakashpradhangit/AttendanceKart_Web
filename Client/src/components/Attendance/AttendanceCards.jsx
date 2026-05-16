@@ -9,13 +9,14 @@ const iconMap = {
   clock: Clock
 };
 
-const AttendanceCards = ({ records, totalCount }) => {
-  const presentToday = records.filter(r => r.status === 'Present').length;
-  const absentToday = records.filter(r => r.status === 'Absent').length;
-  const lateArrivals = records.filter(r => r.status === 'Late').length;
+const AttendanceCards = ({ stats }) => {
+  const totalCount = stats?.totalEmployees || 0;
+  const presentToday = stats?.presentToday || 0;
+  const absentToday = stats?.absentToday || 0;
+  const lateArrivals = stats?.lateArrivals || 0;
 
-  const stats = [
-    { id: 1, title: 'Total Employees', value: totalCount.toString(), change: '+12%', icon: 'users', color: 'bg-[#0061E0]' },
+  const statsList = [
+    { id: 1, title: 'Total Employees', value: totalCount.toString(), change: 'Total', icon: 'users', color: 'bg-[#0061E0]' },
     { id: 2, title: 'Present Today', value: presentToday.toString(), change: `${totalCount > 0 ? Math.round((presentToday / totalCount) * 100) : 0}%`, icon: 'user-check', color: 'bg-[#22C55E]' },
     { id: 3, title: 'Absent Today', value: absentToday.toString(), change: `${totalCount > 0 ? Math.round((absentToday / totalCount) * 100) : 0}%`, icon: 'user-x', color: 'bg-red-500' },
     { id: 4, title: 'Late Arrivals', value: lateArrivals.toString(), change: `${totalCount > 0 ? Math.round((lateArrivals / totalCount) * 100) : 0}%`, icon: 'clock', color: 'bg-orange-500' },
@@ -23,7 +24,7 @@ const AttendanceCards = ({ records, totalCount }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat) => {
+      {statsList.map((stat) => {
         const Icon = iconMap[stat.icon];
         return (
           <div key={stat.id} className="relative overflow-hidden bg-white p-4 rounded-3xl shadow-sm border border-gray-100 group hover:shadow-xl transition-all duration-500">

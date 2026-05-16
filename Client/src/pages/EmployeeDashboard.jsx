@@ -208,8 +208,9 @@ const EmployeeDashboard = () => {
           leaveType,
           duration: leaveDuration,
           fromDate,
-          toDate,
+          toDate: leaveDuration === 'Full Day' ? toDate : fromDate,
           reason,
+          status: 'PENDING'
         }),
       });
 
@@ -217,8 +218,12 @@ const EmployeeDashboard = () => {
         setShowLeaveModal(false);
         setShowSuccessPopup(true);
         fetchLeaveCount();
+        setFromDate('');
+        setToDate('');
+        setReason('');
       } else {
-        alert("Failed to submit leave request");
+        const error = await response.json();
+        alert(error.error || "Failed to submit leave request");
       }
     } catch (err) {
       console.error("Failed to submit leave:", err);
@@ -226,9 +231,31 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const [settings, setSettings] = useState({ checkInTime: '09:00', gracePeriod: 15, checkOutTime: '18:00' });
+
+  const fetchSettings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/admin/settings", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSettings({
+          checkInTime: data.defaultCheckInTime || '09:00',
+          checkOutTime: data.defaultCheckOutTime || '18:00',
+          gracePeriod: data.gracePeriod || 15
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch settings:", err);
+    }
+  };
+
   useEffect(() => {
     fetchTodayAttendance();
     fetchMonthlyAttendance(selectedMonth);
+    fetchSettings();
   }, [selectedMonth]);
 
   useEffect(() => {
@@ -342,18 +369,26 @@ const EmployeeDashboard = () => {
           </div>
 
           <div className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] border border-white/40 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
-            <div>
+            <div className="flex-1">
               <p className="text-[10px] font-black text-[#2563EB]/60 uppercase tracking-widest mb-1">
-                {isCheckedIn && !isCheckedOut ? "Active Time" : "Today's Work"}
+                Shift Status
               </p>
-              <h3 className="text-2xl font-black text-[#2563EB]">
-                {workDuration}
+              <h3 className="text-xl font-black text-[#2563EB]">
+                {isCheckedIn && !isCheckedOut ? "On Duty" : "Off Duty"}
+              </h3>
+            </div>
+            <div className="flex-1 border-l border-gray-100 pl-4">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                Expected Shift
+              </p>
+              <h3 className="text-[13px] font-black text-gray-700">
+                {settings.checkInTime} - {settings.checkOutTime}
               </h3>
             </div>
             <div
-              className={`w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#2563EB] ${isCheckedIn && !isCheckedOut ? "animate-pulse" : ""}`}
+              className={`w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center text-[#2563EB] ml-2`}
             >
-              <Clock size={24} />
+              <User size={20} />
             </div>
           </div>
 
@@ -509,6 +544,23 @@ const EmployeeDashboard = () => {
                     </button>
                  </div>
                  
+                 {/* Active Timer Display moved here */}
+                  <div className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] border border-white/40 shadow-sm flex items-center justify-between group hover:shadow-lg transition-all">
+                    <div>
+                      <p className="text-[10px] font-black text-[#2563EB]/60 uppercase tracking-widest mb-1">
+                        {isCheckedIn && !isCheckedOut ? "Active Time Counter" : "Total Work Duration"}
+                      </p>
+                      <h3 className="text-3xl font-black text-[#2563EB] tracking-tighter">
+                        {workDuration}
+                      </h3>
+                    </div>
+                    <div
+                      className={`w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-[#2563EB] ${isCheckedIn && !isCheckedOut ? "animate-pulse" : ""}`}
+                    >
+                      <Clock size={28} />
+                    </div>
+                  </div>
+                 
                </div>
 
              <div className="grid grid-cols-2 gap-6">
@@ -575,7 +627,13 @@ const EmployeeDashboard = () => {
                 <p className="text-[#22C55E] font-black tracking-widest text-xs uppercase mb-2">Face Authentication</p>
                 <div className="flex flex-col items-center">
                   <span className={`text-4xl font-black ${
-                    attendanceType === 'Check In' && (currentTime.getHours() > 10 || (currentTime.getHours() === 10 && currentTime.getMinutes() >= 30))
+                    attendanceType === 'Check In' && (() => {
+                      const [bHour, bMin] = settings.checkInTime.split(':').map(Number);
+                      const totalMins = bMin + Number(settings.gracePeriod);
+                      const tHour = bHour + Math.floor(totalMins / 60);
+                      const tMin = totalMins % 60;
+                      return currentTime.getHours() > tHour || (currentTime.getHours() === tHour && currentTime.getMinutes() > tMin);
+                    })()
                       ? 'text-red-500' 
                       : 'text-[#1E293B]'
                   }`}>

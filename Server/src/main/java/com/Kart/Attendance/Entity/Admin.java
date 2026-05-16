@@ -50,5 +50,8 @@ public class Admin {
 
     private LocalDate starting_date;
 
-    
+    private String lateThresholdTime = "10:30";
+    private String defaultCheckInTime = "09:00";
+    private String defaultCheckOutTime = "18:00";
+    private int gracePeriod = 15;
 }

@@ -40,4 +40,25 @@ public class LeaveService {
         String tenantId = TenantContext.getCurrentTenant();
         return leaveRepository.findByTenantId(tenantId);
     }
+
+    public void updateLeaveStatus(Long leaveId, String status) {
+        String tenantId = TenantContext.getCurrentTenant();
+        LeaveRequest request = leaveRepository.findById(leaveId)
+                .orElseThrow(() -> new RuntimeException("Leave request not found"));
+        if (!request.getTenantId().equals(tenantId)) {
+            throw new RuntimeException("Unauthorized");
+        }
+        request.setStatus(status);
+        leaveRepository.save(request);
+    }
+
+    public void deleteLeave(Long leaveId, Long userId) {
+        String tenantId = TenantContext.getCurrentTenant();
+        LeaveRequest request = leaveRepository.findById(leaveId)
+                .orElseThrow(() -> new RuntimeException("Leave request not found"));
+        if (!request.getTenantId().equals(tenantId) || !request.getUserId().equals(String.valueOf(userId))) {
+            throw new RuntimeException("Unauthorized");
+        }
+        leaveRepository.delete(request);
+    }
 }

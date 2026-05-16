@@ -21,7 +21,50 @@ const EmployeeAttendance = () => {
     'January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026',
     'July 2026', 'August 2026', 'September 2026', 'October 2026', 'November 2026', 'December 2026'
   ];
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(3); // Default to April (index 3)
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(new Date().getMonth());
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [leaveRecords, setLeaveRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const currentYear = 2026; // Keeping 2026 to match your existing logic
+
+  const fetchMonthData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const monthStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}`;
+      
+      const [attRes, leaveRes] = await Promise.all([
+        fetch(`/api/attendance/monthly?month=${monthStr}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`/api/leaves/my`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      if (attRes.ok) {
+        const data = await attRes.json();
+        setAttendanceRecords(data);
+      }
+      if (leaveRes.ok) {
+        const data = await leaveRes.json();
+        // Filter leaves for this month
+        setLeaveRecords(data.filter(leave => {
+          const start = new Date(leave.fromDate);
+          return start.getMonth() === currentMonthIndex && start.getFullYear() === currentYear;
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch attendance data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentMonthIndex]);
+
+  React.useEffect(() => {
+    fetchMonthData();
+  }, [fetchMonthData]);
 
   const handlePreviousMonth = () => {
     setCurrentMonthIndex((prev) => (prev === 0 ? months.length - 1 : prev - 1));
@@ -31,118 +74,25 @@ const EmployeeAttendance = () => {
     setCurrentMonthIndex((prev) => (prev === months.length - 1 ? 0 : prev + 1));
   };
 
-  const daysInMonth = new Date(2026, currentMonthIndex + 1, 0).getDate();
-  const startDay = (new Date(2026, currentMonthIndex, 1).getDay() + 6) % 7; // Adjust for Mon start
-  const prevMonthDays = new Date(2026, currentMonthIndex, 0).getDate();
-
-
-  const history = [
-    { date: '24 April 2025', time: '09:30 AM - 05:30 PM', status: 'Present' },
-    { date: '20 April 2025', time: '09:30 AM - 05:30 PM', status: 'Present' },
-    { date: '12 April 2025', time: '09:30 AM - 05:30 PM', status: 'Present' },
-    { date: '09 April 2025', time: 'No shift data recorded', status: 'Absent' },
-  ];
-
-  const presentDays = [3, 24, 25, 26, 30];
-  const absentDays = [11];
-
-  const weeklyShifts = [
-    { day: 'Mon', date: '11 May', shift: 'Morning', time: '09:00 AM - 05:00 PM', status: 'Present', type: 'morning' },
-    { day: 'Tue', date: '12 May', shift: 'Morning', time: '09:00 AM - 05:00 PM', status: 'Present', type: 'morning' },
-    { day: 'Wed', date: '13 May', shift: 'Evening', time: '02:00 PM - 10:00 PM', status: 'Present', type: 'evening' },
-    { day: 'Thu', date: '14 May', shift: 'Leave', time: '---', status: 'On Leave', type: 'leave' },
-    { day: 'Fri', date: '15 May', shift: 'Night', time: '10:00 PM - 06:00 AM', status: 'Upcoming', type: 'night', current: true },
-    { day: 'Sat', date: '16 May', shift: 'Off Day', time: '---', status: 'Holiday', type: 'off' },
-    { day: 'Sun', date: '17 May', shift: 'Off Day', time: '---', status: 'Holiday', type: 'off' },
-  ];
-
-  const getShiftStyles = (type) => {
-    switch(type) {
-      case 'morning': return { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100', icon: Sun };
-      case 'evening': return { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', icon: Sunset };
-      case 'night': return { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100', icon: Moon };
-      case 'leave': return { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100', icon: Plane };
-      case 'off': return { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-100', icon: Coffee };
-      default: return { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100', icon: Clock };
-    }
-  };
+  const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
+  const startDay = (new Date(currentYear, currentMonthIndex, 1).getDay() + 6) % 7; 
+  const prevMonthDays = new Date(currentYear, currentMonthIndex, 0).getDate();
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-8 animate-in fade-in duration-700 max-w-7xl mx-auto pb-10">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Attendance</h1>
-          <p className="text-xs md:text-sm text-gray-400 font-medium mt-1">Track and manage your daily attendance records</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Attendance</h1>
+          <p className="text-sm text-gray-500 font-medium mt-1">Track and manage your daily attendance records</p>
         </div>
-        <div className="flex gap-3">
-          <button className="hidden sm:flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm">
-            <Download size={16} /> Export
+        <div className="flex gap-4">
+          <button className="hidden sm:flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 hover:shadow-lg transition-all">
+            <Download size={16} /> Export Data
           </button>
-          <button className="p-3 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <button className="p-3 text-gray-400 hover:text-gray-600 transition-all bg-white rounded-2xl border border-gray-50 shadow-sm hover:shadow-md">
             <MoreVertical size={20} />
           </button>
-        </div>
-      </div>
-      {/* Weekly Shift Overview */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-           <h2 className="text-xl font-bold text-gray-800 tracking-tight">Weekly Shift Overview</h2>
-           <div className="flex gap-2">
-             <button className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-1.5 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100 transition-all">Next Week</button>
-           </div>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          {weeklyShifts.map((item, index) => {
-            const styles = getShiftStyles(item.type);
-            const Icon = styles.icon;
-            
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`relative group bg-white p-5 rounded-[32px] border ${
-                  item.current ? 'border-blue-500 ring-4 ring-blue-50 shadow-xl' : 'border-gray-50 shadow-sm'
-                } hover:shadow-md transition-all cursor-pointer overflow-hidden`}
-              >
-                {item.current && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-blue-500 text-[8px] font-bold text-white px-3 py-1 rounded-b-xl uppercase tracking-widest">
-                    Today
-                  </div>
-                )}
-                
-                <div className="text-center mt-2">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{item.day}</p>
-                  <p className="text-xs font-bold text-gray-900 mb-4">{item.date}</p>
-                  
-                  <div className={`w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center ${styles.bg} ${styles.text} shadow-inner group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon size={24} />
-                  </div>
-                  
-                  <h4 className="text-xs font-bold text-gray-900 mb-1">{item.shift}</h4>
-                  <div className="flex items-center justify-center gap-1.5 text-[9px] font-semibold text-gray-400 mb-4">
-                    <Clock size={10} />
-                    {item.time}
-                  </div>
-                  
-                  <span className={`inline-block px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest ${
-                    item.status === 'Present' ? 'bg-green-50 text-green-600' :
-                    item.status === 'On Leave' ? 'bg-red-50 text-red-600' :
-                    item.status === 'Upcoming' ? 'bg-blue-50 text-blue-600' :
-                    'bg-gray-100 text-gray-500'
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-
-                {/* Hover Background Pattern */}
-                <div className={`absolute -bottom-6 -right-6 w-16 h-16 rounded-full opacity-0 group-hover:opacity-10 transition-opacity blur-xl ${styles.bg}`}></div>
-              </motion.div>
-            );
-          })}
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -185,18 +135,33 @@ const EmployeeAttendance = () => {
               {/* Current Month Days */}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
-                const isPresent = presentDays.includes(day);
-                const isAbsent = absentDays.includes(day);
-                const isSunday = (startDay + i) % 7 === 6;
+                const dateStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                const isPresent = attendanceRecords.some(r => r.attendanceDate === dateStr);
+                const isLeave = leaveRecords.some(l => {
+                    const from = new Date(l.fromDate).toISOString().split('T')[0];
+                    const to = new Date(l.toDate).toISOString().split('T')[0];
+                    return dateStr >= from && dateStr <= to && l.status === 'APPROVED';
+                });
+                
+                const dayOfWeek = (startDay + i) % 7;
+                const isWeekend = dayOfWeek >= 5; // Saturday or Sunday
+                
+                const dateObj = new Date(dateStr);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const isPast = dateObj < today;
+                
+                const isAbsent = isPast && !isPresent && !isLeave && !isWeekend;
+                
+                let styles = 'text-gray-600 hover:bg-gray-50 cursor-pointer';
+                if (isPresent) styles = 'border-2 border-[#22C55E] text-[#22C55E] bg-green-50/30';
+                else if (isLeave || isWeekend) styles = 'border-2 border-blue-500 text-blue-500 bg-blue-50/30';
+                else if (isAbsent) styles = 'border-2 border-[#EF4444] text-[#EF4444] bg-red-50/30';
                 
                 return (
                   <div key={day} className="flex items-center justify-center">
-                    <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-xs sm:text-sm font-bold transition-all rounded-full ${
-                      isPresent ? 'border-2 border-[#22C55E] text-[#22C55E]' : 
-                      isAbsent ? 'border-2 border-[#EF4444] text-[#EF4444]' : 
-                      isSunday ? 'border-2 border-blue-500 text-blue-500 bg-blue-50/30' :
-                      'text-gray-600 hover:bg-gray-50 cursor-pointer'
-                    }`}>
+                    <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-xs sm:text-sm font-bold transition-all rounded-full ${styles}`}>
                       {day}
                     </span>
                   </div>
@@ -215,7 +180,11 @@ const EmployeeAttendance = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Check-in</p>
-                  <h3 className="text-xl font-bold text-gray-900">09:30 AM</h3>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {attendanceRecords.find(r => r.attendanceDate === new Date().toISOString().split('T')[0])?.checkInTime 
+                      ? new Date(attendanceRecords.find(r => r.attendanceDate === new Date().toISOString().split('T')[0]).checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : '---'}
+                  </h3>
                 </div>
               </div>
 
@@ -225,7 +194,11 @@ const EmployeeAttendance = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Check-out</p>
-                  <h3 className="text-xl font-bold text-gray-900">05:30 PM</h3>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {attendanceRecords.find(r => r.attendanceDate === new Date().toISOString().split('T')[0])?.checkOutTime 
+                      ? new Date(attendanceRecords.find(r => r.attendanceDate === new Date().toISOString().split('T')[0]).checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : '---'}
+                  </h3>
                 </div>
               </div>
             </div>
@@ -241,24 +214,27 @@ const EmployeeAttendance = () => {
             </div>
 
             <div className="space-y-4 flex-1">
-              {history.map((item, index) => (
+              {attendanceRecords.slice(0, 5).map((item, index) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-[24px] border border-gray-50 group hover:border-blue-100 transition-all">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-500 shadow-sm border border-gray-100">
                       <CalendarIcon size={18} />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-gray-900">{item.date}</p>
-                      <p className="text-[10px] font-semibold text-gray-400 mt-0.5">{item.time}</p>
+                      <p className="text-xs font-bold text-gray-900">{new Date(item.attendanceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                      <p className="text-[10px] font-semibold text-gray-400 mt-0.5">
+                        {item.checkInTime ? new Date(item.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---'} - {item.checkOutTime ? new Date(item.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---'}
+                      </p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
-                    item.status === 'Present' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                  }`}>
-                    {item.status}
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-green-50 text-green-600`}>
+                    Present
                   </span>
                 </div>
               ))}
+              {attendanceRecords.length === 0 && (
+                <div className="text-center py-8 text-gray-400 text-sm">No records found for this month</div>
+              )}
             </div>
 
             <button className="w-full bg-[#2563EB] text-white py-4 rounded-[20px] font-bold flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all transform hover:-translate-y-1 active:scale-95 mt-8">

@@ -16,5 +16,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByAuthToken(String authToken);
     Optional<User> findFirstByTenantIdAndRole(String tenantId, User_Role role);
     long countByTenantId(String tenantId);
+    long countByTenantIdAndRole(String tenantId, User_Role role);
     void deleteByTenantId(String tenantId);
 }

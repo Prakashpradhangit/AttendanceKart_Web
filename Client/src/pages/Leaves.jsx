@@ -13,11 +13,72 @@ const Leaves = () => {
   const [leaveTypeFilter, setLeaveTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedLeaves, setSelectedLeaves] = useState([]);
+  const [leaveRecords, setLeaveRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchAllLeaves = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/leaves/admin/all', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLeaveRecords(data);
+      }
+    } catch (err) {
+      console.error('Fetch all leaves error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchAllLeaves();
+  }, []);
+
+  const handleStatusUpdate = async (id, status) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/leaves/admin/${id}/status?status=${status}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchAllLeaves();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update status');
+      }
+    } catch (err) {
+      console.error('Status update error:', err);
+    }
+  };
+
+  const filteredLeaves = leaveRecords.filter(record => {
+    const matchesSearch = record.userId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         record.leaveType?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = leaveTypeFilter === 'All' || record.leaveType === leaveTypeFilter;
+    const matchesStatus = statusFilter === 'All' || record.status === statusFilter.toUpperCase();
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const pendingCount = leaveRecords.filter(l => l.status === 'PENDING').length;
+  const approvedCount = leaveRecords.filter(l => l.status === 'APPROVED').length;
+  const rejectedCount = leaveRecords.filter(l => l.status === 'REJECTED').length;
+
+  const leaveStats = [
+    { id: 1, title: 'Total Requests', value: leaveRecords.length, icon: 'file-text', color: 'bg-blue-50 text-blue-600' },
+    { id: 2, title: 'Pending Approval', value: pendingCount, icon: 'clock', color: 'bg-amber-50 text-amber-600' },
+    { id: 3, title: 'Approved', value: approvedCount, icon: 'check-circle', color: 'bg-green-50 text-green-600' },
+    { id: 4, title: 'Rejected', value: rejectedCount, icon: 'x-circle', color: 'bg-rose-50 text-rose-600' },
+  ];
 
   // Handle Select All
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedLeaves(leaveRecords.map(record => record.id));
+      setSelectedLeaves(filteredLeaves.map(record => record.id));
     } else {
       setSelectedLeaves([]);
     }
@@ -35,11 +96,11 @@ const Leaves = () => {
   // Status Badge Component
   const StatusBadge = ({ status }) => {
     switch (status) {
-      case 'Approved':
+      case 'APPROVED':
         return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1 w-max"><CheckCircle className="w-3 h-3" /> Approved</span>;
-      case 'Pending':
+      case 'PENDING':
         return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 flex items-center gap-1 w-max"><Clock className="w-3 h-3" /> Pending</span>;
-      case 'Rejected':
+      case 'REJECTED':
         return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1 w-max"><XCircle className="w-3 h-3" /> Rejected</span>;
       default:
         return <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{status}</span>;
@@ -79,13 +140,9 @@ const Leaves = () => {
           <p className="text-gray-500 text-sm mt-1">Manage and track employee leave requests</p>
         </div>
         <div className="flex gap-3">
-          <button className="btn-secondary flex items-center gap-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg shadow-sm transition-all duration-200">
+          <button className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg shadow-sm transition-all duration-200">
             <Download className="w-4 h-4" />
             <span>Export Report</span>
-          </button>
-          <button className="bg-primary text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg shadow-sm transition-all duration-200">
-            <CalendarIcon className="w-4 h-4" />
-            <span>Apply Leave</span>
           </button>
         </div>
       </div>
@@ -121,7 +178,7 @@ const Leaves = () => {
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search by name or ID..."
+                    placeholder="Search by ID or type..."
                     className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full md:w-64 transition-all"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -148,39 +205,17 @@ const Leaves = () => {
                     <option value="Approved">Approved</option>
                     <option value="Rejected">Rejected</option>
                   </select>
-                  <div className="flex items-center border border-gray-200 rounded-lg px-3 py-2 bg-white cursor-pointer hover:bg-gray-50">
-                    <CalendarIcon className="w-4 h-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-700">This Month</span>
-                    <ChevronDown className="w-4 h-4 text-gray-500 ml-2" />
-                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors bg-white shadow-sm">
+                <button 
+                  onClick={() => {setSearchTerm(''); setLeaveTypeFilter('All'); setStatusFilter('All');}}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                >
                   <RefreshCw className="w-4 h-4" /> Reset
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm">
-                  <Filter className="w-4 h-4" /> Filter
                 </button>
               </div>
             </div>
-
-            {/* Bulk Actions (visible only when items selected) */}
-            {selectedLeaves.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between bg-indigo-50/50 -mx-4 -mb-4 px-4 py-3 rounded-b-xl border-b">
-                <span className="text-sm font-medium text-indigo-900">
-                  {selectedLeaves.length} requests selected
-                </span>
-                <div className="flex gap-2">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors shadow-sm">
-                    <X className="w-4 h-4" /> Reject Selected
-                  </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                    <Check className="w-4 h-4" /> Approve Selected
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Leave Table */}
@@ -194,21 +229,20 @@ const Leaves = () => {
                         type="checkbox" 
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
                         onChange={handleSelectAll}
-                        checked={selectedLeaves.length === leaveRecords.length && leaveRecords.length > 0}
+                        checked={selectedLeaves.length === filteredLeaves.length && filteredLeaves.length > 0}
                       />
                     </th>
-                    <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Employee</th>
+                    <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">User ID</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Leave Type</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</th>
-                    <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Days</th>
+                    <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Dates</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied On</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {leaveRecords.map((record) => (
+                  {filteredLeaves.map((record) => (
                     <tr key={record.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="py-3 px-4">
                         <input 
@@ -218,156 +252,72 @@ const Leaves = () => {
                           onChange={(e) => handleSelectLeave(e, record.id)}
                         />
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <img src={record.avatar} alt={record.name} className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{record.name}</p>
-                            <p className="text-xs text-gray-500">{record.empId}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4"><TypeBadge type={record.type} /></td>
+                      <td className="py-3 px-4 text-sm font-medium text-gray-900">{record.userId}</td>
+                      <td className="py-3 px-4"><TypeBadge type={record.leaveType} /></td>
                       <td className="py-3 px-4 text-sm text-gray-600">{record.duration}</td>
-                      <td className="py-3 px-4 text-sm font-medium text-gray-700">{record.days}</td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {record.fromDate === record.toDate ? record.fromDate : `${record.fromDate} - ${record.toDate}`}
+                      </td>
                       <td className="py-3 px-4 text-sm text-gray-600 max-w-[150px] truncate" title={record.reason}>{record.reason}</td>
                       <td className="py-3 px-4"><StatusBadge status={record.status} /></td>
-                      <td className="py-3 px-4 text-sm text-gray-500">{record.appliedOn}</td>
                       <td className="py-3 px-4">
-                        <div className="flex justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {record.status === 'Pending' && (
+                        <div className="flex justify-center items-center gap-2">
+                          {record.status === 'PENDING' && (
                             <>
-                              <button className="p-1 rounded text-green-600 hover:bg-green-50 transition-colors" title="Approve">
+                              <button 
+                                onClick={() => handleStatusUpdate(record.id, 'APPROVED')}
+                                className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors border border-green-100" 
+                                title="Approve"
+                              >
                                 <Check className="w-4 h-4" />
                               </button>
-                              <button className="p-1 rounded text-red-600 hover:bg-red-50 transition-colors" title="Reject">
+                              <button 
+                                onClick={() => handleStatusUpdate(record.id, 'REJECTED')}
+                                className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors border border-red-100" 
+                                title="Reject"
+                              >
                                 <X className="w-4 h-4" />
                               </button>
                             </>
                           )}
-                          <button className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
                             <MoreVertical className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
                     </tr>
                   ))}
+                  {filteredLeaves.length === 0 && (
+                      <tr>
+                          <td colSpan="8" className="py-10 text-center text-gray-400">No leave requests found</td>
+                      </tr>
+                  )}
                 </tbody>
               </table>
-            </div>
-            
-            {/* Pagination */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
-              <span className="text-sm text-gray-500">
-                Showing <span className="font-medium text-gray-900">1</span> to <span className="font-medium text-gray-900">6</span> of <span className="font-medium text-gray-900">128</span> entries
-              </span>
-              <div className="flex items-center gap-1">
-                <button className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-sm font-medium flex items-center justify-center">1</button>
-                <button className="w-8 h-8 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium flex items-center justify-center hover:bg-gray-50">2</button>
-                <button className="w-8 h-8 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium flex items-center justify-center hover:bg-gray-50">3</button>
-                <span className="px-1 text-gray-400">...</span>
-                <button className="w-8 h-8 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium flex items-center justify-center hover:bg-gray-50">12</button>
-                <button className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Sidebar */}
+        {/* Right Sidebar - Distribution */}
         <div className="w-full xl:w-80 space-y-6">
-          {/* Chart Card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <BarChart2 className="w-4 h-4 text-indigo-500" />
-              Leave Distribution
+              Distribution
             </h3>
-            <div className="h-64 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={leaveDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {leaveDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-semibold text-gray-900">128</span>
-                <span className="text-xs text-gray-500">Total Leaves</span>
-              </div>
-            </div>
             <div className="mt-4 space-y-3">
-              {leaveDistribution.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span>
-                    <span className="text-gray-600">{item.name}</span>
-                  </div>
-                  <span className="font-medium text-gray-900">{item.value}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Actions Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="space-y-2">
-              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                    <BookOpen className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Leave Policies</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-              </button>
-              
-              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-rose-50 text-rose-600 rounded-lg group-hover:bg-rose-100 transition-colors">
-                    <CalendarIcon className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Company Holidays</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-              </button>
-
-              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-100 transition-colors">
-                    <Briefcase className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Leave Balance</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-              </button>
-
-              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-100 transition-colors">
-                    <FileSpreadsheet className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Custom Reports</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-              </button>
+               <div className="flex items-center justify-between text-sm">
+                   <span className="text-gray-600">Pending</span>
+                   <span className="font-medium text-amber-600">{pendingCount}</span>
+               </div>
+               <div className="flex items-center justify-between text-sm">
+                   <span className="text-gray-600">Approved</span>
+                   <span className="font-medium text-green-600">{approvedCount}</span>
+               </div>
+               <div className="flex items-center justify-between text-sm">
+                   <span className="text-gray-600">Rejected</span>
+                   <span className="font-medium text-rose-600">{rejectedCount}</span>
+               </div>
             </div>
           </div>
         </div>

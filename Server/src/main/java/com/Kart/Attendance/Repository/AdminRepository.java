@@ -11,4 +11,5 @@ import com.Kart.Attendance.Entity.Admin;
 public interface AdminRepository extends JpaRepository<Admin, Long>{
     Optional<Admin> findByEmail(String email);
     Optional<Admin> findByAuthToken(String authToken);
+    Optional<Admin> findByTenantId(String tenantId);
 }

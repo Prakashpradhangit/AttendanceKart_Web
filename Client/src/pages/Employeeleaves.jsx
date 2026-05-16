@@ -12,27 +12,117 @@ import {
   ChevronRight,
   Upload,
   CalendarDays,
-  Info
+  Info,
+  X,
+  RefreshCw
 } from 'lucide-react';
 
 const EmployeeLeaves = () => {
   const [leaveType, setLeaveType] = useState('Sick Leave');
   const [leaveDuration, setLeaveDuration] = useState('Full Day');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [reason, setReason] = useState('');
+  const [leaveHistory, setLeaveHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
+  const fetchMyLeaves = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/leaves/my', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLeaveHistory(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch leaves:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  React.useEffect(() => {
+    fetchMyLeaves();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/leaves/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          leaveType,
+          duration: leaveDuration,
+          fromDate,
+          toDate: leaveDuration === 'Full Day' ? toDate : fromDate,
+          reason,
+          status: 'PENDING'
+        })
+      });
+
+      if (res.ok) {
+        setShowSuccessPopup(true);
+        setFromDate('');
+        setToDate('');
+        setReason('');
+        fetchMyLeaves();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to apply leave');
+      }
+    } catch (err) {
+      console.error('Apply leave error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this leave request?')) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/leaves/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchMyLeaves();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to delete leave');
+      }
+    } catch (err) {
+      console.error('Delete leave error:', err);
+    }
+  };
+
+  const approvedLeaves = leaveHistory.filter(l => l.status === 'APPROVED');
+  const usedDays = approvedLeaves.reduce((acc, curr) => {
+      if (curr.duration === 'Full Day') {
+          const start = new Date(curr.fromDate);
+          const end = new Date(curr.toDate);
+          const diffTime = Math.abs(end - start);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          return acc + diffDays;
+      }
+      return acc + 0.5;
+  }, 0);
 
   const leaveStats = [
     { label: 'Total Leaves', value: '24', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-    { label: 'Used Leaves', value: '06', icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
-    { label: 'Remaining', value: '18', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
-  ];
-
-  const leaveHistory = [
-    { type: 'Sick Leave', duration: '12 May - 14 May', days: '3 Days', status: 'Approved', requestedOn: '10 May 2026' },
-    { type: 'Casual Leave', duration: '20 April - 20 April', days: '1 Day', status: 'Approved', requestedOn: '18 April 2026' },
-    { type: 'Sick Leave', duration: '05 April - 06 April', days: '2 Days', status: 'Rejected', requestedOn: '02 April 2026' },
-    { type: 'Annual Leave', duration: '15 March - 20 March', days: '6 Days', status: 'Approved', requestedOn: '10 March 2026' },
+    { label: 'Used Leaves', value: usedDays.toString().padStart(2, '0'), icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
+    { label: 'Remaining', value: (24 - usedDays).toString().padStart(2, '0'), icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
   ];
 
   return (
@@ -87,7 +177,6 @@ const EmployeeLeaves = () => {
                 <tr className="border-b border-gray-50">
                   <th className="pb-4 px-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Type</th>
                   <th className="pb-4 px-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Duration</th>
-                  <th className="pb-4 px-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Days</th>
                   <th className="pb-4 px-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Status</th>
                   <th className="pb-4 px-2"></th>
                 </tr>
@@ -97,37 +186,51 @@ const EmployeeLeaves = () => {
                   <tr key={index} className="group hover:bg-gray-50/50 transition-colors">
                     <td className="py-5 px-2">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${leave.type === 'Sick Leave' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${leave.leaveType === 'Sick Leave' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'
                           }`}>
                           <FileText size={16} />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-900">{leave.type}</p>
-                          <p className="text-[9px] font-semibold text-gray-400 uppercase">Requested: {leave.requestedOn}</p>
+                          <p className="text-sm font-bold text-gray-900">{leave.leaveType}</p>
+                          <p className="text-[9px] font-semibold text-gray-400 uppercase">Type: {leave.duration}</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-5 px-2">
-                      <p className="text-sm font-semibold text-gray-700">{leave.duration}</p>
-                    </td>
-                    <td className="py-5 px-2">
-                      <p className="text-sm font-bold text-gray-900">{leave.days}</p>
+                      <p className="text-sm font-semibold text-gray-700">
+                        {leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} - ${leave.toDate}`}
+                      </p>
                     </td>
                     <td className="py-5 px-2 text-center">
-                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest inline-block ${leave.status === 'Approved' ? 'bg-green-50 text-green-600' :
-                          leave.status === 'Rejected' ? 'bg-red-50 text-red-600' :
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest inline-block ${leave.status === 'APPROVED' ? 'bg-green-50 text-green-600' :
+                          leave.status === 'REJECTED' ? 'bg-red-50 text-red-600' :
                             'bg-yellow-50 text-yellow-600'
                         }`}>
                         {leave.status}
                       </span>
                     </td>
                     <td className="py-5 px-2 text-right">
-                      <button className="p-2 text-gray-300 hover:text-gray-600 rounded-lg hover:bg-white transition-all opacity-0 group-hover:opacity-100">
-                        <MoreVertical size={18} />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                         {leave.status === 'PENDING' && (
+                             <button 
+                               onClick={() => handleDelete(leave.id)}
+                               className="p-2 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                             >
+                               <X size={18} />
+                             </button>
+                         )}
+                        <button className="p-2 text-gray-300 hover:text-gray-600 rounded-lg hover:bg-white transition-all opacity-0 group-hover:opacity-100">
+                          <MoreVertical size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
+                {leaveHistory.length === 0 && (
+                    <tr>
+                        <td colSpan="4" className="py-10 text-center text-gray-400 text-sm">No leave requests found</td>
+                    </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -147,7 +250,7 @@ const EmployeeLeaves = () => {
               <h2 className="text-xl font-bold tracking-tight">Apply for Leave</h2>
             </div>
 
-            <form className="space-y-6 flex-1">
+            <form onSubmit={handleSubmit} className="space-y-6 flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Leave Type</label>
@@ -156,10 +259,9 @@ const EmployeeLeaves = () => {
                     onChange={(e) => setLeaveType(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all cursor-pointer appearance-none"
                   >
-                    <option className="bg-[#1E293B]">Sick Leave</option>
-                    <option className="bg-[#1E293B]">Casual Leave</option>
-                    <option className="bg-[#1E293B]">Annual Leave</option>
-                    <option className="bg-[#1E293B]">Half Day</option>
+                    <option className="bg-[#1E293B]" value="Sick Leave">Sick Leave</option>
+                    <option className="bg-[#1E293B]" value="Casual Leave">Casual Leave</option>
+                    <option className="bg-[#1E293B]" value="Annual Leave">Annual Leave</option>
                   </select>
                 </div>
                 <div>
@@ -169,9 +271,9 @@ const EmployeeLeaves = () => {
                     onChange={(e) => setLeaveDuration(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all cursor-pointer appearance-none"
                   >
-                    <option className="bg-[#1E293B]">Full Day</option>
-                    <option className="bg-[#1E293B]">First Half</option>
-                    <option className="bg-[#1E293B]">Second Half</option>
+                    <option className="bg-[#1E293B]" value="Full Day">Full Day</option>
+                    <option className="bg-[#1E293B]" value="First Half">First Half</option>
+                    <option className="bg-[#1E293B]" value="Second Half">Second Half</option>
                   </select>
                 </div>
               </div>
@@ -181,55 +283,46 @@ const EmployeeLeaves = () => {
                   <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">
                     {leaveDuration === 'Full Day' ? 'From Date' : 'Date'}
                   </label>
-                  <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs font-semibold outline-none focus:border-blue-400 transition-all [color-scheme:dark]" />
+                  <input 
+                    type="date" 
+                    required
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs font-semibold outline-none focus:border-blue-400 transition-all [color-scheme:dark]" 
+                  />
                 </div>
                 {leaveDuration === 'Full Day' ? (
                   <div>
                     <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">To Date</label>
-                    <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs font-semibold outline-none focus:border-blue-400 transition-all [color-scheme:dark]" />
+                    <input 
+                        type="date" 
+                        required
+                        value={toDate}
+                        onChange={(e) => setToDate(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs font-semibold outline-none focus:border-blue-400 transition-all [color-scheme:dark]" 
+                    />
                   </div>
-                ) : (
-                  <div>
-                    <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Select Time</label>
-                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5">
-                      <Clock size={16} className="text-blue-400" />
-                      <input type="time" className="bg-transparent border-none outline-none text-xs font-semibold w-full [color-scheme:dark]" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Attach Documents (Optional)</label>
-                <div className="relative group">
-                  <input
-                    type="file"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  />
-                  <div className="w-full bg-white/5 border-2 border-dashed border-white/10 rounded-2xl p-6 flex flex-col items-center gap-2 group-hover:border-blue-400/50 transition-all">
-                    <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center">
-                      <Upload size={18} className="text-white/40 group-hover:text-blue-400" />
-                    </div>
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest group-hover:text-white transition-colors">Click to upload doc</p>
-                  </div>
-                </div>
+                ) : null}
               </div>
 
               <div>
                 <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Reason</label>
                 <textarea
                   placeholder="Tell us why you need this leave..."
+                  required
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all min-h-[100px] resize-none"
                 ></textarea>
               </div>
 
               <button
-                type="button"
-                onClick={() => setShowSuccessPopup(true)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-[24px] font-bold text-sm uppercase tracking-widest shadow-xl shadow-blue-900/20 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 mt-4"
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-[24px] font-bold text-sm uppercase tracking-widest shadow-xl shadow-blue-900/20 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 mt-4 disabled:opacity-50"
               >
-                <Send size={18} />
-                Submit Request
+                {loading ? <RefreshCw className="animate-spin" size={18} /> : <Send size={18} />}
+                {loading ? 'Submitting...' : 'Submit Request'}
               </button>
             </form>
 
@@ -247,16 +340,14 @@ const EmployeeLeaves = () => {
         </div>
       </div>
 
-      {/* Success Modal - Centered in main viewport */}
+      {/* Success Modal */}
       {showSuccessPopup && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
           <motion.div
             initial={{ scale: 0.8, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white rounded-[48px] shadow-2xl w-full max-w-[360px] overflow-hidden p-10 flex flex-col items-center text-center relative border border-white/20"
           >
-            {/* Animated Icon Container */}
             <div className="relative mb-10">
               <motion.div
                 initial={{ scale: 0 }}
@@ -264,74 +355,26 @@ const EmployeeLeaves = () => {
                 transition={{ delay: 0.2, type: "spring" }}
                 className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center relative"
               >
-                <motion.div
-                  animate={{
-                    scale: [1, 1.1, 1],
-                    rotate: [0, -5, 5, 0]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                >
-                  <Send size={44} className="text-[#0052CC] -rotate-12 translate-x-1" />
-                </motion.div>
-
-                <motion.div
-                  initial={{ scale: 0, rotate: -45 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.5, type: "spring" }}
-                  className="absolute bottom-1 right-1 w-8 h-8 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg"
-                >
-                  <CheckCircle2 size={16} className="text-white" />
-                </motion.div>
+                <Send size={44} className="text-[#0052CC]" />
               </motion.div>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <h2 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">Request sent to admin</h2>
-              <p className="text-sm font-medium text-gray-500 mb-8 leading-relaxed px-4">
-                Your request for the leave <span className="text-[#0052CC] font-semibold">({leaveType})</span> has been sent successfully.
-              </p>
-            </motion.div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">Request sent to admin</h2>
+            <p className="text-sm font-medium text-gray-500 mb-8 leading-relaxed px-4">
+              Your leave request has been sent successfully.
+            </p>
 
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="w-full bg-blue-50/80 border border-blue-100 rounded-3xl p-5 mb-10 flex items-start gap-4 text-left"
-            >
-              <div className="w-7 h-7 bg-[#0052CC] rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-200">
-                <Info size={14} className="text-white" />
-              </div>
-              <p className="text-[11px] font-semibold text-gray-600 leading-normal">
-                You will be notified once the admin approves your request. Check your inbox for updates.
-              </p>
-            </motion.div>
-
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-[#0052CC] to-[#0747A6] text-white py-5 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-2xl shadow-blue-200 transition-all"
+            <button
+              className="w-full bg-[#0052CC] text-white py-5 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-2xl shadow-blue-200 transition-all"
               onClick={() => setShowSuccessPopup(false)}
             >
               OK, Got it
-            </motion.button>
-
-            {/* Background Accent */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#0052CC] via-blue-400 to-[#0052CC]"></div>
+            </button>
           </motion.div>
         </div>
       )}
     </div>
   );
 };
-
-
-
 
 export default EmployeeLeaves;

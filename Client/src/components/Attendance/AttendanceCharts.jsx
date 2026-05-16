@@ -3,32 +3,27 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell
 } from 'recharts';
-import { attendanceData } from '../../utils/mockData';
+// Using real data from props
 
-const COLORS = ['#22C55E', '#EF4444', '#F59E0B'];
+const COLORS = ['#22C55E', '#EF4444', '#F59E0B', '#8B5CF6'];
 
-const AttendanceCharts = ({ records, totalCount }) => {
-  const counts = records.reduce((acc, rec) => {
-    acc[rec.status] = (acc[rec.status] || 0) + 1;
-    return acc;
-  }, {});
-
+const AttendanceCharts = ({ trends, stats }) => {
   const pieData = [
-    { name: 'Present', value: counts['Present'] || 0 },
-    { name: 'Absent', value: counts['Absent'] || 0 },
-    { name: 'Late', value: counts['Late'] || 0 },
+    { name: 'Present', value: stats?.onTimeToday || 0 },
+    { name: 'Absent', value: stats?.absentToday || 0 },
+    { name: 'Late', value: stats?.lateArrivals || 0 },
+    { name: 'On Leave', value: stats?.onLeaveToday || 0 },
   ];
 
   const total = pieData.reduce((sum, item) => sum + item.value, 0);
 
-  // Integrate real-time data for today into the dashboard's historical trend
-  const dynamicBarData = [...attendanceData];
-  dynamicBarData[dynamicBarData.length - 1] = {
-    name: 'Today',
-    present: counts['Present'] || 0,
-    absent: counts['Absent'] || 0,
-    leave: 0, // Placeholder until leave management is integrated
-  };
+  // Integrate real-time trends data
+  const dynamicBarData = (trends || []).map(t => ({
+    name: t.name,
+    present: t.present,
+    absent: t.absent, 
+    leave: t.leave,
+  }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -45,10 +40,10 @@ const AttendanceCharts = ({ records, totalCount }) => {
                <div className="w-3 h-3 rounded-full bg-red-500"></div>
                <span className="text-xs font-semibold text-gray-500">Absent</span>
              </div>
-             <div className="flex items-center gap-2">
-               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-               <span className="text-xs font-semibold text-gray-500">Leave</span>
-             </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#8B5CF6]"></div>
+                <span className="text-xs font-semibold text-gray-500">Leave</span>
+              </div>
           </div>
         </div>
         <div className="flex-1 w-full min-h-0">
@@ -73,7 +68,7 @@ const AttendanceCharts = ({ records, totalCount }) => {
               />
               <Bar dataKey="present" fill="#22C55E" radius={[6, 6, 0, 0]} barSize={24} />
               <Bar dataKey="absent" fill="#EF4444" radius={[6, 6, 0, 0]} barSize={24} />
-              <Bar dataKey="leave" fill="#F59E0B" radius={[6, 6, 0, 0]} barSize={24} />
+              <Bar dataKey="leave" fill="#8B5CF6" radius={[6, 6, 0, 0]} barSize={24} />
             </BarChart>
           </ResponsiveContainer>
         </div>

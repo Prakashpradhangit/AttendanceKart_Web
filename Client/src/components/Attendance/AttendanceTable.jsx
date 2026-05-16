@@ -1,6 +1,6 @@
 import React from 'react';
 import { EllipsisVertical, ChevronLeft, ChevronRight } from 'lucide-react';
-import { attendanceRecords } from '../../utils/mockData';
+// Using real records from props
 
 const statusStyles = {
   Present: 'bg-green-100 text-green-600',

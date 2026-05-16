@@ -66,16 +66,65 @@ const Settings = () => {
     { id: 'reports', label: 'Reports', icon: Bell },
   ];
 
-  const handleSave = () => {
+  const [loading, setLoading] = useState(false);
+
+  const fetchSettings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/settings', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSettings(prev => ({
+          ...prev,
+          attendance: {
+            ...prev.attendance,
+            checkInTime: data.defaultCheckInTime || '09:00',
+            checkOutTime: data.defaultCheckOutTime || '18:00',
+            gracePeriod: data.gracePeriod || 15
+          }
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
     setMessage('');
     setError('');
+    setLoading(true);
     
-    // Simulate API call (in-memory only)
     try {
-      setMessage('All settings have been saved successfully!');
-      setTimeout(() => setMessage(''), 3000);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          defaultCheckInTime: settings.attendance.checkInTime,
+          defaultCheckOutTime: settings.attendance.checkOutTime,
+          gracePeriod: settings.attendance.gracePeriod
+        })
+      });
+
+      if (res.ok) {
+        setMessage('All settings have been saved successfully!');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setError('Failed to save settings.');
+      }
     } catch (err) {
       setError('Failed to save settings. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 

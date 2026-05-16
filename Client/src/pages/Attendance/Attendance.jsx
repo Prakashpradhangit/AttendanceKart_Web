@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import AttendanceCards from '../../components/Attendance/AttendanceCards';
 import AttendanceCharts from '../../components/Attendance/AttendanceCharts';
 import AttendanceFilters from '../../components/Attendance/AttendanceFilters';
 import AttendanceTable from '../../components/Attendance/AttendanceTable';
 import { useEmployees } from '../../context/EmployeeContext';
-import { attendanceRecords as initialRecords } from '../../utils/mockData';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
@@ -12,37 +11,96 @@ const Attendance = () => {
   const { employees } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [dateFilter, setDateFilter] = useState('2026-04-27');
+  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
+  const [stats, setStats] = useState(null);
+  const [trends, setTrends] = useState([]);
+  const [realRecords, setRealRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [checkInTime, setCheckInTime] = useState('09:00');
+  const [gracePeriod, setGracePeriod] = useState(15);
 
-  // Sync mock records with current employees for "Realtime" feel
-  const syncedRecords = useMemo(() => {
-    // We combine the base mock records with any new employees from the context
-    const existingIds = new Set(initialRecords.map(r => r.empId));
-    const newRecords = employees
-      .filter(emp => !existingIds.has(emp.id))
-      .map(emp => ({
-        id: `REC_${emp.id}`,
-        empId: emp.id,
-        name: emp.name,
-        department: emp.department || 'General',
-        date: '2026-04-27',
-        status: 'Present', // Default for new ones
-        checkIn: '09:00 AM',
-        checkOut: '06:00 PM',
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.name}`
-      }));
-    
-    return [...newRecords, ...initialRecords];
-  }, [employees]);
+  const fetchAttendanceData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      const [statsRes, trendsRes, recordsRes, settingsRes] = await Promise.all([
+        fetch('/api/attendance/admin/today/stats', { headers }),
+        fetch('/api/attendance/admin/stats/7days', { headers }),
+        fetch('/api/attendance/admin/today/all', { headers }),
+        fetch('/api/admin/settings', { headers })
+      ]);
+
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        setCheckInTime(settingsData.defaultCheckInTime || '09:00');
+        setGracePeriod(settingsData.gracePeriod || 15);
+      }
+      
+      if (statsRes.ok) setStats(await statsRes.json());
+      if (trendsRes.ok) setTrends(await trendsRes.json());
+      if (recordsRes.ok) {
+        const data = await recordsRes.json();
+        const formatted = data.map(r => ({
+          id: r.id,
+          empId: r.userId,
+          name: r.userName,
+          department: r.department || 'General',
+          date: r.attendanceDate,
+          status: getDisplayStatus(r),
+          checkIn: formatTime(r.checkInTime),
+          checkOut: formatTime(r.checkOutTime),
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.userName}`
+        }));
+        setRealRecords(formatted);
+      }
+    } catch (err) {
+      console.error('Failed to fetch attendance data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getDisplayStatus = (record) => {
+    if (!record.checkInTime) return 'Absent';
+    const [bHour, bMin] = checkInTime.split(':').map(Number);
+    const totalMinutes = bMin + Number(gracePeriod);
+    const tHour = bHour + Math.floor(totalMinutes / 60);
+    const tMin = totalMinutes % 60;
+
+    const checkIn = new Date(record.checkInTime);
+    if (checkIn.getHours() > tHour || (checkIn.getHours() === tHour && checkIn.getMinutes() > tMin)) {
+      return 'Late';
+    }
+    return 'Present';
+  };
+
+  const formatTime = (isoStr) => {
+    if (!isoStr) return '---';
+    try {
+      return new Date(isoStr).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (e) {
+      return '---';
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendanceData();
+  }, []);
 
   const filteredRecords = useMemo(() => {
-    return syncedRecords.filter(record => {
+    return realRecords.filter(record => {
       const matchesSearch = record.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            record.empId.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'All Status' || record.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [syncedRecords, searchTerm, statusFilter]);
+  }, [realRecords, searchTerm, statusFilter]);
 
   const handleExport = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredRecords);
@@ -64,10 +122,10 @@ const Attendance = () => {
       </div>
 
       {/* Summary Cards */}
-      <AttendanceCards records={syncedRecords} totalCount={employees.length} />
+      <AttendanceCards stats={stats} />
 
       {/* Charts Section */}
-      <AttendanceCharts records={syncedRecords} totalCount={employees.length} />
+      <AttendanceCharts trends={trends} stats={stats} />
 
       {/* Filters Section */}
       <AttendanceFilters 
