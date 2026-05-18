@@ -34,7 +34,7 @@ const EmployeeLogin = () => {
         localStorage.setItem('employeeCode', data.employeeCode || '');
         navigate('/employee/dashboard');
       } else {
-        setError(data.error || 'Invalid credentials or unauthorized access.');
+        setError(data.message || data.error || 'Invalid credentials or unauthorized access.');
       }
     } catch (err) {
       setError('Failed to connect to the server. Please try again.');

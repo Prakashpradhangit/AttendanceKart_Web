@@ -83,6 +83,44 @@ const SuperAdminOrganizations = () => {
     }
   };
 
+  const handleToggleStatus = async (org) => {
+    try {
+      const token = localStorage.getItem('token');
+      const nextStatus = org.status === 'Inactive' ? 'Active' : 'Inactive';
+      
+      const adminData = {
+        name: org.name,
+        email: org.email,
+        organisation_name: org.organisation_name,
+        short_form: org.short_form,
+        slug: org.slug,
+        phone_number: org.phone_number,
+        subscription_year: org.subscription_year,
+        starting_date: org.starting_date,
+        max_users: org.maxUsers,
+        status: nextStatus
+      };
+
+      const response = await fetch(`/api/admin/${org.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(adminData)
+      });
+
+      if (response.ok) {
+        fetchOrganizations();
+      } else {
+        const errText = await response.text();
+        console.error('Failed to toggle status:', errText);
+      }
+    } catch (err) {
+      console.error('Failed to toggle status:', err);
+    }
+  };
+
   const handleDeleteOrganization = async (id) => {
     if (!window.confirm('Are you sure you want to delete this organization?')) return;
     
@@ -197,13 +235,20 @@ const SuperAdminOrganizations = () => {
                   </td>
                   <td className="px-8 py-5 text-sm font-semibold text-[#1E293B]">{org.userCount} / {org.maxUsers || 100}</td>
                   <td className="px-8 py-5">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      org.status === 'Inactive' 
-                        ? 'bg-rose-100 text-rose-600' 
-                        : 'bg-emerald-100 text-emerald-600'
-                    }`}>
-                      {org.status || 'Active'}
-                    </span>
+                    <button 
+                      onClick={() => handleToggleStatus(org)}
+                      title={`Click to mark as ${org.status === 'Inactive' ? 'Active' : 'Inactive'}`}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-sm hover:shadow flex items-center gap-1.5 ${
+                        org.status === 'Inactive' 
+                          ? 'bg-rose-100 text-rose-600 hover:bg-rose-200 border border-rose-200' 
+                          : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200 border border-emerald-200'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        org.status === 'Inactive' ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'
+                      }`} />
+                      <span>{org.status || 'Active'}</span>
+                    </button>
                   </td>
                   <td className="px-8 py-5 text-right">
                     <div className="flex items-center justify-end gap-2 relative">

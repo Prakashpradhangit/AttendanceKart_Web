@@ -68,4 +68,6 @@ public class Admin {
     @Transient
     @JsonProperty("userCount")
     private long userCount;
+
+    private String status = "Active";
 }

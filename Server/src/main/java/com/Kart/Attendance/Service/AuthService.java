@@ -46,6 +46,9 @@ public class AuthService {
             Admin admin = adminOpt.get();
             // Basic password check for now (should use password hashing in production)
             if (password != null && password.equals(admin.getPassword())) {
+                if ("Inactive".equalsIgnoreCase(admin.getStatus())) {
+                    throw new RuntimeException("This organization account has been disabled. Please contact to your service provider ");
+                }
                 String token = java.util.UUID.randomUUID().toString();
                 admin.setAuthToken(token);
                 adminRepository.save(admin);
@@ -65,6 +68,12 @@ public class AuthService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (password != null && password.equals(user.getPassword())) {
+                if (user.getTenantId() != null) {
+                    Admin tenantAdmin = adminRepository.findByTenantId(user.getTenantId()).orElse(null);
+                    if (tenantAdmin != null && "Inactive".equalsIgnoreCase(tenantAdmin.getStatus())) {
+                        throw new RuntimeException("Your organization's access has been disabled. Please contact your administrator.");
+                    }
+                }
                 String token = UUID.randomUUID().toString();
                 user.setAuthToken(token);
                 userRepository.save(user);

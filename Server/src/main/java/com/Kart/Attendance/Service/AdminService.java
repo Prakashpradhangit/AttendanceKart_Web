@@ -57,6 +57,9 @@ public class AdminService {
             if (adminDetails.getMaxUsers() != null) {
                 admin.setMaxUsers(adminDetails.getMaxUsers());
             }
+            if (adminDetails.getStatus() != null) {
+                admin.setStatus(adminDetails.getStatus());
+            }
             ensureTenantId(admin);
             Admin savedAdmin = adminRepository.save(admin);
             syncAdminUser(savedAdmin);
