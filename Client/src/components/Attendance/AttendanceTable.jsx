@@ -2,6 +2,33 @@ import React from 'react';
 import { EllipsisVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 // Using real records from props
 
+const colors = [
+  'bg-indigo-600 text-white shadow-indigo-100',
+  'bg-emerald-600 text-white shadow-emerald-100',
+  'bg-amber-600 text-white shadow-amber-100',
+  'bg-rose-600 text-white shadow-rose-100',
+  'bg-sky-600 text-white shadow-sky-100',
+  'bg-purple-600 text-white shadow-purple-100',
+  'bg-teal-600 text-white shadow-teal-100'
+];
+
+const getInitials = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 1).toUpperCase();
+  return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+};
+
+const getColorClass = (name) => {
+  if (!name) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 const statusStyles = {
   Present: 'bg-green-100 text-green-600',
   Absent: 'bg-red-100 text-red-600',
@@ -30,8 +57,8 @@ const AttendanceTable = ({ records }) => {
                 <td className="px-8 py-6 text-sm font-semibold text-gray-900">{record.date}</td>
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 overflow-hidden group-hover:scale-110 transition-transform shadow-sm">
-                      <img src={record.avatar} alt="" className="w-full h-full object-cover" />
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm border border-gray-100 group-hover:scale-110 transition-transform shadow-sm shrink-0 ${getColorClass(record.name)}`}>
+                      {getInitials(record.name)}
                     </div>
                     <div>
                       <p className="text-sm font-bold text-gray-900">{record.name}</p>

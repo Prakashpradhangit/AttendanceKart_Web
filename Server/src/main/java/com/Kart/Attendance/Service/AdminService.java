@@ -20,7 +20,16 @@ public class AdminService {
     private final UserRepository userRepository;
 
     public List<Admin> getAllAdmin(){
-        return adminRepository.findAll();
+        List<Admin> admins = adminRepository.findAll();
+        for (Admin a : admins) {
+            if (a.getTenantId() != null) {
+                long count = userRepository.findByTenantId(a.getTenantId()).stream()
+                        .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
+                        .count();
+                a.setUserCount(count);
+            }
+        }
+        return admins;
     }
 
     @Transactional
@@ -37,6 +46,7 @@ public class AdminService {
             admin.setName(adminDetails.getName());
             admin.setEmail(adminDetails.getEmail());
             admin.setOrganisation_name(adminDetails.getOrganisation_name());
+            admin.setShortForm(adminDetails.getShortForm());
             admin.setPhone_number(adminDetails.getPhone_number());
             if (adminDetails.getPassword() != null && !adminDetails.getPassword().isEmpty()) {
                 admin.setPassword(adminDetails.getPassword());
@@ -44,6 +54,9 @@ public class AdminService {
             admin.setSlug(adminDetails.getSlug());
             admin.setSubscription_year(adminDetails.getSubscription_year());
             admin.setStarting_date(adminDetails.getStarting_date());
+            if (adminDetails.getMaxUsers() != null) {
+                admin.setMaxUsers(adminDetails.getMaxUsers());
+            }
             ensureTenantId(admin);
             Admin savedAdmin = adminRepository.save(admin);
             syncAdminUser(savedAdmin);
@@ -88,6 +101,17 @@ public class AdminService {
         adminUser.setDepartment("Administration");
         adminUser.setDesignation("Organization Admin");
         adminUser.setJoiningDate(admin.getStarting_date());
+
+        // Generate the first employee code for the Admin based on the short form
+        String prefix = (admin.getShortForm() != null && !admin.getShortForm().isBlank())
+                ? admin.getShortForm().trim().toUpperCase()
+                : "EMP";
+        if (adminUser.getEmployeeCode() == null || adminUser.getEmployeeCode().isBlank() || 
+            adminUser.getEmployeeCode().equals("EMP00001") || 
+            (admin.getShortForm() != null && !adminUser.getEmployeeCode().startsWith(prefix))) {
+            adminUser.setEmployeeCode(prefix + "00001");
+        }
+
         userRepository.save(adminUser);
     }
 
@@ -108,6 +132,12 @@ public class AdminService {
             Object gp = settings.get("gracePeriod");
             if (gp instanceof Integer) admin.setGracePeriod((Integer) gp);
             else if (gp instanceof String) admin.setGracePeriod(Integer.parseInt((String) gp));
+        }
+        if (settings.containsKey("shortForm") || settings.containsKey("short_form")) {
+            String newShortForm = (String) (settings.containsKey("shortForm") ? settings.get("shortForm") : settings.get("short_form"));
+            if (newShortForm != null) {
+                admin.setShortForm(newShortForm.trim().toUpperCase());
+            }
         }
         
         return adminRepository.save(admin);

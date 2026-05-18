@@ -9,6 +9,8 @@ import com.Kart.Attendance.Entity.User;
 import com.Kart.Attendance.Repository.UserRepository;
 import com.Kart.Attendance.Repository.Attendance_Details;
 import com.Kart.Attendance.Repository.LeaveRepository;
+import com.Kart.Attendance.Repository.AdminRepository;
+import com.Kart.Attendance.Entity.Admin;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final Attendance_Details attendanceRepository;
     private final LeaveRepository leaveRepository;
+    private final AdminRepository adminRepository;
 
     public List<User> getAllUsers() {
         String tenantId = TenantContext.getCurrentTenant();
@@ -32,6 +35,44 @@ public class UserService {
     public User createUser(User user) {
         String tenantId = TenantContext.getCurrentTenant();
         user.setTenantId(tenantId);
+
+        // Auto-generate unique sequential employee code based on organisation short form
+        Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
+        List<User> tenantUsers = userRepository.findByTenantId(tenantId);
+
+        // Enforce maximum users limit (excluding ADMIN role)
+        if (admin != null && admin.getMaxUsers() != null) {
+            long currentEmployeeCount = tenantUsers.stream()
+                    .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
+                    .count();
+            if (currentEmployeeCount >= admin.getMaxUsers()) {
+                throw new RuntimeException("Maximum user limit of " + admin.getMaxUsers() + " reached for this organization. Please contact Super Admin to upgrade.");
+            }
+        }
+
+        String prefix = (admin != null && admin.getShortForm() != null && !admin.getShortForm().isBlank())
+                ? admin.getShortForm().trim().toUpperCase()
+                : "EMP";
+
+        long maxNum = 0;
+        for (User u : tenantUsers) {
+            String code = u.getEmployeeCode();
+            if (code != null && code.startsWith(prefix)) {
+                try {
+                    String numPart = code.substring(prefix.length());
+                    long num = Long.parseLong(numPart);
+                    if (num > maxNum) {
+                        maxNum = num;
+                    }
+                } catch (Exception e) {
+                    // Ignore malformed or older codes
+                }
+            }
+        }
+        long nextNum = maxNum + 1;
+        String nextCode = String.format("%s%05d", prefix, nextNum);
+        user.setEmployeeCode(nextCode);
+
         return userRepository.save(user);
     }
 

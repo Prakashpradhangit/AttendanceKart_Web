@@ -50,8 +50,7 @@ const Attendance = () => {
           date: r.attendanceDate,
           status: getDisplayStatus(r),
           checkIn: formatTime(r.checkInTime),
-          checkOut: formatTime(r.checkOutTime),
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.userName}`
+          checkOut: formatTime(r.checkOutTime)
         }));
         setRealRecords(formatted);
       }

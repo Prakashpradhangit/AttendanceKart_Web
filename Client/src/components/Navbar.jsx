@@ -3,6 +3,33 @@ import { Bell, User, Menu, Users, UserCircle, Paperclip, Send, X, ChevronRight }
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEmployees } from '../context/EmployeeContext';
 
+const colors = [
+  'bg-indigo-600 text-white shadow-indigo-100',
+  'bg-emerald-600 text-white shadow-emerald-100',
+  'bg-amber-600 text-white shadow-amber-100',
+  'bg-rose-600 text-white shadow-rose-100',
+  'bg-sky-600 text-white shadow-sky-100',
+  'bg-purple-600 text-white shadow-purple-100',
+  'bg-teal-600 text-white shadow-teal-100'
+];
+
+const getInitials = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 1).toUpperCase();
+  return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+};
+
+const getColorClass = (name) => {
+  if (!name) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 const Navbar = ({ onMenuClick }) => {
   const { activeChat, setActiveChat, selectedEmployee, setSelectedEmployee } = useEmployees();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -207,8 +234,8 @@ const Navbar = ({ onMenuClick }) => {
               {userRole === 'USER' ? `${userName} ${employeeCode ? `(${employeeCode})` : ''}` : userRole.replace('_', ' ')}
             </p>
           </div>
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary overflow-hidden border-2 border-primary/20">
-             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} alt={userName} />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border border-gray-100 shadow-sm shrink-0 ${getColorClass(userName)}`}>
+             {getInitials(userName)}
           </div>
         </div>
       </div>

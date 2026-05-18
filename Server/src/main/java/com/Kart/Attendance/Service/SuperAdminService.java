@@ -26,6 +26,7 @@ public class SuperAdminService {
             dto.setName(admin.getName());
             dto.setEmail(admin.getEmail());
             dto.setOrganisationName(admin.getOrganisation_name());
+            dto.setShortForm(admin.getShortForm());
             dto.setPhoneNumber(admin.getPhone_number());
             dto.setSlug(admin.getSlug());
             
@@ -59,6 +60,7 @@ public class SuperAdminService {
             // Calculate user count
             long count = userRepository.countByTenantId(admin.getTenantId());
             dto.setUserCount(count);
+            dto.setMaxUsers(admin.getMaxUsers());
             return dto;
         }).collect(Collectors.toList());
     }

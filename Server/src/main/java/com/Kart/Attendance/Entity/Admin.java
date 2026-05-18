@@ -15,6 +15,9 @@ import jakarta.validation.constraints.Email;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import jakarta.persistence.Transient;
+
 @Entity
 @Getter
 @Setter
@@ -32,6 +35,9 @@ public class Admin {
 
     @JsonProperty("organisation_name")
     private String Organisation_name;
+
+    @JsonProperty("short_form")
+    private String shortForm;
     
     @JsonProperty("phone_number")
     private String phone_number;
@@ -54,4 +60,12 @@ public class Admin {
     private String defaultCheckInTime = "09:00";
     private String defaultCheckOutTime = "18:00";
     private int gracePeriod = 15;
+
+    @JsonProperty("maxUsers")
+    @JsonAlias("max_users")
+    private Integer maxUsers = 100;
+
+    @Transient
+    @JsonProperty("userCount")
+    private long userCount;
 }

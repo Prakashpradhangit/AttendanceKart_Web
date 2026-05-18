@@ -9,10 +9,12 @@ public class AdminResponseDTO {
     private String name;
     private String email;
     private String organisationName;
+    private String shortForm;
     private String phoneNumber;
     private String slug;
     private LocalDate subscriptionValidity;
     private LocalDate startingDate;
     private String subscriptionYear;
     private long userCount;
+    private Integer maxUsers;
 }

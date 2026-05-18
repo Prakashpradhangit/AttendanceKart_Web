@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
   const initialFormState = {
     orgName: '',
+    shortForm: '',
     adminName: '',
     slug: '',
     startDate: new Date().toISOString().split('T')[0],
@@ -24,6 +25,7 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
       if (initialData) {
         setFormData({
           orgName: initialData.organisation_name || '',
+          shortForm: initialData.short_form || '',
           adminName: initialData.name || '',
           slug: initialData.slug || '',
           startDate: initialData.starting_date || new Date().toISOString().split('T')[0],
@@ -83,6 +85,22 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 value={formData.orgName}
                 onChange={(e) => setFormData({...formData, orgName: e.target.value})}
                 placeholder="e.g. Acme Corp"
+              />
+            </div>
+
+            {/* Organization Short Form */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-[#1E293B] ml-1">Organization Short Form (e.g. SVT)</label>
+              <input 
+                required
+                type="text" 
+                disabled={!!initialData}
+                className={`w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm ${
+                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]'
+                }`}
+                value={formData.shortForm}
+                onChange={(e) => setFormData({...formData, shortForm: e.target.value.trim().toUpperCase()})}
+                placeholder="e.g. SVT"
               />
             </div>
 
@@ -154,10 +172,7 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
               <input 
                 required
                 type="number" 
-                disabled={!!initialData}
-                className={`w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm ${
-                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]'
-                }`}
+                className="w-full border border-gray-200 rounded-2xl py-3.5 px-4 outline-none transition-all font-medium text-sm bg-gray-50 focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6]"
                 value={formData.totalUsers}
                 onChange={(e) => setFormData({...formData, totalUsers: e.target.value})}
                 placeholder="e.g. 100"

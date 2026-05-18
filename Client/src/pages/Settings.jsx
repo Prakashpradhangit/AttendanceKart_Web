@@ -15,6 +15,7 @@ const Settings = () => {
     general: {
       companyName: 'AttendanceKart Pvt Ltd',
       companyEmail: 'admin@attendancekart.com',
+      shortForm: '',
       language: 'English (IN)',
       timezone: 'GMT +5:30',
       theme: 'light'
@@ -78,6 +79,12 @@ const Settings = () => {
         const data = await res.json();
         setSettings(prev => ({
           ...prev,
+          general: {
+            ...prev.general,
+            companyName: data.organisation_name || prev.general.companyName,
+            companyEmail: data.email || prev.general.companyEmail,
+            shortForm: data.short_form || ''
+          },
           attendance: {
             ...prev.attendance,
             checkInTime: data.defaultCheckInTime || '09:00',
@@ -111,12 +118,14 @@ const Settings = () => {
         body: JSON.stringify({
           defaultCheckInTime: settings.attendance.checkInTime,
           defaultCheckOutTime: settings.attendance.checkOutTime,
-          gracePeriod: settings.attendance.gracePeriod
+          gracePeriod: settings.attendance.gracePeriod,
+          shortForm: settings.general.shortForm
         })
       });
 
       if (res.ok) {
         setMessage('All settings have been saved successfully!');
+        fetchSettings();
         setTimeout(() => setMessage(''), 3000);
       } else {
         setError('Failed to save settings.');
@@ -208,6 +217,19 @@ const Settings = () => {
                     onChange={(e) => updateSetting('general', 'companyEmail', e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all"
                   />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Organization Short Form (e.g. SVT)</label>
+                  <input 
+                    type="text" 
+                    value={settings.general.shortForm}
+                    onChange={(e) => updateSetting('general', 'shortForm', e.target.value.trim().toUpperCase())}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all"
+                    placeholder="e.g. SVT"
+                  />
+                  <p className="text-xs text-gray-400 mt-1 font-medium ml-1">
+                    Enter short form (prefix) of your company to auto-generate Employee IDs (e.g., SVT00001).
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Language</label>

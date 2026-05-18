@@ -7,11 +7,12 @@ import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Employees = () => {
-  const { employees, addEmployee, addBulkEmployees, updateEmployee, deleteEmployee, resetTodayAttendance } = useEmployees();
+  const { employees, maxUsers, addEmployee, addBulkEmployees, updateEmployee, deleteEmployee, resetTodayAttendance } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isLimitExceededModalOpen, setLimitExceededModalOpen] = useState(false);
   const [notification, setNotification] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -20,7 +21,7 @@ const Employees = () => {
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), type === 'error' ? 5000 : 3000);
   };
 
   const filteredEmployees = employees.filter(emp => {
@@ -31,9 +32,14 @@ const Employees = () => {
     return matchesSearch && matchesDept;
   });
 
-  const handleAddEmployee = (data) => {
-    addEmployee(data);
-    showNotification('New employee added successfully!');
+  const handleAddEmployee = async (data) => {
+    const res = await addEmployee(data);
+    if (res && res.success) {
+      showNotification('New employee added successfully!', 'success');
+    } else {
+      const errMsg = (res && res.error) ? res.error : 'Failed to add employee.';
+      showNotification(errMsg, 'error');
+    }
   };
 
   const handleUpdateEmployee = (data) => {
@@ -101,7 +107,13 @@ const Employees = () => {
             <Upload size={18} /> Import
           </button>
           <button 
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => {
+              if (employees.length >= maxUsers) {
+                setLimitExceededModalOpen(true);
+              } else {
+                setIsAddModalOpen(true);
+              }
+            }}
             className="bg-primary text-white px-6 py-3 rounded-2xl font-semibold hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
           >
             <Plus size={18} /> Add Employee
@@ -271,6 +283,69 @@ const Employees = () => {
         onClose={() => setIsImportModalOpen(false)} 
         onImport={handleBulkImport}
       />
+
+      {/* Limit Exceeded Premium Modal */}
+      <AnimatePresence>
+        {isLimitExceededModalOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setLimitExceededModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            {/* Dialog Content */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-2xl overflow-hidden z-10"
+            >
+              {/* Decorative background gradient */}
+              <div className="absolute top-0 right-0 w-36 h-36 bg-rose-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
+              
+              <div className="flex flex-col items-center text-center gap-5">
+                <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 border border-rose-100 shadow-sm animate-pulse">
+                  <CircleAlert size={32} />
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-slate-800 tracking-tight">Organization Capacity Reached</h3>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                    You have reached the maximum allowed employee limit for your current subscription plan.
+                  </p>
+                </div>
+
+                {/* Capacity Counter */}
+                <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 flex justify-around text-center mt-2">
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Employees</p>
+                    <p className="text-2xl font-extrabold text-slate-700 mt-1">{employees.length}</p>
+                  </div>
+                  <div className="w-px bg-slate-200" />
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Max Capacity</p>
+                    <p className="text-2xl font-extrabold text-rose-500 mt-1">{maxUsers}</p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-400 font-medium leading-relaxed mt-2">
+                  To add more employees, please request the **Super Admin** to upgrade your user tier limit.
+                </div>
+
+                <button 
+                  onClick={() => setLimitExceededModalOpen(false)}
+                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-900/20 mt-4"
+                >
+                  Understood
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

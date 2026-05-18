@@ -7,6 +7,28 @@ export const EmployeeProvider = ({ children }) => {
   const [employees, setEmployees] = useState([]);
   const [activeChat, setActiveChat] = useState(null); // 'team' or 'employee'
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [maxUsers, setMaxUsers] = useState(100);
+
+  const fetchMaxUsers = React.useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/settings', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.maxUsers !== undefined) {
+          setMaxUsers(data.maxUsers);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch max users:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMaxUsers();
+  }, [fetchMaxUsers]);
 
   const fetchEmployees = React.useCallback(async () => {
     try {
@@ -55,7 +77,6 @@ export const EmployeeProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('token');
       const userData = {
-        employeeCode: employee.empId || generateUniqueId(employees),
         name: employee.name,
         email: employee.email,
         password: employee.password,
@@ -77,11 +98,24 @@ export const EmployeeProvider = ({ children }) => {
 
       if (response.ok) {
         fetchEmployees();
+        return { success: true };
       } else {
-        console.error('Failed to add employee:', await response.text());
+        const errorText = await response.text();
+        let displayError = errorText;
+        try {
+          const parsed = JSON.parse(errorText);
+          if (parsed && parsed.message) {
+            displayError = parsed.message;
+          }
+        } catch (e) {
+          // Fallback to raw text
+        }
+        console.error('Failed to add employee:', displayError);
+        return { success: false, error: displayError };
       }
     } catch (err) {
       console.error('Error adding employee:', err);
+      return { success: false, error: err.message };
     }
   };
 
@@ -156,6 +190,8 @@ export const EmployeeProvider = ({ children }) => {
   return (
     <EmployeeContext.Provider value={{ 
       employees, 
+      maxUsers,
+      fetchMaxUsers,
       addEmployee, 
       addBulkEmployees,
       updateEmployee, 

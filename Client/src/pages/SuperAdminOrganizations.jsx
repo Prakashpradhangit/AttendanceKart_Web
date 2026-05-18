@@ -45,11 +45,13 @@ const SuperAdminOrganizations = () => {
         name: newOrg.adminName,
         email: newOrg.orgEmail,
         organisation_name: newOrg.orgName,
+        short_form: newOrg.shortForm,
         slug: newOrg.slug,
         phone_number: newOrg.contactNumber,
         subscription_year: mapDuration(newOrg.duration),
         starting_date: newOrg.startDate,
-        status: newOrg.status || 'Active'
+        status: newOrg.status || 'Active',
+        max_users: parseInt(newOrg.totalUsers) || 100
       };
 
       if (newOrg.orgPassword) {
@@ -176,7 +178,12 @@ const SuperAdminOrganizations = () => {
                         {org.organisation_name ? org.organisation_name.charAt(0) : 'O'}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[#1E293B] group-hover:text-[#3B82F6] transition-colors">{org.organisation_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-[#1E293B] group-hover:text-[#3B82F6] transition-colors">{org.organisation_name}</p>
+                          {org.short_form && (
+                            <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold">{org.short_form}</span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-400 font-medium">{org.email}</p>
                       </div>
                     </div>
@@ -188,7 +195,7 @@ const SuperAdminOrganizations = () => {
                   <td className="px-8 py-5">
                     <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-md uppercase tracking-tighter">/{org.slug}</span>
                   </td>
-                  <td className="px-8 py-5 text-sm font-semibold text-[#1E293B]">N/A</td>
+                  <td className="px-8 py-5 text-sm font-semibold text-[#1E293B]">{org.userCount} / {org.maxUsers || 100}</td>
                   <td className="px-8 py-5">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       org.status === 'Inactive' 

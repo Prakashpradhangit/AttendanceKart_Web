@@ -56,40 +56,24 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-gray-700">Employee ID</label>
+          <div className="space-y-1">
+            <label className="text-sm font-semibold text-gray-700">Password</label>
+            <div className="relative">
               <input 
-                required
-                type="text" 
-                className={`w-full border border-gray-200 rounded-xl py-3 px-4 outline-none transition-all ${
-                  initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed font-semibold' : 'bg-gray-50 focus:ring-2 focus:ring-primary/20'
-                }`}
-                value={formData.empId}
-                onChange={(e) => !initialData && setFormData({...formData, empId: e.target.value})}
-                placeholder="e.g. EMP123"
-                disabled={!!initialData}
+                required={!initialData}
+                type={showPassword ? "text" : "password"} 
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 pr-12 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-sm"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                placeholder="••••••••"
               />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-gray-700">Password</label>
-              <div className="relative">
-                <input 
-                  required={!initialData}
-                  type={showPassword ? "text" : "password"} 
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 pr-12 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
