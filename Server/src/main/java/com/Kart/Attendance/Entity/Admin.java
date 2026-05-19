@@ -70,4 +70,13 @@ public class Admin {
     private long userCount;
 
     private String status = "Active";
+
+    private int sickLeavesLimit = 12;
+    private int casualLeavesLimit = 12;
+    private int emergencyLeavesLimit = 6;
+
+    private double monthlyAccrualRate = 1.5;
+
+    @Column(columnDefinition = "TEXT")
+    private String declaredHolidays = "[]";
 }

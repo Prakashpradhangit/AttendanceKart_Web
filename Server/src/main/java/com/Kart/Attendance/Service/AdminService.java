@@ -142,6 +142,32 @@ public class AdminService {
                 admin.setShortForm(newShortForm.trim().toUpperCase());
             }
         }
+        if (settings.containsKey("sickLeavesLimit")) {
+            Object sl = settings.get("sickLeavesLimit");
+            if (sl instanceof Integer) admin.setSickLeavesLimit((Integer) sl);
+            else if (sl instanceof String) admin.setSickLeavesLimit(Integer.parseInt((String) sl));
+        }
+        if (settings.containsKey("casualLeavesLimit")) {
+            Object cl = settings.get("casualLeavesLimit");
+            if (cl instanceof Integer) admin.setCasualLeavesLimit((Integer) cl);
+            else if (cl instanceof String) admin.setCasualLeavesLimit(Integer.parseInt((String) cl));
+        }
+        if (settings.containsKey("emergencyLeavesLimit")) {
+            Object el = settings.get("emergencyLeavesLimit");
+            if (el instanceof Integer) admin.setEmergencyLeavesLimit((Integer) el);
+            else if (el instanceof String) admin.setEmergencyLeavesLimit(Integer.parseInt((String) el));
+        }
+        
+        if (settings.containsKey("monthlyAccrualRate")) {
+            Object mar = settings.get("monthlyAccrualRate");
+            if (mar instanceof Double) admin.setMonthlyAccrualRate((Double) mar);
+            else if (mar instanceof Float) admin.setMonthlyAccrualRate(((Float) mar).doubleValue());
+            else if (mar instanceof Integer) admin.setMonthlyAccrualRate(((Integer) mar).doubleValue());
+            else if (mar instanceof String) admin.setMonthlyAccrualRate(Double.parseDouble((String) mar));
+        }
+        if (settings.containsKey("declaredHolidays")) {
+            admin.setDeclaredHolidays((String) settings.get("declaredHolidays"));
+        }
         
         return adminRepository.save(admin);
     }

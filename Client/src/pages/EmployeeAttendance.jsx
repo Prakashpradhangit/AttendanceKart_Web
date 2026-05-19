@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ChevronLeft, 
@@ -25,6 +25,30 @@ const EmployeeAttendance = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [leaveRecords, setLeaveRecords] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState({ holidays: [] });
+
+  const fetchSettings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch("/api/admin/settings", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSettings({
+          holidays: (() => {
+            try {
+              return data.declaredHolidays ? JSON.parse(data.declaredHolidays) : [];
+            } catch (e) {
+              return [];
+            }
+          })()
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch settings:", err);
+    }
+  };
 
   const currentYear = 2026; // Keeping 2026 to match your existing logic
 
@@ -51,8 +75,12 @@ const EmployeeAttendance = () => {
         const data = await leaveRes.json();
         // Filter leaves for this month
         setLeaveRecords(data.filter(leave => {
-          const start = new Date(leave.fromDate);
-          return start.getMonth() === currentMonthIndex && start.getFullYear() === currentYear;
+          if (!leave.fromDate) return false;
+          const parts = leave.fromDate.split('-');
+          if (parts.length !== 3) return false;
+          const leaveMonth = parseInt(parts[1], 10) - 1;
+          const leaveYear = parseInt(parts[0], 10);
+          return leaveMonth === currentMonthIndex && leaveYear === currentYear;
         }));
       }
     } catch (err) {
@@ -64,6 +92,7 @@ const EmployeeAttendance = () => {
 
   React.useEffect(() => {
     fetchMonthData();
+    fetchSettings();
   }, [fetchMonthData]);
 
   const handlePreviousMonth = () => {
@@ -139,29 +168,36 @@ const EmployeeAttendance = () => {
                 
                 const isPresent = attendanceRecords.some(r => r.attendanceDate === dateStr);
                 const isLeave = leaveRecords.some(l => {
-                    const from = new Date(l.fromDate).toISOString().split('T')[0];
-                    const to = new Date(l.toDate).toISOString().split('T')[0];
-                    return dateStr >= from && dateStr <= to && l.status === 'APPROVED';
+                    return dateStr >= l.fromDate && dateStr <= l.toDate && l.status === 'APPROVED';
                 });
                 
+                const isHoliday = settings.holidays && settings.holidays.some(h => h.date === dateStr);
+                const holidayObj = settings.holidays ? settings.holidays.find(h => h.date === dateStr) : null;
+
                 const dayOfWeek = (startDay + i) % 7;
                 const isWeekend = dayOfWeek >= 5; // Saturday or Sunday
                 
-                const dateObj = new Date(dateStr);
+                const parts = dateStr.split('-');
+                const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
                 const today = new Date();
                 today.setHours(0,0,0,0);
                 const isPast = dateObj < today;
                 
-                const isAbsent = isPast && !isPresent && !isLeave && !isWeekend;
+                const isAbsent = isPast && !isPresent && !isLeave && !isWeekend && !isHoliday;
                 
                 let styles = 'text-gray-600 hover:bg-gray-50 cursor-pointer';
                 if (isPresent) styles = 'border-2 border-[#22C55E] text-[#22C55E] bg-green-50/30';
-                else if (isLeave || isWeekend) styles = 'border-2 border-blue-500 text-blue-500 bg-blue-50/30';
+                else if (isLeave) styles = 'border-2 border-blue-500 text-blue-500 bg-blue-50/30';
+                else if (isHoliday) styles = 'border-2 border-purple-500 text-purple-600 bg-purple-50/40 font-black cursor-pointer';
+                else if (isWeekend) styles = 'border-2 border-gray-200 text-gray-400 bg-gray-50/20';
                 else if (isAbsent) styles = 'border-2 border-[#EF4444] text-[#EF4444] bg-red-50/30';
                 
                 return (
                   <div key={day} className="flex items-center justify-center">
-                    <span className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-xs sm:text-sm font-bold transition-all rounded-full ${styles}`}>
+                    <span 
+                      title={holidayObj ? holidayObj.name : (isLeave ? 'Approved Leave' : (isPresent ? 'Present' : ''))}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-xs sm:text-sm font-bold transition-all rounded-full ${styles}`}
+                    >
                       {day}
                     </span>
                   </div>
@@ -241,6 +277,68 @@ const EmployeeAttendance = () => {
               <Download size={18} />
               <span className="text-sm">Export Full Report</span>
             </button>
+          </div>
+
+          {/* Upcoming Holidays Card */}
+          <div className="bg-white rounded-[40px] p-8 shadow-sm border border-gray-50 flex flex-col mt-6">
+            <div className="flex items-center justify-between mb-6">
+               <h2 className="text-xl font-bold text-gray-800 tracking-tight flex items-center gap-2">
+                 <CalendarIcon size={20} className="text-[#8B5CF6]" />
+                 Upcoming Holidays
+               </h2>
+               <span className="px-2.5 py-0.5 bg-purple-50 text-[#8B5CF6] rounded-full font-bold text-[9px] uppercase">
+                 Calendar List
+               </span>
+            </div>
+
+            <div className="space-y-4">
+              {settings.holidays && settings.holidays
+                .filter(h => {
+                  if (!h.date) return false;
+                  const parts = h.date.split('-');
+                  if (parts.length !== 3) return false;
+                  const hDateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                  const todayObj = new Date();
+                  todayObj.setHours(0, 0, 0, 0);
+                  return hDateObj >= todayObj;
+                })
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(0, 5)
+                .map((holiday, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-[24px] border border-gray-50 hover:bg-purple-50/20 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-[#8B5CF6] border border-purple-100">
+                        <CalendarIcon size={18} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-900">{holiday.name}</p>
+                        <p className="text-[10px] font-semibold text-gray-400 mt-0.5">
+                          {(() => {
+                            const parts = holiday.date.split('-');
+                            if (parts.length !== 3) return holiday.date;
+                            const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                            return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'short' });
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-purple-100 text-purple-700">
+                      Holiday
+                    </span>
+                  </div>
+              ))}
+              {(!settings.holidays || settings.holidays.filter(h => {
+                if (!h.date) return false;
+                const parts = h.date.split('-');
+                if (parts.length !== 3) return false;
+                const hDateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                const todayObj = new Date();
+                todayObj.setHours(0, 0, 0, 0);
+                return hDateObj >= todayObj;
+              }).length === 0) && (
+                <div className="text-center py-8 text-gray-400 text-sm">No upcoming holidays declared</div>
+              )}
+            </div>
           </div>
         </div>
       </div>

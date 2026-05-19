@@ -186,14 +186,17 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByAuthToken(token);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+            java.time.LocalDate jd = user.getJoiningDate();
             return Map.of(
+                    "id", user.getId(),
                     "role", "USER",
                     "name", user.getName() != null ? user.getName() : "",
                     "email", user.getEmail() != null ? user.getEmail() : "",
                     "employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "",
                     "department", user.getDepartment() != null ? user.getDepartment() : "",
                     "designation", user.getDesignation() != null ? user.getDesignation() : "",
-                    "tenantId", user.getTenantId() != null ? user.getTenantId() : ""
+                    "tenantId", user.getTenantId() != null ? user.getTenantId() : "",
+                    "joiningDate", jd != null ? jd.toString() : ""
             );
         }
 

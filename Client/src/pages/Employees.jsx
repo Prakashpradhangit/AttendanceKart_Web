@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw, Trash2 } from 'lucide-react';
+import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw, Trash2, Copy, Download, Check, FileSpreadsheet, X } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
 import EmployeeForm from '../components/EmployeeForm';
 import ImportModal from '../components/ImportModal';
@@ -16,6 +16,8 @@ const Employees = () => {
   const [notification, setNotification] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [bulkResult, setBulkResult] = useState(null);
+  const [copiedPasswordIdx, setCopiedPasswordIdx] = useState(null);
 
   const departments = ['All Departments', ...new Set(employees.map(emp => emp.department))];
 
@@ -48,9 +50,60 @@ const Employees = () => {
     setEditingEmployee(null);
   };
 
-  const handleBulkImport = (data) => {
-    addBulkEmployees(data);
-    showNotification(`${data.length} employees imported successfully!`);
+  const downloadCredentialsSheet = (successEmployees) => {
+    const sheetData = successEmployees.map(emp => ({
+      "Employee Name": emp.name,
+      "Email Address": emp.email,
+      "Mobile Number": emp.phoneNumber || '',
+      "Department": emp.department || '',
+      "Designation": emp.designation || '',
+      "Employee Code (ID)": emp.employeeCode,
+      "Generated Login Password": emp.password
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(sheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Credentials List");
+    
+    // Auto-fit columns
+    const maxLens = {};
+    sheetData.forEach(row => {
+      Object.keys(row).forEach(key => {
+        const valStr = String(row[key] || '');
+        maxLens[key] = Math.max(maxLens[key] || key.length, valStr.length);
+      });
+    });
+    worksheet['!cols'] = Object.keys(maxLens).map(key => ({
+      wch: maxLens[key] + 4
+    }));
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+    
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", "Registered_Employees_Credentials.xlsx");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCopyPassword = (password, idx) => {
+    navigator.clipboard.writeText(password);
+    setCopiedPasswordIdx(idx);
+    setTimeout(() => setCopiedPasswordIdx(null), 2000);
+  };
+
+  const handleBulkImport = async (data) => {
+    showNotification('Processing import...', 'success');
+    const res = await addBulkEmployees(data);
+    if (res && res.success) {
+      setBulkResult(res);
+      showNotification(`Import complete! ${res.successCount} registered, ${res.failedCount} failed.`);
+    } else {
+      const errMsg = (res && res.error) ? res.error : 'Failed to import bulk employees.';
+      showNotification(errMsg, 'error');
+    }
   };
 
   const handleResetAttendance = (id) => {
@@ -340,6 +393,149 @@ const Employees = () => {
                   className="w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-900/20 mt-4"
                 >
                   Understood
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {bulkResult && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Glowing decor */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-500/5 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex justify-between items-center pb-6 border-b border-gray-100">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                    <FileSpreadsheet className="text-green-600" size={32} />
+                    Bulk Import Summary
+                  </h3>
+                  <p className="text-sm text-slate-400 mt-1 font-semibold">Real-time registration logs & generated employee credentials</p>
+                </div>
+                <button 
+                  onClick={() => setBulkResult(null)}
+                  className="p-3 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-full transition-colors font-bold"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Scrollable Content Container */}
+              <div className="overflow-y-auto py-6 space-y-8 flex-1 pr-2">
+                {/* Stats row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-emerald-50/50 border border-emerald-100/50 rounded-3xl p-5 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-extrabold text-emerald-500 uppercase tracking-widest">Successfully Created</span>
+                      <p className="text-3xl font-black text-emerald-600 mt-1">{bulkResult.successCount}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 rounded-2xl flex items-center justify-center">
+                      <CircleCheck size={24} />
+                    </div>
+                  </div>
+
+                  <div className="bg-rose-50/50 border border-rose-100/50 rounded-3xl p-5 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-extrabold text-rose-500 uppercase tracking-widest">Failed / Skipped</span>
+                      <p className="text-3xl font-black text-rose-600 mt-1">{bulkResult.failedCount}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-rose-500/10 text-rose-600 rounded-2xl flex items-center justify-center">
+                      <CircleAlert size={24} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Successful Imports Section */}
+                {bulkResult.successEmployees && bulkResult.successEmployees.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Registered Credentials List</h4>
+                      <button
+                        onClick={() => downloadCredentialsSheet(bulkResult.successEmployees)}
+                        className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-lg shadow-green-600/10 transition-all active:scale-[0.97]"
+                      >
+                        <Download size={16} /> Download Login Credentials Sheet
+                      </button>
+                    </div>
+
+                    <div className="border border-slate-100 rounded-3xl overflow-hidden shadow-sm bg-slate-50/20">
+                      <div className="overflow-x-auto max-h-[30vh]">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className="bg-slate-50/80 sticky top-0 backdrop-blur-sm border-b border-slate-100">
+                            <tr>
+                              <th className="px-5 py-4 font-bold text-slate-400 uppercase tracking-tighter">Name</th>
+                              <th className="px-5 py-4 font-bold text-slate-400 uppercase tracking-tighter">Email</th>
+                              <th className="px-5 py-4 font-bold text-slate-400 uppercase tracking-tighter">Employee Code</th>
+                              <th className="px-5 py-4 font-bold text-slate-400 uppercase tracking-tighter">Generated Password</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100/50 bg-white">
+                            {bulkResult.successEmployees.map((emp, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                <td className="px-5 py-4 font-bold text-slate-800">{emp.name}</td>
+                                <td className="px-5 py-4 font-semibold text-slate-500">{emp.email}</td>
+                                <td className="px-5 py-4 font-extrabold text-indigo-600">
+                                  <span className="bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full text-[10px] tracking-wide uppercase">{emp.employeeCode}</span>
+                                </td>
+                                <td className="px-5 py-4 font-semibold text-slate-700">
+                                  <div className="flex items-center gap-3">
+                                    <code className="bg-slate-100 border border-slate-200/50 px-3 py-1.5 rounded-lg text-xs font-mono font-bold select-all tracking-wider text-slate-800">{emp.password}</code>
+                                    <button 
+                                      onClick={() => handleCopyPassword(emp.password, idx)}
+                                      className={`p-1.5 rounded-lg transition-all ${
+                                        copiedPasswordIdx === idx ? 'bg-green-50 text-green-600' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'
+                                      }`}
+                                    >
+                                      {copiedPasswordIdx === idx ? <Check size={16} /> : <Copy size={16} />}
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Failed Imports Section */}
+                {bulkResult.failedEmployees && bulkResult.failedEmployees.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Errors / Exceeded Limit Logs</h4>
+                    <div className="border border-rose-50 rounded-3xl p-5 bg-rose-50/10 space-y-3 max-h-[25vh] overflow-y-auto">
+                      {bulkResult.failedEmployees.map((fail, idx) => (
+                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-white border border-rose-100/50 rounded-2xl gap-2 hover:shadow-sm transition-shadow">
+                          <div>
+                            <p className="text-xs font-extrabold text-slate-800">{fail.name || 'Unknown User'}</p>
+                            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{fail.email || 'No email provided'}</p>
+                          </div>
+                          <span className="bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider self-start sm:self-center flex items-center gap-1.5">
+                            <CircleAlert size={12} />
+                            {fail.error}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Footer */}
+              <div className="pt-6 border-t border-gray-100 flex justify-end">
+                <button 
+                  onClick={() => setBulkResult(null)}
+                  className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-semibold hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-900/20"
+                >
+                  Close & Done
                 </button>
               </div>
             </motion.div>

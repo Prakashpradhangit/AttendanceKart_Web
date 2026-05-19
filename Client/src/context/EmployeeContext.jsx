@@ -119,20 +119,40 @@ export const EmployeeProvider = ({ children }) => {
     }
   };
 
-  const addBulkEmployees = (newEmployees) => {
-    setEmployees((prev) => {
-      let currentList = [...prev];
-      const processed = newEmployees.map((emp) => {
-        const newEmp = {
-          ...emp,
-          id: emp.id || generateUniqueId(currentList),
-          status: emp.status || 'Active'
-        };
-        currentList = [newEmp, ...currentList];
-        return newEmp;
+  const addBulkEmployees = async (newEmployees) => {
+    try {
+      const token = localStorage.getItem('token');
+      const payload = newEmployees.map(emp => ({
+        name: emp.name || '',
+        email: emp.email || '',
+        phoneNumber: emp.phone || emp.phonenumber || '',
+        department: emp.department || '',
+        designation: emp.role || emp.designation || '',
+        joiningDate: emp.joiningdate || emp.joiningDate || new Date().toISOString().split('T')[0]
+      }));
+
+      const response = await fetch('/api/users/bulk', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
-      return [...processed, ...prev];
-    });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Refresh active list
+        fetchEmployees();
+        return { success: true, ...result };
+      } else {
+        const errorText = await response.text();
+        return { success: false, error: errorText };
+      }
+    } catch (err) {
+      console.error('Bulk import error:', err);
+      return { success: false, error: err.message };
+    }
   };
 
   const updateEmployee = async (id, updatedData) => {

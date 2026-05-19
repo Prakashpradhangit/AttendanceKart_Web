@@ -9,6 +9,8 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [newHolidayName, setNewHolidayName] = useState('');
+  const [newHolidayDate, setNewHolidayDate] = useState('');
 
   // Settings State
   const [settings, setSettings] = useState({
@@ -42,12 +44,11 @@ const Settings = () => {
       securityPin: '1234'
     },
     leaves: {
-      types: [
-        { name: 'Sick Leave', quota: 12 },
-        { name: 'Casual Leave', quota: 10 },
-        { name: 'Annual Leave', quota: 18 }
-      ],
-      carryForward: true
+      sick: 12,
+      casual: 12,
+      emergency: 6,
+      accrualRate: 1.5,
+      holidays: []
     },
     reports: {
       autoExport: false,
@@ -90,6 +91,19 @@ const Settings = () => {
             checkInTime: data.defaultCheckInTime || '09:00',
             checkOutTime: data.defaultCheckOutTime || '18:00',
             gracePeriod: data.gracePeriod || 15
+          },
+          leaves: {
+            sick: data.sickLeavesLimit !== undefined ? data.sickLeavesLimit : 12,
+            casual: data.casualLeavesLimit !== undefined ? data.casualLeavesLimit : 12,
+            emergency: data.emergencyLeavesLimit !== undefined ? data.emergencyLeavesLimit : 6,
+            accrualRate: data.monthlyAccrualRate !== undefined ? data.monthlyAccrualRate : 1.5,
+            holidays: (() => {
+              try {
+                return data.declaredHolidays ? JSON.parse(data.declaredHolidays) : [];
+              } catch (e) {
+                return [];
+              }
+            })()
           }
         }));
       }
@@ -119,7 +133,12 @@ const Settings = () => {
           defaultCheckInTime: settings.attendance.checkInTime,
           defaultCheckOutTime: settings.attendance.checkOutTime,
           gracePeriod: settings.attendance.gracePeriod,
-          shortForm: settings.general.shortForm
+          shortForm: settings.general.shortForm,
+          sickLeavesLimit: settings.leaves.sick,
+          casualLeavesLimit: settings.leaves.casual,
+          emergencyLeavesLimit: settings.leaves.emergency,
+          monthlyAccrualRate: settings.leaves.accrualRate,
+          declaredHolidays: JSON.stringify(settings.leaves.holidays)
         })
       });
 
@@ -443,26 +462,146 @@ const Settings = () => {
           {activeTab === 'leaves' && (
             <div className="space-y-8">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">Leave Policies</h3>
-                <p className="text-sm text-gray-500 mt-1">Define leave categories and annual quotas</p>
+                <h3 className="text-xl font-semibold text-gray-900">Leave Policies & Holidays</h3>
+                <p className="text-sm text-gray-500 mt-1">Configure annual quotas, monthly accrual dynamics, and declared holidays</p>
               </div>
-              <div className="space-y-4">
-                {settings.leaves.types.map((type, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900">{type.name}</p>
+              <div className="space-y-6">
+                {/* Limits section */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 space-y-2">
+                    <p className="text-sm font-semibold text-gray-950">Sick Leave Limit</p>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold text-gray-400">Quota:</span>
                       <input 
                         type="number" 
-                        value={type.quota}
-                        className="w-16 bg-white border border-gray-200 rounded-xl py-1 px-3 text-center font-semibold text-sm"
+                        value={settings.leaves.sick}
+                        onChange={(e) => updateSetting('leaves', 'sick', parseInt(e.target.value) || 0)}
+                        className="w-full bg-white border border-gray-200 rounded-2xl py-2.5 px-4 font-semibold text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
                   </div>
-                ))}
-                <button className="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 font-semibold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
-                  <Plus size={16} /> Add New Category
-                </button>
+
+                  <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 space-y-2">
+                    <p className="text-sm font-semibold text-gray-950">Casual Leave Limit</p>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="number" 
+                        value={settings.leaves.casual}
+                        onChange={(e) => updateSetting('leaves', 'casual', parseInt(e.target.value) || 0)}
+                        className="w-full bg-white border border-gray-200 rounded-2xl py-2.5 px-4 font-semibold text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 space-y-2">
+                    <p className="text-sm font-semibold text-gray-950">Emergency Leave Limit</p>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="number" 
+                        value={settings.leaves.emergency}
+                        onChange={(e) => updateSetting('leaves', 'emergency', parseInt(e.target.value) || 0)}
+                        className="w-full bg-white border border-gray-200 rounded-2xl py-2.5 px-4 font-semibold text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Accrual Settings */}
+                <div className="p-6 bg-indigo-50/50 border border-indigo-100 rounded-[32px] space-y-3">
+                  <div className="flex items-center gap-3 text-indigo-700">
+                    <RefreshCw size={20} className="animate-spin" style={{ animationDuration: '6s' }} />
+                    <p className="font-bold text-sm">Monthly Accrual Policy</p>
+                  </div>
+                  <p className="text-xs text-indigo-500 font-medium leading-relaxed">
+                    Leave balance accrues dynamically starting from each employee's unique joining date instead of being unlocked all at once annually. Configure the monthly rate below:
+                  </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-xs font-bold text-gray-500">Monthly Accrual Rate (Leaves/Month):</span>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={settings.leaves.accrualRate}
+                      onChange={(e) => updateSetting('leaves', 'accrualRate', parseFloat(e.target.value) || 0)}
+                      className="w-24 bg-white border border-gray-200 rounded-xl py-2 px-3 text-center font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                  </div>
+                </div>
+
+                {/* Declared Holidays Manager */}
+                <div className="p-6 bg-white border border-gray-100 rounded-[32px] space-y-6">
+                  <div>
+                    <h4 className="text-md font-bold text-gray-900">Declare Organization Holidays</h4>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">Weeks and declared holidays are automatically skipped when calculating employee leave days</p>
+                  </div>
+                  
+                  {/* Holiday Form */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-gray-50 p-4 rounded-2xl">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Holiday Date</label>
+                      <input 
+                        type="date" 
+                        value={newHolidayDate}
+                        onChange={(e) => setNewHolidayDate(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-semibold outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Holiday Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Memorial Day"
+                        value={newHolidayName}
+                        onChange={(e) => setNewHolidayName(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-semibold outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newHolidayDate || !newHolidayName) return;
+                        const existing = settings.leaves.holidays || [];
+                        if (existing.some(h => h.date === newHolidayDate)) {
+                          alert("A holiday with this date is already declared!");
+                          return;
+                        }
+                        const updated = [...existing, { date: newHolidayDate, name: newHolidayName }].sort((a,b) => new Date(a.date) - new Date(b.date));
+                        updateSetting('leaves', 'holidays', updated);
+                        setNewHolidayDate('');
+                        setNewHolidayName('');
+                      }}
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md"
+                    >
+                      Declare Holiday
+                    </button>
+                  </div>
+
+                  {/* Holidays List */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Declared Holidays ({ (settings.leaves.holidays || []).length })</p>
+                    <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                      {(settings.leaves.holidays || []).map((holiday, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-all">
+                          <div>
+                            <p className="text-xs font-bold text-gray-800">{holiday.name}</p>
+                            <p className="text-[10px] font-semibold text-gray-400">{holiday.date}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = settings.leaves.holidays.filter((_, i) => i !== idx);
+                              updateSetting('leaves', 'holidays', updated);
+                            }}
+                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      {(settings.leaves.holidays || []).length === 0 && (
+                        <p className="text-xs text-gray-400 text-center py-4">No declared holidays yet</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

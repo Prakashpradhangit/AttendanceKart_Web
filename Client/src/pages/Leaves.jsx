@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, Clock, CheckCircle, XCircle, Search, Filter, 
   Download, Calendar as CalendarIcon, ChevronLeft, ChevronRight,
@@ -15,6 +15,59 @@ const Leaves = () => {
   const [selectedLeaves, setSelectedLeaves] = useState([]);
   const [leaveRecords, setLeaveRecords] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [limits, setLimits] = useState({ sick: 12, casual: 12, emergency: 6, accrualRate: 1.5, holidays: [] });
+
+  const fetchLimits = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/settings', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLimits({
+          sick: data.sickLeavesLimit !== undefined ? data.sickLeavesLimit : 12,
+          casual: data.casualLeavesLimit !== undefined ? data.casualLeavesLimit : 12,
+          emergency: data.emergencyLeavesLimit !== undefined ? data.emergencyLeavesLimit : 6,
+          accrualRate: data.monthlyAccrualRate !== undefined ? data.monthlyAccrualRate : 1.5,
+          holidays: (() => {
+            try {
+              return data.declaredHolidays ? JSON.parse(data.declaredHolidays) : [];
+            } catch (e) {
+              return [];
+            }
+          })()
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch limits:', err);
+    }
+  };
+
+  const calculateLeaveDays = (fromDateStr, toDateStr, duration) => {
+    if (duration !== 'Full Day') return 0.5;
+    if (!fromDateStr || !toDateStr) return 1.0;
+    
+    // YYYY-MM-DD parsing in UTC
+    const start = new Date(fromDateStr);
+    const end = new Date(toDateStr);
+    let count = 0;
+    
+    let current = new Date(start);
+    while (current <= end) {
+      const day = current.getUTCDay();
+      const dateStr = current.toISOString().split('T')[0];
+      
+      const isWeekend = (day === 0 || day === 6); // 0 = Sunday, 6 = Saturday
+      const isHoliday = limits.holidays && limits.holidays.some(h => h.date === dateStr);
+      
+      if (!isWeekend && !isHoliday) {
+        count++;
+      }
+      current.setUTCDate(current.getUTCDate() + 1);
+    }
+    return count;
+  };
 
   const fetchAllLeaves = async () => {
     setLoading(true);
@@ -34,8 +87,9 @@ const Leaves = () => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchAllLeaves();
+    fetchLimits();
   }, []);
 
   const handleStatusUpdate = async (id, status) => {
@@ -234,6 +288,7 @@ const Leaves = () => {
                     </th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">User ID</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Leave Type</th>
+                    <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Dates</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
@@ -254,7 +309,21 @@ const Leaves = () => {
                       </td>
                       <td className="py-3 px-4 text-sm font-medium text-gray-900">{record.userId}</td>
                       <td className="py-3 px-4"><TypeBadge type={record.leaveType} /></td>
-                      <td className="py-3 px-4 text-sm text-gray-600">{record.duration}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                          record.leaveCategory === 'LOP' 
+                            ? 'bg-amber-50 text-amber-600 border border-amber-200 animate-pulse' 
+                            : 'bg-green-50 text-green-600 border border-green-200'
+                        }`}>
+                          {record.leaveCategory || 'Paid'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        <div>{record.duration}</div>
+                        <div className="text-[10px] font-bold text-indigo-500 uppercase">
+                          {calculateLeaveDays(record.fromDate, record.toDate, record.duration)} Work Days
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-sm text-gray-600">
                         {record.fromDate === record.toDate ? record.fromDate : `${record.fromDate} - ${record.toDate}`}
                       </td>

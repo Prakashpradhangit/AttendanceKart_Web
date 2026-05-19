@@ -129,4 +129,109 @@ public class UserService {
 
         userRepository.delete(user);
     }
+
+    @Transactional
+    public java.util.Map<String, Object> bulkCreateUsers(List<User> users) {
+        String tenantId = TenantContext.getCurrentTenant();
+        Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
+        List<User> tenantUsers = userRepository.findByTenantId(tenantId);
+
+        long currentEmployeeCount = tenantUsers.stream()
+                .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
+                .count();
+
+        int maxAllowed = 100;
+        if (admin != null && admin.getMaxUsers() != null) {
+            maxAllowed = admin.getMaxUsers();
+        }
+
+        long vacancies = Math.max(0, maxAllowed - currentEmployeeCount);
+
+        java.util.List<java.util.Map<String, String>> successEmployees = new java.util.ArrayList<>();
+        java.util.List<java.util.Map<String, String>> failedEmployees = new java.util.ArrayList<>();
+
+        int successCount = 0;
+        int failedCount = 0;
+
+        for (User user : users) {
+            if (user.getName() == null || user.getName().trim().isEmpty()) {
+                failedEmployees.add(java.util.Map.of(
+                    "name", "Unknown",
+                    "email", user.getEmail() != null ? user.getEmail() : "",
+                    "error", "Name is required"
+                ));
+                failedCount++;
+                continue;
+            }
+
+            if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+                failedEmployees.add(java.util.Map.of(
+                    "name", user.getName(),
+                    "email", "",
+                    "error", "Email is required"
+                ));
+                failedCount++;
+                continue;
+            }
+
+            // Check if email already exists
+            if (userRepository.findByEmail(user.getEmail().trim().toLowerCase()).isPresent()) {
+                failedEmployees.add(java.util.Map.of(
+                    "name", user.getName(),
+                    "email", user.getEmail(),
+                    "error", "Email is already registered"
+                ));
+                failedCount++;
+                continue;
+            }
+
+            // Check limit capacity
+            if (successCount >= vacancies) {
+                failedEmployees.add(java.util.Map.of(
+                    "name", user.getName(),
+                    "email", user.getEmail(),
+                    "error", "User limit exceeded (maximum capacity of " + maxAllowed + " employees reached)"
+                ));
+                failedCount++;
+                continue;
+            }
+
+            // Valid user, generate credentials
+            String password = generateRandomPassword();
+            user.setPassword(password);
+            user.setEmail(user.getEmail().trim().toLowerCase());
+            user.setRole(com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE);
+            
+            // Create user (to generate employee ID and save)
+            User saved = createUser(user);
+
+            successEmployees.add(java.util.Map.of(
+                "name", saved.getName(),
+                "email", saved.getEmail(),
+                "phoneNumber", saved.getPhoneNumber() != null ? saved.getPhoneNumber() : "",
+                "department", saved.getDepartment() != null ? saved.getDepartment() : "",
+                "designation", saved.getDesignation() != null ? saved.getDesignation() : "",
+                "employeeCode", saved.getEmployeeCode() != null ? saved.getEmployeeCode() : "",
+                "password", password
+            ));
+            successCount++;
+        }
+
+        return java.util.Map.of(
+            "successCount", successCount,
+            "failedCount", failedCount,
+            "successEmployees", successEmployees,
+            "failedEmployees", failedEmployees
+        );
+    }
+
+    private String generateRandomPassword() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
 }

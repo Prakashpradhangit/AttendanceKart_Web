@@ -19,4 +19,5 @@ public class LeaveRequest {
     private String toDate;
     private String reason;
     private String status; // PENDING, APPROVED, REJECTED
+    private String leaveCategory = "Paid"; // Paid, LOP
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   Calendar,
@@ -59,6 +60,7 @@ const generateMonthData = () => {
 const data = generateMonthData();
 
 const EmployeeDashboard = () => {
+  const navigate = useNavigate();
   const [showPopup, setShowPopup] = useState(false);
   const [attendanceType, setAttendanceType] = useState("");
   const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -231,7 +233,7 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const [settings, setSettings] = useState({ checkInTime: '09:00', gracePeriod: 15, checkOutTime: '18:00' });
+  const [settings, setSettings] = useState({ checkInTime: '09:00', gracePeriod: 15, checkOutTime: '18:00', holidays: [] });
 
   const fetchSettings = async () => {
     try {
@@ -244,13 +246,43 @@ const EmployeeDashboard = () => {
         setSettings({
           checkInTime: data.defaultCheckInTime || '09:00',
           checkOutTime: data.defaultCheckOutTime || '18:00',
-          gracePeriod: data.gracePeriod || 15
+          gracePeriod: data.gracePeriod || 15,
+          holidays: (() => {
+            try {
+              return data.declaredHolidays ? JSON.parse(data.declaredHolidays) : [];
+            } catch (e) {
+              return [];
+            }
+          })()
         });
       }
     } catch (err) {
       console.error("Failed to fetch settings:", err);
     }
   };
+
+  // Filter holidays for the current month
+  const getCurrentMonthHolidays = () => {
+    if (!settings.holidays) return [];
+    const [monthName, year] = selectedMonth.split(" ");
+    const monthMap = {
+      January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+      July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+    };
+    const targetMonth = monthMap[monthName] !== undefined ? monthMap[monthName] : new Date().getMonth();
+    const targetYear = year ? parseInt(year) : new Date().getFullYear();
+
+    return settings.holidays.filter(h => {
+      if (!h.date) return false;
+      const parts = h.date.split('-');
+      if (parts.length !== 3) return false;
+      const hYear = parseInt(parts[0], 10);
+      const hMonth = parseInt(parts[1], 10) - 1; // 0-indexed
+      return hMonth === targetMonth && hYear === targetYear;
+    });
+  };
+
+  const currentMonthHolidays = getCurrentMonthHolidays();
 
   useEffect(() => {
     fetchTodayAttendance();
@@ -560,12 +592,54 @@ const EmployeeDashboard = () => {
                       <Clock size={28} />
                     </div>
                   </div>
+
+                  {/* Current Month Holidays */}
+                  <div className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] border border-white/40 shadow-sm flex flex-col gap-4 group hover:shadow-lg transition-all mt-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={18} className="text-[#8B5CF6]" />
+                        <h4 className="text-sm font-black text-gray-800 tracking-tight">Holidays in {selectedMonth}</h4>
+                      </div>
+                      <span className="px-2.5 py-0.5 bg-purple-50 text-[#8B5CF6] rounded-full font-bold text-[9px] uppercase">
+                        {currentMonthHolidays.length} declared
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                      {currentMonthHolidays.map((holiday, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100/50 hover:bg-purple-50/20 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-[#8B5CF6]">
+                              <Calendar size={14} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-gray-900">{holiday.name}</p>
+                              <p className="text-[10px] text-gray-400 font-semibold">
+                                {(() => {
+                                  const parts = holiday.date.split('-');
+                                  if (parts.length !== 3) return holiday.date;
+                                  const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                                  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', weekday: 'short' });
+                                })()}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full uppercase tracking-wider">Holiday</span>
+                        </div>
+                      ))}
+
+                      {currentMonthHolidays.length === 0 && (
+                        <p className="text-xs text-gray-400 font-medium text-center py-4">No holidays declared for {selectedMonth}</p>
+                      )}
+                    </div>
+                  </div>
+
                  
                </div>
 
              <div className="grid grid-cols-2 gap-6">
                 <button 
-                  onClick={() => setShowLeaveModal(true)}
+                  onClick={() => navigate("/employee/leaves")}
                   className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] flex flex-col items-start gap-4 text-gray-600 border border-white/40 shadow-sm hover:shadow-lg transition-all group w-full text-left"
                 >
                   <div className="p-3 bg-white/40 rounded-[18px] text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">

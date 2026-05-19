@@ -46,6 +46,14 @@ public class UserController {
         return ResponseEntity.ok(savedUser);
     }
 
+    @PostMapping("/bulk")
+    public ResponseEntity<?> bulkCreateUsers(@RequestBody List<User> users, HttpServletRequest request) {
+        if (!isAdminRequest(request)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        return ResponseEntity.ok(userService.bulkCreateUsers(users));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user, HttpServletRequest request) {
         if (!isAdminRequest(request)) {
