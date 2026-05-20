@@ -22,6 +22,7 @@ import Attendance from './pages/Attendance/Attendance';
 import Settings from './pages/Settings';
 import Leaves from './pages/Leaves';
 import Reports from './pages/Reports';
+import NoticeBoard from './pages/NoticeBoard';
 
 // Super Admin
 import SuperAdminLogin from './pages/SuperAdminLogin';
@@ -49,6 +50,7 @@ function App() {
               <Route path="/admin/attendance" element={<Attendance />} />
               <Route path="/admin/payroll" element={<Payroll />} />
               <Route path="/admin/leaves" element={<Leaves />} />
+              <Route path="/admin/notices" element={<NoticeBoard />} />
               <Route path="/admin/reports" element={<Reports />} />
               <Route path="/admin/settings" element={<Settings />} />
             </Route>

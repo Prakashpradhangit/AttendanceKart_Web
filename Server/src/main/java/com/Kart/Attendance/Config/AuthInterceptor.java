@@ -53,6 +53,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 TenantContext.setCurrentTenant(admin.getTenantId());
                 request.setAttribute("authenticatedRole", "ADMIN");
                 request.setAttribute("authenticatedAdminId", admin.getId());
+                request.setAttribute("authenticatedName", admin.getName());
                 return true; // Valid token
             }
 
@@ -62,6 +63,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 TenantContext.setCurrentTenant(user.getTenantId());
                 request.setAttribute("authenticatedRole", "USER");
                 request.setAttribute("authenticatedUserId", user.getId());
+                request.setAttribute("authenticatedName", user.getName());
                 return true;
             }
         }

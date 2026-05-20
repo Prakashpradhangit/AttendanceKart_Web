@@ -3,7 +3,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
-import { UserPlus, Calendar, CreditCard, FileText, ChevronRight, Users, ChartBar, UserCheck, UserX, Loader2 } from 'lucide-react';
+import { UserPlus, Calendar, CreditCard, FileText, ChevronRight, Users, ChartBar, UserCheck, UserX, Loader2, Megaphone, X, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { attendanceData, recentActivity } from '../utils/mockData';
 import SummaryCard from '../components/SummaryCard';
 import { useEmployees } from '../context/EmployeeContext';
@@ -21,6 +22,8 @@ const Dashboard = () => {
   const [todayPresentCount, setTodayPresentCount] = React.useState(0);
   const [trendsData, setTrendsData] = React.useState([]);
   const [selectedMonth, setSelectedMonth] = React.useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [notices, setNotices] = React.useState([]);
+  const [selectedNotice, setSelectedNotice] = React.useState(null);
 
   const fetchDashboardStats = useCallback(async () => {
     try {
@@ -50,6 +53,21 @@ const Dashboard = () => {
     }
   }, [selectedMonth]);
 
+  const fetchNotices = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/notices', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotices(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notices:', err);
+    }
+  }, []);
+
   useEffect(() => {
     const checkAccountStatus = async () => {
       try {
@@ -76,13 +94,15 @@ const Dashboard = () => {
     checkAccountStatus();
     fetchEmployees();
     fetchDashboardStats();
+    fetchNotices();
     // Periodically check status every 5 minutes
     const interval = setInterval(() => {
       checkAccountStatus();
       fetchDashboardStats();
+      fetchNotices();
     }, 300000);
     return () => clearInterval(interval);
-  }, [navigate, fetchEmployees, fetchDashboardStats, selectedMonth]);
+  }, [navigate, fetchEmployees, fetchDashboardStats, fetchNotices, selectedMonth]);
 
   // Dynamic Summary Stats
   const totalEmployees = employees.length;
@@ -158,6 +178,8 @@ const Dashboard = () => {
         ))}
       </div>
 
+
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Attendance Overview Chart */}
         <div className="lg:col-span-2 bg-white/70 backdrop-blur-md rounded-3xl shadow-sm p-6 border border-white/40 transition-all duration-300">
@@ -181,7 +203,7 @@ const Dashboard = () => {
                 />
                 <Legend iconType="circle" wrapperStyle={{paddingTop: '30px'}} />
                 <Line type="monotone" name="Present" dataKey="present" stroke="#22C55E" strokeWidth={4} dot={{r: 6, fill: '#22C55E', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
-                <Line type="monotone" name="On Leave" dataKey="onLeave" stroke="#F6AD55" strokeWidth={4} dot={{r: 6, fill: '#F6AD55', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
+                <Line type="monotone" name="On Leave" dataKey="leave" stroke="#8B5CF6" strokeWidth={4} dot={{r: 6, fill: '#8B5CF6', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -336,6 +358,167 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Dynamic Notice Board Section for Admin Dashboard */}
+      {notices.length > 0 && (
+        <div className="bg-white/70 backdrop-blur-md rounded-[40px] p-8 border border-white/40 shadow-sm flex flex-col gap-6 relative overflow-hidden text-left">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+          <div className="flex items-center justify-between border-b border-gray-100/60 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                <Megaphone size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <h4 className="text-lg font-black text-slate-800 tracking-tight leading-tight">Notice Board Updates</h4>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">Stay aware of live announcements published to all employees</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/admin/notices')}
+              className="px-4 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+            >
+              Manage Board <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {notices.slice(0, 3).map((notice) => {
+              const isUrgent = notice.category === 'Urgent';
+              const isHoliday = notice.category === 'Holiday';
+              const isEvent = notice.category === 'Event';
+              let pillClass = 'bg-teal-50 text-teal-600 border-teal-100';
+              let accentClass = 'border-l-teal-500';
+              if (isUrgent) {
+                pillClass = 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse';
+                accentClass = 'border-l-rose-500';
+              } else if (isHoliday) {
+                pillClass = 'bg-violet-50 text-violet-600 border-violet-100';
+                accentClass = 'border-l-violet-500';
+              } else if (isEvent) {
+                pillClass = 'bg-blue-50 text-blue-600 border-blue-100';
+                accentClass = 'border-l-blue-500';
+              }
+
+              return (
+                <div
+                  key={notice.id}
+                  onClick={() => setSelectedNotice(notice)}
+                  className={`bg-white/90 rounded-[28px] p-6 border-l-4 ${accentClass} border-t border-r border-b border-gray-100/80 shadow-sm hover:shadow-lg transition-all cursor-pointer flex flex-col justify-between group relative overflow-hidden`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${pillClass}`}>
+                        {notice.category}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                        {(() => {
+                          try {
+                            const date = new Date(notice.createdAt);
+                            return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                          } catch (e) {
+                            return '';
+                          }
+                        })()}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-extrabold text-slate-800 tracking-tight leading-snug group-hover:text-primary transition-colors mb-2 line-clamp-1">
+                      {notice.title}
+                    </h4>
+                    <p className="text-xs text-slate-400 font-medium leading-relaxed line-clamp-2">
+                      {notice.content}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 border-t border-gray-50/50 pt-3 mt-4">
+                    <div className="w-4 h-4 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-[8px]">
+                      {notice.createdBy ? notice.createdBy.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                      {notice.createdBy || 'Admin'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Notice Detail Modal for Admin Dashboard */}
+      <AnimatePresence>
+        {selectedNotice && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedNotice(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-2xl overflow-hidden z-10 text-left"
+            >
+              {/* Decorative background gradient */}
+              <div className="absolute top-0 right-0 w-36 h-36 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+              
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center justify-between">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                    selectedNotice.category === 'Urgent'
+                      ? 'bg-rose-50 text-rose-600 border-rose-100'
+                      : selectedNotice.category === 'Holiday'
+                      ? 'bg-violet-50 text-violet-600 border-violet-100'
+                      : selectedNotice.category === 'Event'
+                      ? 'bg-blue-50 text-blue-600 border-blue-100'
+                      : 'bg-teal-50 text-teal-600 border-teal-100'
+                  }`}>
+                    {selectedNotice.category}
+                  </span>
+                  <button
+                    onClick={() => setSelectedNotice(null)}
+                    className="p-1.5 hover:bg-slate-100 rounded-full transition-all text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 tracking-tight leading-snug">
+                    {selectedNotice.title}
+                  </h3>
+                  <div className="flex items-center gap-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">
+                    <span className="flex items-center gap-1">
+                      <Calendar size={12} />
+                      {new Date(selectedNotice.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <User size={12} />
+                      By {selectedNotice.createdBy || 'Admin'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 text-slate-600 text-sm font-medium leading-relaxed max-h-[250px] overflow-y-auto whitespace-pre-wrap">
+                  {selectedNotice.content}
+                </div>
+
+                <button 
+                  onClick={() => setSelectedNotice(null)}
+                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-900/20 mt-2"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

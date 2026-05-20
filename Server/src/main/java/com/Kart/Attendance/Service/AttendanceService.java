@@ -143,7 +143,7 @@ public class AttendanceService {
         for (int i = 1; i <= daysInMonth; i++) {
             LocalDate date = firstDay.withDayOfMonth(i);
             String dateStr = date.toString();
-            String label = date.format(DateTimeFormatter.ofPattern("dd MMM"));
+            String label = String.valueOf(i);
 
             long presentCount = attendanceList.stream()
                     .filter(a -> dateStr.equals(a.getAttendanceDate()))

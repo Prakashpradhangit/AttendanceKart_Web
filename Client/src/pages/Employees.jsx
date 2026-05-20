@@ -27,9 +27,10 @@ const Employees = () => {
   };
 
   const filteredEmployees = employees.filter(emp => {
+    const empCode = emp.empId || String(emp.id);
     const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.id.toLowerCase().includes(searchTerm.toLowerCase());
+                         empCode.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDept = departmentFilter === 'All Departments' || emp.department === departmentFilter;
     return matchesSearch && matchesDept;
   });
@@ -154,14 +155,20 @@ const Employees = () => {
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <button 
-            onClick={() => setIsImportModalOpen(true)}
+            onClick={() => {
+              if (maxUsers && maxUsers > 0 && employees.length >= maxUsers) {
+                setLimitExceededModalOpen(true);
+              } else {
+                setIsImportModalOpen(true);
+              }
+            }}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
           >
             <Upload size={18} /> Import
           </button>
           <button 
             onClick={() => {
-              if (employees.length >= maxUsers) {
+              if (maxUsers && maxUsers > 0 && employees.length >= maxUsers) {
                 setLimitExceededModalOpen(true);
               } else {
                 setIsAddModalOpen(true);
@@ -217,7 +224,7 @@ const Employees = () => {
             <tbody className="divide-y divide-gray-50">
               {filteredEmployees.length > 0 ? filteredEmployees.map((emp) => (
                 <tr key={emp.id} className="hover:bg-primary/[0.02] transition-colors group">
-                  <td className="px-8 py-5 text-sm font-semibold text-gray-900">{emp.id}</td>
+                  <td className="px-8 py-5 text-sm font-semibold text-gray-900">{emp.empId || emp.id}</td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shadow-sm">
@@ -365,9 +372,9 @@ const Employees = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-slate-800 tracking-tight">Organization Capacity Reached</h3>
+                  <h3 className="text-xl font-bold text-slate-800 tracking-tight">Maximum Employee Reached</h3>
                   <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                    You have reached the maximum allowed employee limit for your current subscription plan.
+                    You have reached the maximum allowed employee limit for your organization.
                   </p>
                 </div>
 
@@ -384,8 +391,8 @@ const Employees = () => {
                   </div>
                 </div>
 
-                <div className="text-xs text-slate-400 font-medium leading-relaxed mt-2">
-                  To add more employees, please request the **Super Admin** to upgrade your user tier limit.
+                <div className="text-xs text-slate-500 font-medium leading-relaxed mt-2">
+                  To add more employees, please contact the <span className="text-primary font-bold">AttendanceKart Team</span> to upgrade your user tier limit.
                 </div>
 
                 <button 

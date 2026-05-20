@@ -9,7 +9,8 @@ import {
   CalendarRange, 
   ChartBar, 
   Settings,
-  LogOut
+  LogOut,
+  Megaphone
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -25,6 +26,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { name: 'Attendance', icon: CalendarCheck, path: '/admin/attendance' },
     { name: 'Payroll', icon: Wallet, path: '/admin/payroll' },
     { name: 'Leave Request', icon: CalendarRange, path: '/admin/leaves' },
+    { name: 'Notice Board', icon: Megaphone, path: '/admin/notices' },
     { name: 'Reports', icon: ChartBar, path: '/admin/reports' },
     { name: 'Settings', icon: Settings, path: '/admin/settings' },
   ];

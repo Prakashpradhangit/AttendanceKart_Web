@@ -567,7 +567,7 @@ const Payroll = () => {
                               >
                                 <option value="">Select Employee</option>
                                 {employeesList.map(emp => (
-                                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.id})</option>
+                                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.empId || emp.id})</option>
                                 ))}
                               </select>
                               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
