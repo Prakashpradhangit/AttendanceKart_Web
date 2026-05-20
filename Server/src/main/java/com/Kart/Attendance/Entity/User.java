@@ -62,4 +62,26 @@ public class User {
 
     private String gender;
 
+    private String address;
+
+    private String emergencyContactName;
+
+    private String emergencyContactPhone;
+
+    private String emergencyContactAddress;
+
+    private String maritalStatus;
+
+    private String nationality;
+
+    private LocalDate dob;
+
+    private String bloodGroup;
+
+    private String personalEmail;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String profileImage;
+
 }

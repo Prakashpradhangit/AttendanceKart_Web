@@ -2,7 +2,9 @@ package com.Kart.Attendance.Service;
 
 import com.Kart.Attendance.Config.TenantContext;
 import com.Kart.Attendance.Entity.LeaveRequest;
+import com.Kart.Attendance.Entity.User;
 import com.Kart.Attendance.Repository.LeaveRepository;
+import com.Kart.Attendance.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LeaveService {
     private final LeaveRepository leaveRepository;
+    private final UserRepository userRepository;
 
     public LeaveRequest applyLeave(LeaveRequest request, Long userId) {
         String tenantId = TenantContext.getCurrentTenant();
@@ -36,9 +39,43 @@ public class LeaveService {
         return leaveRepository.countByTenantIdAndStatus(tenantId, "PENDING");
     }
 
-    public List<LeaveRequest> getAllLeaves() {
+    public List<java.util.Map<String, Object>> getAllLeaves() {
         String tenantId = TenantContext.getCurrentTenant();
-        return leaveRepository.findByTenantId(tenantId);
+        List<LeaveRequest> list = leaveRepository.findByTenantId(tenantId);
+        List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        
+        for (LeaveRequest req : list) {
+            java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("id", req.getId());
+            map.put("tenantId", req.getTenantId());
+            map.put("userId", req.getUserId());
+            map.put("leaveType", req.getLeaveType());
+            map.put("duration", req.getDuration());
+            map.put("fromDate", req.getFromDate());
+            map.put("toDate", req.getToDate());
+            map.put("reason", req.getReason());
+            map.put("status", req.getStatus());
+            map.put("leaveCategory", req.getLeaveCategory());
+            
+            try {
+                Long uId = Long.parseLong(req.getUserId());
+                java.util.Optional<User> uOpt = userRepository.findById(uId);
+                if (uOpt.isPresent()) {
+                    User u = uOpt.get();
+                    map.put("employeeName", u.getName() != null ? u.getName() : "");
+                    map.put("employeeCode", u.getEmployeeCode() != null ? u.getEmployeeCode() : "");
+                } else {
+                    map.put("employeeName", "Unknown");
+                    map.put("employeeCode", "N/A");
+                }
+            } catch (Exception e) {
+                map.put("employeeName", "Unknown");
+                map.put("employeeCode", "N/A");
+            }
+            
+            result.add(map);
+        }
+        return result;
     }
 
     public void updateLeaveStatus(Long leaveId, String status) {

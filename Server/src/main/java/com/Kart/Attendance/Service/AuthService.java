@@ -187,19 +187,123 @@ public class AuthService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             java.time.LocalDate jd = user.getJoiningDate();
-            return Map.of(
-                    "id", user.getId(),
-                    "role", "USER",
-                    "name", user.getName() != null ? user.getName() : "",
-                    "email", user.getEmail() != null ? user.getEmail() : "",
-                    "employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "",
-                    "department", user.getDepartment() != null ? user.getDepartment() : "",
-                    "designation", user.getDesignation() != null ? user.getDesignation() : "",
-                    "tenantId", user.getTenantId() != null ? user.getTenantId() : "",
-                    "joiningDate", jd != null ? jd.toString() : ""
-            );
+            java.time.LocalDate dob = user.getDob();
+            
+            java.util.Map<String, Object> profile = new java.util.LinkedHashMap<>();
+            profile.put("id", user.getId());
+            profile.put("role", "USER");
+            profile.put("name", user.getName() != null ? user.getName() : "");
+            profile.put("email", user.getEmail() != null ? user.getEmail() : "");
+            profile.put("employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "");
+            profile.put("department", user.getDepartment() != null ? user.getDepartment() : "");
+            profile.put("designation", user.getDesignation() != null ? user.getDesignation() : "");
+            profile.put("tenantId", user.getTenantId() != null ? user.getTenantId() : "");
+            profile.put("joiningDate", jd != null ? jd.toString() : "");
+            profile.put("phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "");
+            profile.put("gender", user.getGender() != null ? user.getGender() : "");
+            profile.put("address", user.getAddress() != null ? user.getAddress() : "");
+            profile.put("emergencyContactName", user.getEmergencyContactName() != null ? user.getEmergencyContactName() : "");
+            profile.put("emergencyContactPhone", user.getEmergencyContactPhone() != null ? user.getEmergencyContactPhone() : "");
+            profile.put("emergencyContactAddress", user.getEmergencyContactAddress() != null ? user.getEmergencyContactAddress() : "");
+            profile.put("maritalStatus", user.getMaritalStatus() != null ? user.getMaritalStatus() : "");
+            profile.put("nationality", user.getNationality() != null ? user.getNationality() : "");
+            profile.put("dob", dob != null ? dob.toString() : "");
+            profile.put("bloodGroup", user.getBloodGroup() != null ? user.getBloodGroup() : "");
+            profile.put("personalEmail", user.getPersonalEmail() != null ? user.getPersonalEmail() : "");
+            profile.put("profileImage", user.getProfileImage() != null ? user.getProfileImage() : "");
+            
+            return profile;
         }
 
+        return null;
+    }
+
+    public Map<String, Object> updateProfile(String token, Map<String, Object> updates) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+
+        Optional<User> userOpt = userRepository.findByAuthToken(token);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            
+            // Name
+            if (updates.containsKey("name")) {
+                user.setName((String) updates.get("name"));
+            }
+            // Phone
+            if (updates.containsKey("phoneNumber")) {
+                user.setPhoneNumber((String) updates.get("phoneNumber"));
+            }
+            // Gender
+            if (updates.containsKey("gender")) {
+                user.setGender((String) updates.get("gender"));
+            }
+            // Designation
+            if (updates.containsKey("designation")) {
+                user.setDesignation((String) updates.get("designation"));
+            }
+            // Department
+            if (updates.containsKey("department")) {
+                user.setDepartment((String) updates.get("department"));
+            }
+            // Joining Date
+            if (updates.containsKey("joiningDate") && updates.get("joiningDate") != null) {
+                try {
+                    user.setJoiningDate(java.time.LocalDate.parse((String) updates.get("joiningDate")));
+                } catch (Exception e) {
+                    // Ignore or log date parsing errors
+                }
+            }
+            // Address
+            if (updates.containsKey("address")) {
+                user.setAddress((String) updates.get("address"));
+            }
+            // Emergency Contact Name
+            if (updates.containsKey("emergencyContactName")) {
+                user.setEmergencyContactName((String) updates.get("emergencyContactName"));
+            }
+            // Emergency Contact Phone
+            if (updates.containsKey("emergencyContactPhone")) {
+                user.setEmergencyContactPhone((String) updates.get("emergencyContactPhone"));
+            }
+            // Emergency Contact Address
+            if (updates.containsKey("emergencyContactAddress")) {
+                user.setEmergencyContactAddress((String) updates.get("emergencyContactAddress"));
+            }
+            // Marital Status
+            if (updates.containsKey("maritalStatus")) {
+                user.setMaritalStatus((String) updates.get("maritalStatus"));
+            }
+            // Nationality
+            if (updates.containsKey("nationality")) {
+                user.setNationality((String) updates.get("nationality"));
+            }
+            // DOB
+            if (updates.containsKey("dob") && updates.get("dob") != null && !((String) updates.get("dob")).isBlank()) {
+                try {
+                    user.setDob(java.time.LocalDate.parse((String) updates.get("dob")));
+                } catch (Exception e) {
+                    // Ignore or log date parsing errors
+                }
+            }
+            // Blood Group
+            if (updates.containsKey("bloodGroup")) {
+                user.setBloodGroup((String) updates.get("bloodGroup"));
+            }
+            // Personal Email
+            if (updates.containsKey("personalEmail")) {
+                user.setPersonalEmail((String) updates.get("personalEmail"));
+            }
+            // Profile Image
+            if (updates.containsKey("profileImage")) {
+                user.setProfileImage((String) updates.get("profileImage"));
+            }
+            
+            userRepository.save(user);
+            return getProfile(token);
+        }
+        
         return null;
     }
 }

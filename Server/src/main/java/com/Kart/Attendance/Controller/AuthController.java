@@ -68,4 +68,28 @@ public class AuthController {
 
         return ResponseEntity.ok(profile);
     }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@RequestHeader(value = "Authorization", required = false) String authorization, @RequestBody Map<String, Object> updates) {
+        String token = null;
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            token = authorization.substring(7);
+        }
+
+        if (updates != null) {
+            updates.remove("email");
+            updates.remove("employeeCode");
+            updates.remove("employeeId");
+            updates.remove("id");
+            updates.remove("role");
+            updates.remove("tenantId");
+        }
+
+        Map<String, Object> updatedProfile = authService.updateProfile(token, updates);
+        if (updatedProfile == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid session or unauthorized"));
+        }
+
+        return ResponseEntity.ok(updatedProfile);
+    }
 }

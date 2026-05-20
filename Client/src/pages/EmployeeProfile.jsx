@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -23,29 +23,72 @@ import Modal from '../components/Modal';
 const EmployeeProfile = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: "John Doe",
-    role: "Software Engineer",
-    employeeId: "EMP00123",
-    email: "john.doe@example.com",
-    phone: "+91 98765 43210",
-    address: "123, Green Park Avenue, Bangalore, Karnataka - 560001",
+    name: "",
+    role: "",
+    employeeId: "",
+    email: "",
+    phone: "",
+    address: "",
+    profileImage: "",
     emergencyContact: {
-      name: "Jane Doe (Sister)",
-      phone: "+91 91234 56789",
-      address: "123, Green Park Avenue, Bangalore, Karnataka - 560001"
+      name: "",
+      phone: "",
+      address: ""
     },
     personalInfo: {
-      fullName: "John Doe",
-      gender: "Male",
-      maritalStatus: "Married",
-      nationality: "Indian",
-      dob: "1993-03-15", // Changed to ISO for date input
-      bloodGroup: "O+",
-      personalEmail: "john.doe@example.com"
+      fullName: "",
+      gender: "",
+      maritalStatus: "",
+      nationality: "",
+      dob: "",
+      bloodGroup: "",
+      personalEmail: ""
     }
   });
 
   const [editFormData, setEditFormData] = useState({ ...profileData });
+
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch('/api/auth/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProfileData({
+          name: data.name || '',
+          role: data.designation || '',
+          employeeId: data.employeeCode || '',
+          email: data.email || '',
+          phone: data.phoneNumber || '',
+          address: data.address || '',
+          profileImage: data.profileImage || '',
+          emergencyContact: {
+            name: data.emergencyContactName || '',
+            phone: data.emergencyContactPhone || '',
+            address: data.emergencyContactAddress || ''
+          },
+          personalInfo: {
+            fullName: data.name || '',
+            gender: data.gender || '',
+            maritalStatus: data.maritalStatus || '',
+            nationality: data.nationality || '',
+            dob: data.dob || '',
+            bloodGroup: data.bloodGroup || '',
+            personalEmail: data.personalEmail || ''
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   const handleEditClick = () => {
     setEditFormData({ ...profileData });
@@ -55,25 +98,149 @@ const EmployeeProfile = () => {
   const handleInputChange = (e, section, field) => {
     const { name, value } = e.target;
     if (section) {
-      setEditFormData(prev => ({
-        ...prev,
-        [section]: {
+      setEditFormData(prev => {
+        const updatedSection = {
           ...prev[section],
           [field || name]: value
+        };
+        const extra = {};
+        if (section === 'personalInfo' && (field || name) === 'fullName') {
+          extra.name = value;
         }
-      }));
+        return {
+          ...prev,
+          [section]: updatedSection,
+          ...extra
+        };
+      });
     } else {
-      setEditFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      setEditFormData(prev => {
+        const extra = {};
+        if (name === 'name') {
+          extra.personalInfo = {
+            ...prev.personalInfo,
+            fullName: value
+          };
+        }
+        return {
+          ...prev,
+          [name]: value,
+          ...extra
+        };
+      });
     }
   };
 
-  const handleSave = (e) => {
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result;
+
+      // Optimistic update
+      setProfileData(prev => ({
+        ...prev,
+        profileImage: base64String
+      }));
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const res = await fetch('/api/auth/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            profileImage: base64String
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setProfileData(prev => ({
+            ...prev,
+            profileImage: data.profileImage || ''
+          }));
+        } else {
+          alert('Failed to save profile image.');
+        }
+      } catch (err) {
+        console.error('Error uploading profile image:', err);
+        alert('An error occurred during upload.');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setProfileData({ ...editFormData });
-    setIsEditModalOpen(false);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const payload = {
+        name: editFormData.name,
+        designation: editFormData.role,
+        phoneNumber: editFormData.phone,
+        gender: editFormData.personalInfo.gender,
+        address: editFormData.address,
+        emergencyContactName: editFormData.emergencyContact.name,
+        emergencyContactPhone: editFormData.emergencyContact.phone,
+        emergencyContactAddress: editFormData.emergencyContact.address,
+        maritalStatus: editFormData.personalInfo.maritalStatus,
+        nationality: editFormData.personalInfo.nationality,
+        dob: editFormData.personalInfo.dob,
+        bloodGroup: editFormData.personalInfo.bloodGroup,
+        personalEmail: editFormData.personalInfo.personalEmail
+      };
+
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProfileData({
+          name: data.name || '',
+          role: data.designation || '',
+          employeeId: data.employeeCode || '',
+          email: data.email || '',
+          phone: data.phoneNumber || '',
+          address: data.address || '',
+          profileImage: data.profileImage || '',
+          emergencyContact: {
+            name: data.emergencyContactName || '',
+            phone: data.emergencyContactPhone || '',
+            address: data.emergencyContactAddress || ''
+          },
+          personalInfo: {
+            fullName: data.name || '',
+            gender: data.gender || '',
+            maritalStatus: data.maritalStatus || '',
+            nationality: data.nationality || '',
+            dob: data.dob || '',
+            bloodGroup: data.bloodGroup || '',
+            personalEmail: data.personalEmail || ''
+          }
+        });
+        setIsEditModalOpen(false);
+      } else {
+        alert('Failed to save profile. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      alert('An error occurred while saving.');
+    }
   };
 
   return (
@@ -87,16 +254,30 @@ const EmployeeProfile = () => {
         {/* Profile Header Card */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col md:flex-row items-center gap-8">
           <div className="relative">
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-50 shadow-md">
-              <img 
-                src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-              />
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-50 shadow-md bg-gray-50 flex items-center justify-center">
+              {profileData.profileImage ? (
+                <img 
+                  src={profileData.profileImage} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <UserCircle size={80} className="text-gray-300" />
+              )}
             </div>
-            <button className="absolute bottom-1 right-1 p-2 bg-white rounded-full shadow-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={() => document.getElementById('profile-file-input').click()}
+              className="absolute bottom-1 right-1 p-2 bg-white rounded-full shadow-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+            >
               <Camera size={16} className="text-blue-600" />
             </button>
+            <input 
+              id="profile-file-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageChange}
+            />
           </div>
           <div className="flex-1 text-center md:text-left">
             <h2 className="text-3xl font-bold text-gray-900 mb-1">{profileData.name}</h2>
@@ -136,7 +317,7 @@ const EmployeeProfile = () => {
               <InfoItem icon={<UserCircle className="text-blue-500" />} label="Full Name" value={profileData.personalInfo.fullName} />
               <InfoItem icon={<IdCard className="text-blue-500" />} label="Employee ID" value={profileData.employeeId} />
               <InfoItem icon={<UserCircle className="text-blue-500" />} label="Gender" value={profileData.personalInfo.gender} />
-              <InfoItem icon={<Calendar className="text-blue-500" />} label="Date of Birth" value={new Date(profileData.personalInfo.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} />
+              <InfoItem icon={<Calendar className="text-blue-500" />} label="Date of Birth" value={profileData.personalInfo.dob ? new Date(profileData.personalInfo.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'} />
               <InfoItem icon={<Heart className="text-blue-500" />} label="Marital Status" value={profileData.personalInfo.maritalStatus} />
               <InfoItem icon={<Droplet className="text-blue-500" />} label="Blood Group" value={profileData.personalInfo.bloodGroup} />
               <InfoItem icon={<Flag className="text-blue-500" />} label="Nationality" value={profileData.personalInfo.nationality} />

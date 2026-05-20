@@ -111,8 +111,13 @@ const Leaves = () => {
   };
 
   const filteredLeaves = leaveRecords.filter(record => {
-    const matchesSearch = record.userId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         record.leaveType?.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = 
+      (record.userId && String(record.userId).toLowerCase().includes(searchLower)) ||
+      (record.employeeName && record.employeeName.toLowerCase().includes(searchLower)) ||
+      (record.employeeCode && record.employeeCode.toLowerCase().includes(searchLower)) ||
+      (record.leaveType && record.leaveType.toLowerCase().includes(searchLower)) ||
+      (record.reason && record.reason.toLowerCase().includes(searchLower));
     const matchesType = leaveTypeFilter === 'All' || record.leaveType === leaveTypeFilter;
     const matchesStatus = statusFilter === 'All' || record.status === statusFilter.toUpperCase();
     return matchesSearch && matchesType && matchesStatus;
@@ -286,7 +291,7 @@ const Leaves = () => {
                         checked={selectedLeaves.length === filteredLeaves.length && filteredLeaves.length > 0}
                       />
                     </th>
-                    <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">User ID</th>
+                    <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Employee</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Leave Type</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
                     <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</th>
@@ -307,27 +312,49 @@ const Leaves = () => {
                           onChange={(e) => handleSelectLeave(e, record.id)}
                         />
                       </td>
-                      <td className="py-3 px-4 text-sm font-medium text-gray-900">{record.userId}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border border-indigo-100 flex items-center justify-center font-bold text-white shadow-sm shrink-0">
+                            {record.employeeName ? record.employeeName.charAt(0).toUpperCase() : 'E'}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900 leading-tight">{record.employeeName || 'Unknown Employee'}</div>
+                            <div className="text-xs text-indigo-500 font-mono mt-0.5">{record.employeeCode || `ID: ${record.userId}`}</div>
+                          </div>
+                        </div>
+                      </td>
                       <td className="py-3 px-4"><TypeBadge type={record.leaveType} /></td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                           record.leaveCategory === 'LOP' 
-                            ? 'bg-amber-50 text-amber-600 border border-amber-200 animate-pulse' 
-                            : 'bg-green-50 text-green-600 border border-green-200'
+                            ? 'bg-rose-50 text-rose-600 border border-rose-100' 
+                            : 'bg-green-50 text-green-600 border border-green-100'
                         }`}>
                           {record.leaveCategory || 'Paid'}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-600">
-                        <div>{record.duration}</div>
-                        <div className="text-[10px] font-bold text-indigo-500 uppercase">
+                        <div className="font-medium text-gray-800">{record.duration}</div>
+                        <div className="text-[10px] font-extrabold text-indigo-600 uppercase mt-0.5 tracking-wider">
                           {calculateLeaveDays(record.fromDate, record.toDate, record.duration)} Work Days
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
-                        {record.fromDate === record.toDate ? record.fromDate : `${record.fromDate} - ${record.toDate}`}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <CalendarIcon className="w-4 h-4 text-indigo-400 shrink-0" />
+                          <span className="font-medium">
+                            {record.fromDate === record.toDate ? record.fromDate : `${record.fromDate} - ${record.toDate}`}
+                          </span>
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-600 max-w-[150px] truncate" title={record.reason}>{record.reason}</td>
+                      <td className="py-3 px-4">
+                        <div 
+                          className="max-w-[200px] text-xs text-gray-600 bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl leading-relaxed cursor-help" 
+                          title={record.reason}
+                        >
+                          {record.reason || <span className="text-gray-300 italic">No reason provided</span>}
+                        </div>
+                      </td>
                       <td className="py-3 px-4"><StatusBadge status={record.status} /></td>
                       <td className="py-3 px-4">
                         <div className="flex justify-center items-center gap-2">
@@ -358,7 +385,7 @@ const Leaves = () => {
                   ))}
                   {filteredLeaves.length === 0 && (
                       <tr>
-                          <td colSpan="8" className="py-10 text-center text-gray-400">No leave requests found</td>
+                          <td colSpan="9" className="py-12 text-center text-gray-400 font-medium">No leave requests found</td>
                       </tr>
                   )}
                 </tbody>
