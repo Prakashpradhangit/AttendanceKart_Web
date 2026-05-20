@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.Kart.Attendance.Config.TenantContext;
 import com.Kart.Attendance.Entity.Notice;
 import com.Kart.Attendance.Repository.NoticeRepository;
+import com.Kart.Attendance.Service.NoticeSseService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/notices")
@@ -22,6 +25,17 @@ import lombok.RequiredArgsConstructor;
 public class NoticeController {
 
     private final NoticeRepository noticeRepository;
+    private final NoticeSseService noticeSseService;
+
+    @GetMapping("/stream")
+    public SseEmitter streamNotices(HttpServletRequest request) {
+        String role = (String) request.getAttribute("authenticatedRole");
+        if (!"ADMIN".equals(role) && !"USER".equals(role)) {
+            throw new RuntimeException("Forbidden");
+        }
+        String tenantId = TenantContext.getCurrentTenant();
+        return noticeSseService.registerEmitter(tenantId);
+    }
 
     @GetMapping
     public ResponseEntity<?> getNotices(HttpServletRequest request) {
@@ -52,6 +66,7 @@ public class NoticeController {
         notice.setCreatedBy(name);
 
         Notice savedNotice = noticeRepository.save(notice);
+        noticeSseService.broadcastNotice(tenantId, savedNotice);
         return ResponseEntity.ok(savedNotice);
     }
 

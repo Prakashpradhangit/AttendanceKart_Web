@@ -33,10 +33,15 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         String authHeader = request.getHeader("Authorization");
+        String token = null;
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            
+            token = authHeader.substring(7);
+        } else {
+            token = request.getParameter("token");
+        }
+
+        if (token != null) {
             // Validate token against SuperAdmin database
             Optional<com.Kart.Attendance.Entity.SuperAdmin> superAdminOpt = superAdminRepository.findByAuthToken(token);
             if (superAdminOpt.isPresent()) {
