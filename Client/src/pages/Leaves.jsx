@@ -5,10 +5,12 @@ import {
   MoreVertical, Check, X, ChevronDown, BookOpen, Briefcase, RefreshCw, BarChart2,
   FileSpreadsheet
 } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { leaveStats, leaveRecords, leaveDistribution } from '../utils/mockData';
 
 const Leaves = () => {
+  const { showAlert } = useAlert();
   const [searchTerm, setSearchTerm] = useState('');
   const [leaveTypeFilter, setLeaveTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -103,7 +105,7 @@ const Leaves = () => {
         fetchAllLeaves();
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to update status');
+        showAlert(error.error || 'Failed to update status', "error");
       }
     } catch (err) {
       console.error('Status update error:', err);

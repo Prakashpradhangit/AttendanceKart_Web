@@ -20,6 +20,7 @@ import {
   Info,
   Megaphone,
 } from "lucide-react";
+import { useAlert } from '../context/AlertContext';
 import {
   BarChart,
   Bar,
@@ -61,6 +62,7 @@ const generateMonthData = () => {
 const data = generateMonthData();
 
 const EmployeeDashboard = () => {
+  const { showAlert } = useAlert();
   const navigate = useNavigate();
   const [showPopup, setShowPopup] = useState(false);
   const [attendanceType, setAttendanceType] = useState("");
@@ -83,6 +85,13 @@ const EmployeeDashboard = () => {
   const [notices, setNotices] = useState([]);
   const [selectedNotice, setSelectedNotice] = useState(null);
   const [activeNotification, setActiveNotification] = useState(null);
+  
+  // Missed Clock Out states
+  const [showMissedClockOutModal, setShowMissedClockOutModal] = useState(false);
+  const [missedDate, setMissedDate] = useState("");
+  const [missedTime, setMissedTime] = useState("");
+  const [missedNote, setMissedNote] = useState("");
+  const [submittingMissed, setSubmittingMissed] = useState(false);
 
   const fetchTodayAttendance = async () => {
     try {
@@ -229,11 +238,50 @@ const EmployeeDashboard = () => {
         setReason('');
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to submit leave request");
+        showAlert(error.error || "Failed to submit leave request", "error");
       }
     } catch (err) {
       console.error("Failed to submit leave:", err);
-      alert("An error occurred");
+      showAlert("An error occurred", "error");
+    }
+  };
+
+  const handleMissedClockOutSubmit = async (e) => {
+    e.preventDefault();
+    if (!missedDate || !missedTime) {
+      showAlert("Date and Time are required.", "error");
+      return;
+    }
+    setSubmittingMissed(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/attendance/clock-out-requests", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          date: missedDate,
+          time: missedTime,
+          note: missedNote
+        })
+      });
+      if (res.ok) {
+        setShowMissedClockOutModal(false);
+        showAlert("Missed clock-out request submitted successfully!", "success");
+        setMissedDate("");
+        setMissedTime("");
+        setMissedNote("");
+      } else {
+        const errorData = await res.json();
+        showAlert(errorData.error || "Failed to submit request", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert("An error occurred while submitting request.", "error");
+    } finally {
+      setSubmittingMissed(false);
     }
   };
 
@@ -422,7 +470,7 @@ const EmployeeDashboard = () => {
         if (attendanceType === "Check In") setIsCheckedIn(true);
         if (attendanceType === "Check Out") setIsCheckedOut(true);
 
-        alert(`Attendance ${attendanceType} captured successfully!`);
+        showAlert(`Attendance ${attendanceType} captured successfully!`, "success");
         setShowPopup(false);
 
         // Refetch to sync everything
@@ -430,11 +478,11 @@ const EmployeeDashboard = () => {
         fetchMonthlyAttendance(selectedMonth);
       } else {
         const errorData = await response.json();
-        alert(errorData.error || `Failed to ${attendanceType}`);
+        showAlert(errorData.error || `Failed to ${attendanceType}`, "error");
       }
     } catch (err) {
       console.error(`Failed to capture ${attendanceType}:`, err);
-      alert("An error occurred. Please try again.");
+      showAlert("An error occurred. Please try again.", "error");
     }
   };
 
@@ -633,6 +681,16 @@ const EmployeeDashboard = () => {
                         <span className="text-sm font-black tracking-tight">Check Out</span>
                       </div>
                     </button>
+                 </div>
+                 
+                 <div className="flex justify-center -mt-2">
+                   <button 
+                     onClick={() => setShowMissedClockOutModal(true)}
+                     className="text-[10px] font-black text-[#8B5CF6] hover:text-purple-700 uppercase tracking-widest hover:underline transition-all flex items-center gap-1"
+                   >
+                     <Clock size={12} />
+                     Missed a clock-out? Request entry
+                   </button>
                  </div>
                  
                  {/* Active Timer Display moved here */}
@@ -1251,6 +1309,80 @@ const EmployeeDashboard = () => {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Missed Clock Out Modal */}
+      <AnimatePresence>
+        {showMissedClockOutModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMissedClockOutModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-2xl overflow-hidden z-10 text-left"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-slate-800 tracking-tight leading-snug flex items-center gap-2">
+                  <Clock size={20} className="text-[#8B5CF6]" />
+                  Request Clock-Out
+                </h3>
+                <button
+                  onClick={() => setShowMissedClockOutModal(false)}
+                  className="p-1.5 hover:bg-slate-100 rounded-full transition-all text-slate-400 hover:text-slate-600"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleMissedClockOutSubmit} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date Missed</label>
+                  <input 
+                    type="date"
+                    value={missedDate}
+                    onChange={(e) => setMissedDate(e.target.value)}
+                    required
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-purple-500/20 font-semibold transition-all text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Clock-Out Time</label>
+                  <input 
+                    type="time"
+                    value={missedTime}
+                    onChange={(e) => setMissedTime(e.target.value)}
+                    required
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-purple-500/20 font-semibold transition-all text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Reason / Note</label>
+                  <textarea 
+                    value={missedNote}
+                    onChange={(e) => setMissedNote(e.target.value)}
+                    placeholder="Forgot to clock out before leaving..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-purple-500/20 font-semibold transition-all text-sm min-h-[80px]"
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  disabled={submittingMissed}
+                  className="w-full py-3.5 bg-[#8B5CF6] text-white rounded-2xl font-semibold hover:bg-purple-700 active:scale-[0.98] transition-all shadow-lg shadow-purple-900/20 mt-4 disabled:opacity-50"
+                >
+                  {submittingMissed ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

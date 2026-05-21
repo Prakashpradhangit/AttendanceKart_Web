@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw, Trash2, Copy, Download, Check, FileSpreadsheet, X } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
+import { useAlert } from '../context/AlertContext';
 import EmployeeForm from '../components/EmployeeForm';
 import ImportModal from '../components/ImportModal';
 import * as XLSX from 'xlsx';
@@ -8,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const Employees = () => {
   const { employees, maxUsers, addEmployee, addBulkEmployees, updateEmployee, deleteEmployee, resetTodayAttendance } = useEmployees();
+  const { showConfirm } = useAlert();
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -118,8 +120,8 @@ const Employees = () => {
     setActiveMenuId(null);
   };
 
-  const handleDeleteEmployee = (id) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
+  const handleDeleteEmployee = async (id) => {
+    if (await showConfirm('Are you sure you want to delete this employee?')) {
       deleteEmployee(id);
       showNotification('Employee deleted successfully!');
       setActiveMenuId(null);
@@ -227,9 +229,17 @@ const Employees = () => {
                   <td className="px-8 py-5 text-sm font-semibold text-gray-900">{emp.empId || emp.id}</td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shadow-sm">
-                        {emp.name.charAt(0)}
-                      </div>
+                      {emp.profileImage ? (
+                        <img 
+                          src={emp.profileImage} 
+                          alt={emp.name}
+                          className="w-10 h-10 rounded-2xl object-cover border border-gray-100 shadow-sm shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shadow-sm shrink-0">
+                          {emp.name.charAt(0)}
+                        </div>
+                      )}
                       <span className="text-sm font-semibold text-gray-900">{emp.name}</span>
                     </div>
                   </td>

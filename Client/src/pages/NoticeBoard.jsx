@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, Plus, Trash2, Calendar, User, X, CircleAlert, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAlert } from '../context/AlertContext';
 
 const NoticeBoard = () => {
+  const { showConfirm } = useAlert();
   const [notices, setNotices] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,7 +79,7 @@ const NoticeBoard = () => {
   };
 
   const handleDeleteNotice = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this announcement?'))) return;
     setError('');
 
     try {

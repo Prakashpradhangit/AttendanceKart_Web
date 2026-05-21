@@ -4,6 +4,7 @@ import {
   X, RefreshCw, DollarSign, Thermometer, Briefcase, Zap, ChevronRight,
   CalendarDays, ArrowRight, Trash2
 } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 
 const LEAVE_TYPES = [
   { value: 'Sick Leave', label: 'Sick Leave', icon: Thermometer, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', selectedBg: 'bg-red-600', desc: 'Medical/health related' },
@@ -31,6 +32,7 @@ const StatusPill = ({ status }) => {
 };
 
 const EmployeeLeaves = () => {
+  const { showAlert, showConfirm } = useAlert();
   const [leaveType, setLeaveType] = useState('Sick Leave');
   const [leaveCategory, setLeaveCategory] = useState('Paid');
   const [leaveDuration, setLeaveDuration] = useState('Full Day');
@@ -119,8 +121,8 @@ const EmployeeLeaves = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const actualDays = calcLeaveDays(fromDate, leaveDuration === 'Full Day' ? toDate : fromDate, leaveDuration);
-    if (actualDays <= 0) { alert('Leave duration contains 0 working days. Please pick different dates.'); return; }
-    if (leaveCategory === 'Paid' && actualDays > remainingPaid) { alert(`Insufficient paid leave balance! Requested: ${actualDays} days, Available: ${remainingPaid} days.`); return; }
+    if (actualDays <= 0) { showAlert('Leave duration contains 0 working days. Please pick different dates.', 'error'); return; }
+    if (leaveCategory === 'Paid' && actualDays > remainingPaid) { showAlert(`Insufficient paid leave balance! Requested: ${actualDays} days, Available: ${remainingPaid} days.`, 'error'); return; }
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
@@ -136,14 +138,14 @@ const EmployeeLeaves = () => {
         setTimeout(() => setShowSuccess(false), 3500);
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to apply leave');
+        showAlert(err.error || 'Failed to apply leave', "error");
       }
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this leave request?')) return;
+    if (!(await showConfirm('Delete this leave request?'))) return;
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/leaves/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });

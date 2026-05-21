@@ -4,8 +4,10 @@ import {
   Clock, IndianRupee, FileText, Bell, Trash2, Plus,
   Camera, CheckCircle2, AlertCircle, RefreshCw
 } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 
 const Settings = () => {
+  const { showAlert } = useAlert();
   const [activeTab, setActiveTab] = useState('general');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -560,7 +562,7 @@ const Settings = () => {
                         if (!newHolidayDate || !newHolidayName) return;
                         const existing = settings.leaves.holidays || [];
                         if (existing.some(h => h.date === newHolidayDate)) {
-                          alert("A holiday with this date is already declared!");
+                          showAlert("A holiday with this date is already declared!", "error");
                           return;
                         }
                         const updated = [...existing, { date: newHolidayDate, name: newHolidayName }].sort((a,b) => new Date(a.date) - new Date(b.date));

@@ -7,6 +7,7 @@ import Payroll from './pages/Payroll';
 import Login from './pages/Login';
 import LoginSelection from './pages/LoginSelection';
 import EmployeeLogin from './pages/EmployeeLogin';
+
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import EmployeeAttendance from './pages/EmployeeAttendance';
 import EmployeeLayout from './layouts/EmployeeLayout';
@@ -15,6 +16,7 @@ import EmployeeSalary from './pages/EmployeeSalary';
 import EmployeeProfile from './pages/EmployeeProfile';
 import EmployeeSettings from './pages/EmployeeSettings';
 import { EmployeeProvider } from './context/EmployeeContext';
+import { AlertProvider } from './context/AlertContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
 // Import Pages
@@ -34,6 +36,7 @@ import SuperAdminSettings from './pages/SuperAdminSettings';
 
 function App() {
   return (
+    <AlertProvider>
     <EmployeeProvider>
       <Router>
         <Routes>
@@ -79,6 +82,7 @@ function App() {
         </Routes>
       </Router>
     </EmployeeProvider>
+    </AlertProvider>
   );
 }
 

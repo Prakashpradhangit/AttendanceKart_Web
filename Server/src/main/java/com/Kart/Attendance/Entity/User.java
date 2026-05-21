@@ -84,4 +84,26 @@ public class User {
     @Column(columnDefinition = "LONGTEXT")
     private String profileImage;
 
+    private String panNumber;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String panCard;
+
+    private String aadharNumber;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String aadharCard;
+
+    private String accountNumber;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String bankPassbook;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String lastPayslip;
+
 }

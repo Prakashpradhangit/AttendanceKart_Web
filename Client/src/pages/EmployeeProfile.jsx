@@ -18,9 +18,11 @@ import {
   FileText,
   CheckCircle2
 } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 import Modal from '../components/Modal';
 
 const EmployeeProfile = () => {
+  const { showAlert } = useAlert();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileData, setProfileData] = useState({
     name: "",
@@ -43,7 +45,14 @@ const EmployeeProfile = () => {
       dob: "",
       bloodGroup: "",
       personalEmail: ""
-    }
+    },
+    panNumber: "",
+    panCard: "",
+    aadharNumber: "",
+    aadharCard: "",
+    accountNumber: "",
+    bankPassbook: "",
+    lastPayslip: ""
   });
 
   const [editFormData, setEditFormData] = useState({ ...profileData });
@@ -78,7 +87,14 @@ const EmployeeProfile = () => {
             dob: data.dob || '',
             bloodGroup: data.bloodGroup || '',
             personalEmail: data.personalEmail || ''
-          }
+          },
+          panNumber: data.panNumber || '',
+          panCard: data.panCard || '',
+          aadharNumber: data.aadharNumber || '',
+          aadharCard: data.aadharCard || '',
+          accountNumber: data.accountNumber || '',
+          bankPassbook: data.bankPassbook || '',
+          lastPayslip: data.lastPayslip || ''
         });
       }
     } catch (err) {
@@ -90,6 +106,130 @@ const EmployeeProfile = () => {
     fetchProfile();
   }, []);
 
+  const [docSaving, setDocSaving] = useState({
+    panNumber: false,
+    aadharNumber: false,
+    accountNumber: false
+  });
+
+  const [docUploading, setDocUploading] = useState({
+    panCard: false,
+    aadharCard: false,
+    bankPassbook: false,
+    lastPayslip: false
+  });
+
+  const handleSaveDocNumber = async (field, value) => {
+    try {
+      setDocSaving(prev => ({ ...prev, [field]: true }));
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          [field]: value
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProfileData(prev => ({
+          ...prev,
+          [field]: data[field] || ''
+        }));
+        showAlert('Document number updated successfully.', "success");
+      } else {
+        showAlert('Failed to update document number.', "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert('An error occurred while saving.', "error");
+    } finally {
+      setDocSaving(prev => ({ ...prev, [field]: false }));
+    }
+  };
+
+  const handleDocUpload = async (field, file) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result;
+
+      try {
+        setDocUploading(prev => ({ ...prev, [field]: true }));
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const res = await fetch('/api/auth/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            [field]: base64String
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setProfileData(prev => ({
+            ...prev,
+            [field]: data[field] || ''
+          }));
+          showAlert('Document uploaded successfully.', "success");
+        } else {
+          showAlert('Failed to upload document.', "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showAlert('An error occurred during upload.', "error");
+      } finally {
+        setDocUploading(prev => ({ ...prev, [field]: false }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleViewDoc = (base64String, title) => {
+    if (!base64String) return;
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.title = title;
+      newWindow.document.body.style.margin = '0';
+      newWindow.document.body.style.display = 'flex';
+      newWindow.document.body.style.justifyContent = 'center';
+      newWindow.document.body.style.alignItems = 'center';
+      newWindow.document.body.style.backgroundColor = '#f1f5f9';
+
+      if (base64String.startsWith('data:application/pdf')) {
+        const iframe = newWindow.document.createElement('iframe');
+        iframe.src = base64String;
+        iframe.style.width = '100%';
+        iframe.style.height = '100vh';
+        iframe.style.border = 'none';
+        newWindow.document.body.appendChild(iframe);
+      } else {
+        const img = newWindow.document.createElement('img');
+        img.src = base64String;
+        img.style.maxWidth = '90%';
+        img.style.maxHeight = '90vh';
+        img.style.objectFit = 'contain';
+        img.style.borderRadius = '12px';
+        img.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1)';
+        newWindow.document.body.appendChild(img);
+      }
+    } else {
+      showAlert("Pop-up blocked. Please allow popups to view documents.", "warning");
+    }
+  };
+
   const handleEditClick = () => {
     setEditFormData({ ...profileData });
     setIsEditModalOpen(true);
@@ -97,14 +237,15 @@ const EmployeeProfile = () => {
 
   const handleInputChange = (e, section, field) => {
     const { name, value } = e.target;
+    const targetField = field || name;
     if (section) {
       setEditFormData(prev => {
         const updatedSection = {
           ...prev[section],
-          [field || name]: value
+          [targetField]: value
         };
         const extra = {};
-        if (section === 'personalInfo' && (field || name) === 'fullName') {
+        if (section === 'personalInfo' && targetField === 'fullName') {
           extra.name = value;
         }
         return {
@@ -116,7 +257,7 @@ const EmployeeProfile = () => {
     } else {
       setEditFormData(prev => {
         const extra = {};
-        if (name === 'name') {
+        if (targetField === 'name') {
           extra.personalInfo = {
             ...prev.personalInfo,
             fullName: value
@@ -124,7 +265,7 @@ const EmployeeProfile = () => {
         }
         return {
           ...prev,
-          [name]: value,
+          [targetField]: value,
           ...extra
         };
       });
@@ -167,11 +308,11 @@ const EmployeeProfile = () => {
             profileImage: data.profileImage || ''
           }));
         } else {
-          alert('Failed to save profile image.');
+          showAlert('Failed to save profile image.', "error");
         }
       } catch (err) {
         console.error('Error uploading profile image:', err);
-        alert('An error occurred during upload.');
+        showAlert('An error occurred during upload.', "error");
       }
     };
     reader.readAsDataURL(file);
@@ -231,15 +372,22 @@ const EmployeeProfile = () => {
             dob: data.dob || '',
             bloodGroup: data.bloodGroup || '',
             personalEmail: data.personalEmail || ''
-          }
+          },
+          panNumber: data.panNumber || '',
+          panCard: data.panCard || '',
+          aadharNumber: data.aadharNumber || '',
+          aadharCard: data.aadharCard || '',
+          accountNumber: data.accountNumber || '',
+          bankPassbook: data.bankPassbook || '',
+          lastPayslip: data.lastPayslip || ''
         });
         setIsEditModalOpen(false);
       } else {
-        alert('Failed to save profile. Please try again.');
+        showAlert('Failed to save profile. Please try again.', "error");
       }
     } catch (err) {
       console.error('Error saving profile:', err);
-      alert('An error occurred while saving.');
+      showAlert('An error occurred while saving.', "error");
     }
   };
 
@@ -379,6 +527,15 @@ const EmployeeProfile = () => {
                 hasInput={true}
                 inputLabel="PAN Number"
                 placeholder="e.g. ABCDE1234F"
+                fileKey="panCard"
+                numberKey="panNumber"
+                fileValue={profileData.panCard}
+                numberValue={profileData.panNumber}
+                onUpload={handleDocUpload}
+                onNumberSave={handleSaveDocNumber}
+                onView={handleViewDoc}
+                isUploading={docUploading.panCard}
+                isSaving={docSaving.panNumber}
               />
               <DocumentUploadItem 
                 label="Aadhar Card" 
@@ -386,6 +543,15 @@ const EmployeeProfile = () => {
                 hasInput={true}
                 inputLabel="Aadhar Number"
                 placeholder="e.g. 1234 5678 9012"
+                fileKey="aadharCard"
+                numberKey="aadharNumber"
+                fileValue={profileData.aadharCard}
+                numberValue={profileData.aadharNumber}
+                onUpload={handleDocUpload}
+                onNumberSave={handleSaveDocNumber}
+                onView={handleViewDoc}
+                isUploading={docUploading.aadharCard}
+                isSaving={docSaving.aadharNumber}
               />
               <DocumentUploadItem 
                 label="Bank Passbook" 
@@ -393,10 +559,24 @@ const EmployeeProfile = () => {
                 hasInput={true}
                 inputLabel="Account Number"
                 placeholder="e.g. 9876543210123"
+                fileKey="bankPassbook"
+                numberKey="accountNumber"
+                fileValue={profileData.bankPassbook}
+                numberValue={profileData.accountNumber}
+                onUpload={handleDocUpload}
+                onNumberSave={handleSaveDocNumber}
+                onView={handleViewDoc}
+                isUploading={docUploading.bankPassbook}
+                isSaving={docSaving.accountNumber}
               />
               <DocumentUploadItem 
                 label="Last Working Payslip" 
                 description="Recent month salary slip" 
+                fileKey="lastPayslip"
+                fileValue={profileData.lastPayslip}
+                onUpload={handleDocUpload}
+                onView={handleViewDoc}
+                isUploading={docUploading.lastPayslip}
               />
             </div>
           </div>
@@ -423,6 +603,7 @@ const EmployeeProfile = () => {
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-gray-700 mb-2">Address</label>
               <textarea 
+                name="address"
                 className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none h-24"
                 value={editFormData.address}
                 onChange={(e) => handleInputChange(e, null, 'address')}
@@ -438,6 +619,7 @@ const EmployeeProfile = () => {
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700 mb-2">Contact Address</label>
                 <textarea 
+                  name="address"
                   className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none h-24"
                   value={editFormData.emergencyContact.address}
                   onChange={(e) => handleInputChange(e, 'emergencyContact', 'address')}
@@ -492,37 +674,119 @@ const InputField = ({ label, type = "text", ...props }) => (
   </div>
 );
 
-const DocumentUploadItem = ({ label, description, hasInput, inputLabel, placeholder }) => (
-  <div className="p-6 border-2 border-dashed border-gray-100 rounded-[32px] hover:border-blue-200 hover:bg-blue-50/20 transition-all group">
-    <div className="flex items-start justify-between mb-6">
-      <div className="flex items-center gap-4">
-        <div className="p-3.5 bg-gray-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
-          <FileText size={26} className="text-gray-400 group-hover:text-blue-500" />
-        </div>
-        <div>
-          <h4 className="text-base font-bold text-gray-900 mb-1">{label}</h4>
-          <p className="text-xs text-gray-500 font-medium">{description}</p>
-        </div>
-      </div>
-      <button className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm active:scale-95">
-        <Upload size={16} />
-        Upload
-      </button>
-    </div>
+const DocumentUploadItem = ({ 
+  label, 
+  description, 
+  hasInput, 
+  inputLabel, 
+  placeholder,
+  fileKey,
+  numberKey,
+  fileValue,
+  numberValue,
+  onUpload,
+  onNumberSave,
+  onView,
+  isUploading,
+  isSaving
+}) => {
+  const fileInputRef = React.useRef(null);
+  const [localNumber, setLocalNumber] = useState(numberValue || "");
 
-    {hasInput && (
-      <div className="mt-4 pt-4 border-t border-gray-50">
-        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">
-          {inputLabel}
-        </label>
-        <input 
-          type="text" 
-          placeholder={placeholder}
-          className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-semibold text-gray-900 placeholder:text-gray-300"
-        />
+  useEffect(() => {
+    setLocalNumber(numberValue || "");
+  }, [numberValue]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      onUpload(fileKey, file);
+    }
+  };
+
+  const isUploaded = !!fileValue;
+
+  return (
+    <div className="p-6 bg-white border border-gray-100 rounded-[32px] hover:border-blue-100 hover:shadow-md transition-all group flex flex-col justify-between">
+      <div>
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className={`p-3.5 rounded-2xl transition-colors ${isUploaded ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500'}`}>
+              <FileText size={26} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-base font-bold text-gray-900">{label}</h4>
+                {isUploaded && (
+                  <span className="flex items-center gap-1 bg-green-50 text-green-600 px-2 py-0.5 rounded-full text-[10px] font-bold border border-green-100">
+                    <CheckCircle2 size={10} />
+                    Uploaded
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">{description}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {isUploaded && (
+              <button 
+                onClick={() => onView(fileValue, label)}
+                className="flex items-center justify-center px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition-all text-xs font-bold"
+                title="View Document"
+              >
+                View
+              </button>
+            )}
+            <button 
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 ${isUploaded ? 'bg-white border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-600' : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'}`}
+            >
+              <Upload size={14} />
+              {isUploading ? 'Uploading...' : isUploaded ? 'Replace' : 'Upload'}
+            </button>
+            <input 
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+        </div>
+
+        {hasInput && (
+          <div className="mt-4 pt-4 border-t border-gray-50">
+            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">
+              {inputLabel}
+            </label>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder={placeholder}
+                value={localNumber}
+                onChange={(e) => setLocalNumber(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    onNumberSave(numberKey, localNumber);
+                  }
+                }}
+                className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-semibold text-gray-900 placeholder:text-gray-300"
+              />
+              <button
+                onClick={() => onNumberSave(numberKey, localNumber)}
+                disabled={isSaving || localNumber === numberValue}
+                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center min-w-[64px] ${localNumber === numberValue ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    )}
-  </div>
-);
+    </div>
+  );
+};
 
 export default EmployeeProfile;

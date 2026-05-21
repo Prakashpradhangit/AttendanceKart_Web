@@ -51,6 +51,7 @@ export const EmployeeProvider = ({ children }) => {
             role: user.designation,
             userRole: user.role,
             joiningDate: user.joiningDate,
+            profileImage: user.profileImage,
             status: 'Active' // We can assume active since no status field in User
           }));
         setEmployees(mappedData);

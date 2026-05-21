@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, User, Menu, Users, UserCircle, Paperclip, Send, X, ChevronRight, Megaphone, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useEmployees } from '../context/EmployeeContext';
+import { useAlert } from '../context/AlertContext';
 
 const colors = [
   'bg-indigo-600 text-white shadow-indigo-100',
@@ -31,6 +33,8 @@ const getColorClass = (name) => {
 };
 
 const Navbar = ({ onMenuClick }) => {
+  const navigate = useNavigate();
+  const { showToast } = useAlert();
   const { activeChat, setActiveChat, selectedEmployee, setSelectedEmployee } = useEmployees();
   const [showNotifications, setShowNotifications] = useState(false);
   const [message, setMessage] = useState('');
@@ -360,7 +364,14 @@ const Navbar = ({ onMenuClick }) => {
           </AnimatePresence>
         </div>
         
-        <div className="flex items-center gap-3 pl-3 lg:pl-6 border-l border-gray-100">
+        <div 
+          onClick={() => {
+            if (userRole === 'USER') {
+              navigate('/employee/profile');
+            }
+          }}
+          className={`flex items-center gap-3 pl-3 lg:pl-6 border-l border-gray-100 ${userRole === 'USER' ? 'cursor-pointer hover:opacity-80 transition-all' : ''}`}
+        >
           <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold text-gray-900">
               {userRole === 'USER' ? 'Employee' : userName}
@@ -369,9 +380,17 @@ const Navbar = ({ onMenuClick }) => {
               {userRole === 'USER' ? `${userName} ${employeeCode ? `(${employeeCode})` : ''}` : userRole.replace('_', ' ')}
             </p>
           </div>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border border-gray-100 shadow-sm shrink-0 ${getColorClass(userName)}`}>
-             {getInitials(userName)}
-          </div>
+          {profile.profileImage ? (
+            <img 
+              src={profile.profileImage} 
+              alt={userName}
+              className="w-10 h-10 rounded-full object-cover border border-gray-100 shadow-sm shrink-0"
+            />
+          ) : (
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border border-gray-100 shadow-sm shrink-0 ${getColorClass(userName)}`}>
+               {getInitials(userName)}
+            </div>
+          )}
         </div>
       </div>
     </header>

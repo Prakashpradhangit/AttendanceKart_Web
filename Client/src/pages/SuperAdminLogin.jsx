@@ -26,12 +26,16 @@ const SuperAdminLogin = () => {
 
       const data = await response.json();
 
-      if (response.ok && data.role === 'SUPER_ADMIN') {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('role', data.role);
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('name', data.name || '');
-        navigate('/superadmin/dashboard');
+      if (response.ok) {
+        if (data.role === 'SUPER_ADMIN') {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('role', data.role);
+          localStorage.setItem('isAuthenticated', 'true');
+          localStorage.setItem('name', data.name || '');
+          navigate('/superadmin/dashboard');
+        } else {
+          setError("Access denied. Super Admin privileges required.");
+        }
       } else {
         setError(data.error || 'Invalid credentials or unauthorized access.');
       }
