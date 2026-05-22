@@ -11,28 +11,31 @@ import com.Kart.Attendance.Entity.Notice;
 
 @Service
 public class NoticeSseService {
-    // Map of tenantId -> list of active emitters
-    private final Map<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
+    private record SseClient(SseEmitter emitter, String role, Long userId, Long adminId) {}
 
-    public SseEmitter registerEmitter(String tenantId) {
+    // Map of tenantId -> list of active SSE clients
+    private final Map<String, List<SseClient>> clients = new ConcurrentHashMap<>();
+
+    public SseEmitter registerEmitter(String tenantId, String role, Long userId, Long adminId) {
         if (tenantId == null) {
             tenantId = "default";
         }
         SseEmitter emitter = new SseEmitter(24 * 60 * 60 * 1000L); // 24 hours timeout
         
-        List<SseEmitter> tenantEmitters = emitters.computeIfAbsent(tenantId, k -> new CopyOnWriteArrayList<>());
-        tenantEmitters.add(emitter);
+        SseClient client = new SseClient(emitter, role, userId, adminId);
+        List<SseClient> tenantClients = clients.computeIfAbsent(tenantId, k -> new CopyOnWriteArrayList<>());
+        tenantClients.add(client);
 
         final String finalTenantId = tenantId;
-        emitter.onCompletion(() -> removeEmitter(finalTenantId, emitter));
-        emitter.onTimeout(() -> removeEmitter(finalTenantId, emitter));
-        emitter.onError((e) -> removeEmitter(finalTenantId, emitter));
+        emitter.onCompletion(() -> removeClient(finalTenantId, client));
+        emitter.onTimeout(() -> removeClient(finalTenantId, client));
+        emitter.onError((e) -> removeClient(finalTenantId, client));
 
         // Send an initial heartbeat/ack
         try {
             emitter.send(SseEmitter.event().name("INIT").data("Connected"));
         } catch (IOException e) {
-            removeEmitter(finalTenantId, emitter);
+            removeClient(finalTenantId, client);
         }
 
         return emitter;
@@ -42,25 +45,56 @@ public class NoticeSseService {
         if (tenantId == null) {
             tenantId = "default";
         }
-        List<SseEmitter> tenantEmitters = emitters.get(tenantId);
-        if (tenantEmitters == null || tenantEmitters.isEmpty()) return;
+        List<SseClient> tenantClients = clients.get(tenantId);
+        if (tenantClients == null || tenantClients.isEmpty()) return;
 
-        List<SseEmitter> deadEmitters = new CopyOnWriteArrayList<>();
-        for (SseEmitter emitter : tenantEmitters) {
+        List<SseClient> deadClients = new CopyOnWriteArrayList<>();
+        for (SseClient client : tenantClients) {
             try {
-                emitter.send(SseEmitter.event().name("NEW_NOTICE").data(notice));
+                client.emitter().send(SseEmitter.event().name("NEW_NOTICE").data(notice));
             } catch (Exception e) {
-                deadEmitters.add(emitter);
+                deadClients.add(client);
             }
         }
         
-        tenantEmitters.removeAll(deadEmitters);
+        tenantClients.removeAll(deadClients);
     }
 
-    private void removeEmitter(String tenantId, SseEmitter emitter) {
-        List<SseEmitter> tenantEmitters = emitters.get(tenantId);
-        if (tenantEmitters != null) {
-            tenantEmitters.remove(emitter);
+    public void forceLogoutUser(String tenantId, Long userId) {
+        if (userId == null) return;
+        sendForceLogout(tenantId, client -> "USER".equals(client.role()) && userId.equals(client.userId()));
+    }
+
+    public void forceLogoutTenant(String tenantId) {
+        sendForceLogout(tenantId, client -> "ADMIN".equals(client.role()) || "USER".equals(client.role()));
+    }
+
+    private void sendForceLogout(String tenantId, java.util.function.Predicate<SseClient> shouldLogout) {
+        if (tenantId == null) {
+            tenantId = "default";
+        }
+        List<SseClient> tenantClients = clients.get(tenantId);
+        if (tenantClients == null || tenantClients.isEmpty()) return;
+
+        List<SseClient> deadClients = new CopyOnWriteArrayList<>();
+        for (SseClient client : tenantClients) {
+            if (!shouldLogout.test(client)) continue;
+            try {
+                client.emitter().send(SseEmitter.event().name("FORCE_LOGOUT").data("Account inactive"));
+                client.emitter().complete();
+                deadClients.add(client);
+            } catch (Exception e) {
+                deadClients.add(client);
+            }
+        }
+
+        tenantClients.removeAll(deadClients);
+    }
+
+    private void removeClient(String tenantId, SseClient client) {
+        List<SseClient> tenantClients = clients.get(tenantId);
+        if (tenantClients != null) {
+            tenantClients.remove(client);
         }
     }
 }

@@ -34,7 +34,9 @@ public class NoticeController {
             throw new RuntimeException("Forbidden");
         }
         String tenantId = TenantContext.getCurrentTenant();
-        return noticeSseService.registerEmitter(tenantId);
+        Long userId = (Long) request.getAttribute("authenticatedUserId");
+        Long adminId = (Long) request.getAttribute("authenticatedAdminId");
+        return noticeSseService.registerEmitter(tenantId, role, userId, adminId);
     }
 
     @GetMapping

@@ -23,6 +23,7 @@ public class UserService {
     private final Attendance_Details attendanceRepository;
     private final LeaveRepository leaveRepository;
     private final AdminRepository adminRepository;
+    private final NoticeSseService noticeSseService;
 
     public List<User> getAllUsers() {
         String tenantId = TenantContext.getCurrentTenant();
@@ -108,7 +109,13 @@ public class UserService {
             if (userDetails.getJoiningDate() != null) user.setJoiningDate(userDetails.getJoiningDate());
             if (userDetails.getEmployeeCode() != null) user.setEmployeeCode(userDetails.getEmployeeCode());
             if (userDetails.getGender() != null) user.setGender(userDetails.getGender());
-            if (userDetails.getStatus() != null) user.setStatus(userDetails.getStatus());
+            if (userDetails.getStatus() != null) {
+                user.setStatus(userDetails.getStatus());
+                if ("Inactive".equalsIgnoreCase(userDetails.getStatus())) {
+                    user.setAuthToken(null);
+                    noticeSseService.forceLogoutUser(user.getTenantId(), user.getId());
+                }
+            }
             
             if (userDetails.getPassword() != null && !userDetails.getPassword().isBlank()) {
                 user.setPassword(userDetails.getPassword());
@@ -138,6 +145,8 @@ public class UserService {
         if (!tenantId.equals(user.getTenantId())) {
             throw new RuntimeException("User not found for this tenant");
         }
+
+        noticeSseService.forceLogoutUser(user.getTenantId(), user.getId());
 
         // Cascade delete associated records
         String userIdStr = String.valueOf(id);

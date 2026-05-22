@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminService {
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
+    private final NoticeSseService noticeSseService;
 
     public List<Admin> getAllAdmin(){
         List<Admin> admins = adminRepository.findAll();
@@ -60,6 +61,15 @@ public class AdminService {
             }
             if (adminDetails.getStatus() != null) {
                 admin.setStatus(adminDetails.getStatus());
+                if ("Inactive".equalsIgnoreCase(adminDetails.getStatus())) {
+                    admin.setAuthToken(null);
+                    if (admin.getTenantId() != null && !admin.getTenantId().isBlank()) {
+                        List<User> tenantUsers = userRepository.findByTenantId(admin.getTenantId());
+                        tenantUsers.forEach(user -> user.setAuthToken(null));
+                        userRepository.saveAll(tenantUsers);
+                        noticeSseService.forceLogoutTenant(admin.getTenantId());
+                    }
+                }
             }
             ensureTenantId(admin);
             Admin savedAdmin = adminRepository.save(admin);
@@ -73,6 +83,7 @@ public class AdminService {
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
         if (admin.getTenantId() != null && !admin.getTenantId().isBlank()) {
+            noticeSseService.forceLogoutTenant(admin.getTenantId());
             userRepository.deleteByTenantId(admin.getTenantId());
         }
         adminRepository.delete(admin);

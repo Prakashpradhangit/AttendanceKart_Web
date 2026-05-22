@@ -119,6 +119,13 @@ const Navbar = ({ onMenuClick }) => {
       }
     });
 
+    eventSource.addEventListener('FORCE_LOGOUT', () => {
+      eventSource.close();
+      localStorage.clear();
+      showToast('Your account has been deactivated. Please contact your administrator.', 'error');
+      navigate('/login', { replace: true });
+    });
+
     eventSource.onerror = (err) => {
       console.error('SSE connection error:', err);
     };
@@ -126,7 +133,7 @@ const Navbar = ({ onMenuClick }) => {
     return () => {
       eventSource.close();
     };
-  }, []);
+  }, [navigate, showToast]);
 
   useEffect(() => {
     const fetchProfile = async () => {
