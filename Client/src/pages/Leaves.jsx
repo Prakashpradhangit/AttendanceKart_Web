@@ -3,11 +3,10 @@ import {
   FileText, Clock, CheckCircle, XCircle, Search, Filter, 
   Download, Calendar as CalendarIcon, ChevronLeft, ChevronRight,
   MoreVertical, Check, X, ChevronDown, BookOpen, Briefcase, RefreshCw, BarChart2,
-  FileSpreadsheet
+  FileSpreadsheet, AlertCircle
 } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { leaveStats, leaveRecords, leaveDistribution } from '../utils/mockData';
 
 const Leaves = () => {
   const { showAlert } = useAlert();
@@ -81,9 +80,13 @@ const Leaves = () => {
       if (res.ok) {
         const data = await res.json();
         setLeaveRecords(data);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        showAlert(errData.error || `Failed to fetch leave requests (${res.status})`, 'error');
       }
     } catch (err) {
       console.error('Fetch all leaves error:', err);
+      showAlert('Network error while fetching leave requests', 'error');
     } finally {
       setLoading(false);
     }
@@ -306,7 +309,17 @@ const Leaves = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredLeaves.map((record) => (
+                  {loading && leaveRecords.length === 0 && (
+                  <tr>
+                    <td colSpan="9" className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-3 text-gray-400">
+                        <RefreshCw className="w-8 h-8 animate-spin text-indigo-400" />
+                        <p className="text-sm font-medium">Loading leave requests...</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!loading && filteredLeaves.map((record) => (
                     <tr key={record.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="py-3 px-4">
                         <input 
@@ -387,9 +400,17 @@ const Leaves = () => {
                       </td>
                     </tr>
                   ))}
-                  {filteredLeaves.length === 0 && (
+                  {!loading && filteredLeaves.length === 0 && (
                       <tr>
-                          <td colSpan="9" className="py-12 text-center text-gray-400 font-medium">No leave requests found</td>
+                          <td colSpan="9" className="py-14 text-center">
+                            <div className="flex flex-col items-center gap-3">
+                              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center">
+                                <FileText className="w-7 h-7 text-gray-300" />
+                              </div>
+                              <p className="text-sm font-semibold text-gray-400">No leave requests found</p>
+                              <p className="text-xs text-gray-300">Try adjusting your filters or check back later</p>
+                            </div>
+                          </td>
                       </tr>
                   )}
                 </tbody>

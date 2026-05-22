@@ -57,8 +57,11 @@ public class SuperAdminService {
                 dto.setSubscriptionYear(admin.getSubscription_year().name());
             }
             
-            // Calculate user count
-            long count = userRepository.countByTenantId(admin.getTenantId());
+            // Calculate active employee count
+            long count = userRepository.findByTenantId(admin.getTenantId()).stream()
+                    .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
+                    .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
+                    .count();
             dto.setUserCount(count);
             dto.setMaxUsers(admin.getMaxUsers());
             return dto;

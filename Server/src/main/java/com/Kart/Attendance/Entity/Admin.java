@@ -60,6 +60,7 @@ public class Admin {
     private String defaultCheckInTime = "09:00";
     private String defaultCheckOutTime = "18:00";
     private int gracePeriod = 15;
+    private double shiftDuration = 9.0;
 
     @JsonProperty("maxUsers")
     @JsonAlias("max_users")

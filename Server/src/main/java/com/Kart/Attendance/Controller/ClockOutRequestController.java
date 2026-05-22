@@ -28,14 +28,18 @@ public class ClockOutRequestController {
             }
             Long userId = (Long) request.getAttribute("authenticatedUserId");
             String date = payload.get("date");
-            String time = payload.get("time");
+            String checkInTime = payload.get("checkInTime");
+            String checkOutTime = payload.get("checkOutTime");
+            if (checkOutTime == null) {
+                checkOutTime = payload.get("time");
+            }
             String note = payload.get("note");
 
-            if (date == null || time == null || date.isEmpty() || time.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Date and time are required"));
+            if (date == null || checkOutTime == null || date.isEmpty() || checkOutTime.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Date and clock-out time are required"));
             }
 
-            ClockOutRequest newRequest = requestService.createRequest(userId, date, time, note);
+            ClockOutRequest newRequest = requestService.createRequest(userId, date, checkInTime, checkOutTime, note);
             return ResponseEntity.ok(newRequest);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

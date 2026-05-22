@@ -68,6 +68,9 @@ public class AuthService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (password != null && password.equals(user.getPassword())) {
+                if ("Inactive".equalsIgnoreCase(user.getStatus())) {
+                    throw new RuntimeException("Your account is inactive. Please contact your administrator.");
+                }
                 if (user.getTenantId() != null) {
                     Admin tenantAdmin = adminRepository.findByTenantId(user.getTenantId()).orElse(null);
                     if (tenantAdmin != null && "Inactive".equalsIgnoreCase(tenantAdmin.getStatus())) {
@@ -142,6 +145,9 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByAuthToken(token);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+            if ("Inactive".equalsIgnoreCase(user.getStatus())) {
+                return null;
+            }
             return Map.of(
                     "role", "USER",
                     "token", token,

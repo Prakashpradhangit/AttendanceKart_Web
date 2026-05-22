@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Calendar, Clock, CheckCircle2, FileText, Send, Plus, AlertCircle,
   X, RefreshCw, DollarSign, Thermometer, Briefcase, Zap, ChevronRight,
-  CalendarDays, ArrowRight, Trash2
+  CalendarDays, ArrowRight, Trash2, SlidersHorizontal, TrendingUp, Sparkles
 } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 
@@ -45,6 +45,7 @@ const EmployeeLeaves = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [profile, setProfile] = useState(null);
   const [limits, setLimits] = useState({ sick: 12, casual: 12, emergency: 6, accrualRate: 1.5, holidays: [] });
+  const [historyTab, setHistoryTab] = useState('All');
 
   const fetchMyLeaves = async () => {
     setLoading(true);
@@ -155,13 +156,29 @@ const EmployeeLeaves = () => {
 
   const selectedType = LEAVE_TYPES.find(t => t.value === leaveType);
 
+  const historyTabCounts = {
+    All: leaveHistory.length,
+    Pending: leaveHistory.filter(l => l.status === 'PENDING').length,
+    Approved: leaveHistory.filter(l => l.status === 'APPROVED').length,
+    Rejected: leaveHistory.filter(l => l.status === 'REJECTED').length,
+  };
+
+  const filteredHistory = historyTab === 'All'
+    ? leaveHistory
+    : leaveHistory.filter(l => l.status === historyTab.toUpperCase());
+
   return (
     <div className="max-w-7xl mx-auto pb-10 space-y-8">
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Leave Dashboard</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <Sparkles size={16} className="text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">My Leave Dashboard</h1>
+          </div>
           <p className="text-sm text-gray-400 mt-0.5">
             Apply for time off · Track requests · View balances
             {profile?.joiningDate && (
@@ -171,24 +188,32 @@ const EmployeeLeaves = () => {
             )}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-400 font-medium">Accrual Rate</p>
-          <p className="text-sm font-bold text-indigo-600">{limits.accrualRate} days/month</p>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-xs text-gray-400 font-medium">Accrual Rate</p>
+            <p className="text-sm font-bold text-indigo-600">{limits.accrualRate} days/month</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+            <TrendingUp size={18} className="text-indigo-500" />
+          </div>
         </div>
       </div>
 
       {/* Balance Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Accrued Balance', value: accruedAllowance, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', sub: 'Total earned' },
-          { label: 'Paid Used', value: totalPaidUsed, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', sub: 'All paid leaves' },
-          { label: 'Remaining Paid', value: remainingPaid, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', sub: 'Available now' },
-          { label: 'LOP Used', value: usedLop, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', sub: 'Loss of pay' },
+          { label: 'Accrued Balance', value: accruedAllowance, color: 'text-indigo-600', bg: 'bg-gradient-to-br from-indigo-50 to-indigo-100/60', border: 'border-indigo-100', sub: 'Total earned', accent: '#6366f1' },
+          { label: 'Paid Used', value: totalPaidUsed, color: 'text-rose-600', bg: 'bg-gradient-to-br from-rose-50 to-rose-100/60', border: 'border-rose-100', sub: 'All paid leaves', accent: '#f43f5e' },
+          { label: 'Remaining Paid', value: remainingPaid, color: 'text-emerald-600', bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100/60', border: 'border-emerald-100', sub: 'Available now', accent: '#10b981' },
+          { label: 'LOP Used', value: usedLop, color: 'text-amber-600', bg: 'bg-gradient-to-br from-amber-50 to-amber-100/60', border: 'border-amber-100', sub: 'Loss of pay', accent: '#f59e0b' },
         ].map((card, i) => (
-          <div key={i} className={`${card.bg} ${card.border} border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow`}>
-            <p className={`text-xs font-bold uppercase tracking-widest ${card.color} opacity-70 mb-1`}>{card.label}</p>
-            <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>
-            <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
+          <div key={i} className={`${card.bg} ${card.border} border rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default`}>
+            <p className={`text-[10px] font-black uppercase tracking-widest ${card.color} opacity-70 mb-2`}>{card.label}</p>
+            <p className={`text-4xl font-black ${card.color} tabular-nums`}>{card.value}</p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-gray-400">{card.sub}</p>
+              <div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: card.accent }} />
+            </div>
           </div>
         ))}
       </div>
@@ -383,14 +408,40 @@ const EmployeeLeaves = () => {
 
         {/* History Table */}
         <div className="lg:col-span-7 bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
-          <div className="px-7 py-6 border-b border-gray-50 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-gray-900">My Leave Requests</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{leaveHistory.length} total · {leaveHistory.filter(l => l.status === 'PENDING').length} pending</p>
+          <div className="px-7 py-5 border-b border-gray-50">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">My Leave Requests</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{leaveHistory.length} total · {historyTabCounts.Pending} pending</p>
+              </div>
+              <button onClick={fetchMyLeaves} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              </button>
             </div>
-            <button onClick={fetchMyLeaves} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            </button>
+            {/* Status Filter Tabs */}
+            <div className="flex gap-1 p-1 bg-gray-50 rounded-2xl border border-gray-100">
+              {['All', 'Pending', 'Approved', 'Rejected'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setHistoryTab(tab)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    historyTab === tab
+                      ? tab === 'Approved' ? 'bg-emerald-600 text-white shadow'
+                        : tab === 'Rejected' ? 'bg-rose-600 text-white shadow'
+                        : tab === 'Pending' ? 'bg-amber-500 text-white shadow'
+                        : 'bg-white text-gray-900 shadow border border-gray-100'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {tab}
+                  <span className={`text-[10px] font-black tabular-nums ${
+                    historyTab === tab ? 'opacity-80' : 'opacity-60'
+                  }`}>
+                    {historyTabCounts[tab]}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -406,7 +457,12 @@ const EmployeeLeaves = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {leaveHistory.map((leave, i) => {
+                {loading && (
+                  <tr><td colSpan="6" className="py-10 text-center">
+                    <RefreshCw size={20} className="animate-spin text-indigo-300 mx-auto" />
+                  </td></tr>
+                )}
+                {!loading && filteredHistory.map((leave, i) => {
                   const typeInfo = LEAVE_TYPES.find(t => t.value === leave.leaveType);
                   const Icon = typeInfo?.icon || FileText;
                   const days = calcLeaveDays(leave.fromDate, leave.toDate, leave.duration);
@@ -455,13 +511,19 @@ const EmployeeLeaves = () => {
                     </tr>
                   );
                 })}
-                {leaveHistory.length === 0 && (
+                {!loading && filteredHistory.length === 0 && (
                   <tr>
                     <td colSpan="6" className="py-14 text-center">
-                      <div className="flex flex-col items-center gap-2 text-gray-300">
-                        <FileText size={36} />
-                        <p className="text-sm font-medium text-gray-400">No leave requests yet</p>
-                        <p className="text-xs">Apply for your first leave using the form</p>
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center">
+                          <FileText size={24} className="text-gray-200" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-400">
+                          {historyTab === 'All' ? 'No leave requests yet' : `No ${historyTab.toLowerCase()} requests`}
+                        </p>
+                        <p className="text-xs text-gray-300">
+                          {historyTab === 'All' ? 'Apply for your first leave using the form' : 'Switch tabs to view other requests'}
+                        </p>
                       </div>
                     </td>
                   </tr>

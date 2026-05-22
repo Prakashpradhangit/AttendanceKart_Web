@@ -11,7 +11,8 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
     department: 'Development',
     role: '',
     password: '',
-    joiningDate: new Date().toISOString().split('T')[0]
+    joiningDate: new Date().toISOString().split('T')[0],
+    status: 'Active'
   };
 
   const [formData, setFormData] = useState(initialData || initialFormState);
@@ -24,7 +25,8 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
         setFormData({
           ...initialData,
           empId: initialData.empId || initialData.id || '',
-          password: initialData.password || ''
+          password: initialData.password || '',
+          status: initialData.status || 'Active'
         });
       } else {
         setFormData(initialFormState);
@@ -155,6 +157,20 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
               onChange={(e) => setFormData({...formData, joiningDate: e.target.value})}
             />
           </div>
+
+          {initialData && (
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">Status</label>
+              <select 
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          )}
 
           <div className="pt-4 flex gap-3">
             <button 

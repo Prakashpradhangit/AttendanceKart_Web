@@ -106,4 +106,6 @@ public class User {
     @Column(columnDefinition = "LONGTEXT")
     private String lastPayslip;
 
+    private String status = "Active";
+
 }

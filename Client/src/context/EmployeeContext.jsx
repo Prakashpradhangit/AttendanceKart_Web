@@ -52,7 +52,7 @@ export const EmployeeProvider = ({ children }) => {
             userRole: user.role,
             joiningDate: user.joiningDate,
             profileImage: user.profileImage,
-            status: 'Active' // We can assume active since no status field in User
+            status: user.status || 'Active'
           }));
         setEmployees(mappedData);
       }
@@ -166,7 +166,8 @@ export const EmployeeProvider = ({ children }) => {
         department: updatedData.department,
         designation: updatedData.role,
         role: updatedData.userRole, // Send the enum role back
-        joiningDate: updatedData.joiningDate
+        joiningDate: updatedData.joiningDate,
+        status: updatedData.status || 'Active'
       };
 
       const response = await fetch(`/api/users/${id}`, {

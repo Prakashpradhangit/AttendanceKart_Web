@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const Employees = () => {
   const { employees, maxUsers, addEmployee, addBulkEmployees, updateEmployee, deleteEmployee, resetTodayAttendance } = useEmployees();
+  const activeEmployeeCount = employees.filter(e => e.status === 'Active').length;
   const { showConfirm } = useAlert();
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
@@ -158,7 +159,7 @@ const Employees = () => {
         <div className="flex flex-col sm:flex-row gap-3">
           <button 
             onClick={() => {
-              if (maxUsers && maxUsers > 0 && employees.length >= maxUsers) {
+              if (maxUsers && maxUsers > 0 && activeEmployeeCount >= maxUsers) {
                 setLimitExceededModalOpen(true);
               } else {
                 setIsImportModalOpen(true);
@@ -170,7 +171,7 @@ const Employees = () => {
           </button>
           <button 
             onClick={() => {
-              if (maxUsers && maxUsers > 0 && employees.length >= maxUsers) {
+              if (maxUsers && maxUsers > 0 && activeEmployeeCount >= maxUsers) {
                 setLimitExceededModalOpen(true);
               } else {
                 setIsAddModalOpen(true);
@@ -392,7 +393,7 @@ const Employees = () => {
                 <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 flex justify-around text-center mt-2">
                   <div>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Employees</p>
-                    <p className="text-2xl font-extrabold text-slate-700 mt-1">{employees.length}</p>
+                    <p className="text-2xl font-extrabold text-slate-700 mt-1">{activeEmployeeCount}</p>
                   </div>
                   <div className="w-px bg-slate-200" />
                   <div>

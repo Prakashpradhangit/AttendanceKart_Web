@@ -89,9 +89,11 @@ const EmployeeDashboard = () => {
   // Missed Clock Out states
   const [showMissedClockOutModal, setShowMissedClockOutModal] = useState(false);
   const [missedDate, setMissedDate] = useState("");
+  const [missedCheckInTime, setMissedCheckInTime] = useState("");
   const [missedTime, setMissedTime] = useState("");
   const [missedNote, setMissedNote] = useState("");
   const [submittingMissed, setSubmittingMissed] = useState(false);
+  const [missingClockOuts, setMissingClockOuts] = useState([]);
 
   const fetchTodayAttendance = async () => {
     try {
@@ -112,6 +114,21 @@ const EmployeeDashboard = () => {
       }
     } catch (err) {
       console.error("Failed to fetch today attendance:", err);
+    }
+  };
+
+  const fetchMissingClockOuts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/attendance/missing-clock-outs", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMissingClockOuts(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch missing clock outs:", err);
     }
   };
 
@@ -248,8 +265,8 @@ const EmployeeDashboard = () => {
 
   const handleMissedClockOutSubmit = async (e) => {
     e.preventDefault();
-    if (!missedDate || !missedTime) {
-      showAlert("Date and Time are required.", "error");
+    if (!missedDate || !missedCheckInTime || !missedTime) {
+      showAlert("Date, Clock-In Time and Clock-Out Time are required.", "error");
       return;
     }
     setSubmittingMissed(true);
@@ -263,7 +280,8 @@ const EmployeeDashboard = () => {
         },
         body: JSON.stringify({
           date: missedDate,
-          time: missedTime,
+          checkInTime: missedCheckInTime,
+          checkOutTime: missedTime,
           note: missedNote
         })
       });
@@ -271,8 +289,10 @@ const EmployeeDashboard = () => {
         setShowMissedClockOutModal(false);
         showAlert("Missed clock-out request submitted successfully!", "success");
         setMissedDate("");
+        setMissedCheckInTime("");
         setMissedTime("");
         setMissedNote("");
+        fetchMissingClockOuts();
       } else {
         const errorData = await res.json();
         showAlert(errorData.error || "Failed to submit request", "error");
@@ -386,6 +406,7 @@ const EmployeeDashboard = () => {
     fetchMonthlyAttendance(selectedMonth);
     fetchSettings();
     fetchNotices();
+    fetchMissingClockOuts();
   }, [selectedMonth]);
 
   useEffect(() => {
@@ -468,14 +489,22 @@ const EmployeeDashboard = () => {
         const data = await response.json();
         setAttendanceRecord(data);
         if (attendanceType === "Check In") setIsCheckedIn(true);
-        if (attendanceType === "Check Out") setIsCheckedOut(true);
-
-        showAlert(`Attendance ${attendanceType} captured successfully!`, "success");
+        if (attendanceType === "Check Out") {
+          setIsCheckedOut(true);
+          if (data.earlyCheckOut) {
+            showAlert("Warning: Early check-out detected. You have not completed your shift as set by the Admin.", "Early Check-Out Alert", "error");
+          } else {
+            showAlert(`Attendance ${attendanceType} captured successfully!`, "Success", "success");
+          }
+        } else {
+          showAlert(`Attendance ${attendanceType} captured successfully!`, "Success", "success");
+        }
         setShowPopup(false);
 
         // Refetch to sync everything
         fetchTodayAttendance();
         fetchMonthlyAttendance(selectedMonth);
+        fetchMissingClockOuts();
       } else {
         const errorData = await response.json();
         showAlert(errorData.error || `Failed to ${attendanceType}`, "error");
@@ -489,6 +518,65 @@ const EmployeeDashboard = () => {
   return (
     <>
       <div className="flex flex-col gap-6 animate-in fade-in duration-700 max-w-7xl mx-auto pb-6">
+        {/* Missing Clock-Out Alerts Banner */}
+        {missingClockOuts && missingClockOuts.length > 0 && (
+          <div className="bg-rose-50 border border-rose-100 rounded-[32px] p-6 shadow-sm flex flex-col gap-4 animate-in fade-in duration-300">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
+                <AlertCircle size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-rose-900 uppercase tracking-wider">Missing Clock-Out Alerts</h4>
+                <p className="text-xs text-rose-700 font-semibold mt-0.5">
+                  You missed clocking out on the following days. Please apply for regularization:
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {missingClockOuts.map((missed) => (
+                <button
+                  key={missed.id}
+                  onClick={() => {
+                    setMissedDate(missed.attendanceDate);
+                    let formattedTime = "";
+                    if (missed.checkInTime) {
+                      try {
+                        if (missed.checkInTime.includes("T")) {
+                          formattedTime = missed.checkInTime.split("T")[1].substring(0, 5);
+                        } else {
+                          formattedTime = missed.checkInTime.substring(0, 5);
+                        }
+                      } catch (e) {
+                        formattedTime = "";
+                      }
+                    }
+                    setMissedCheckInTime(formattedTime);
+                    setShowMissedClockOutModal(true);
+                  }}
+                  className="px-4 py-2 bg-white hover:bg-rose-100 border border-rose-150 hover:border-rose-300 text-rose-700 hover:text-rose-800 text-xs font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]"
+                >
+                  {missed.attendanceDate} (Apply)
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Early Check-Out Warning Banner */}
+        {attendanceRecord && attendanceRecord.checkOutTime && attendanceRecord.earlyCheckOut && (
+          <div className="bg-amber-50 border border-amber-200 rounded-[32px] p-6 shadow-sm flex items-center gap-4 animate-in fade-in duration-300">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-amber-900 uppercase tracking-wider">Early Check-Out Alert</h4>
+              <p className="text-xs text-amber-700 font-semibold mt-0.5">
+                You checked out early today before completing your full shift ({settings.checkInTime} - {settings.checkOutTime}).
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header Section */}
 
         {/* Stats Row - Updated with Total Present, Shift and Leave */}
@@ -1351,6 +1439,16 @@ const EmployeeDashboard = () => {
                     onChange={(e) => setMissedDate(e.target.value)}
                     required
                     max={new Date().toISOString().split('T')[0]}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-purple-500/20 font-semibold transition-all text-sm"
+                  />
+                </div>
+                 <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Clock-In Time</label>
+                  <input 
+                    type="time"
+                    value={missedCheckInTime}
+                    onChange={(e) => setMissedCheckInTime(e.target.value)}
+                    required
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-purple-500/20 font-semibold transition-all text-sm"
                   />
                 </div>

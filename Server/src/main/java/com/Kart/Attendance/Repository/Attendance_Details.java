@@ -15,5 +15,6 @@ public interface Attendance_Details extends JpaRepository<AttendanceDetails, Lon
     List<AttendanceDetails> findByTenantIdAndAttendanceDateStartingWith(String tenantId, String yearMonth);
     long countByTenantIdAndAttendanceDate(String tenantId, String attendanceDate);
     List<AttendanceDetails> findByTenantIdAndAttendanceDate(String tenantId, String attendanceDate);
+    List<AttendanceDetails> findByUserIdAndTenantIdAndCheckOutTimeIsNull(String userId, String tenantId);
     void deleteByUserIdAndTenantId(String userId, String tenantId);
 }

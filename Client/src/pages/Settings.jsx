@@ -38,6 +38,7 @@ const Settings = () => {
       checkInTime: '09:00',
       checkOutTime: '18:00',
       gracePeriod: '15',
+      shiftDuration: '9.0',
       workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
     },
     payroll: {
@@ -92,7 +93,8 @@ const Settings = () => {
             ...prev.attendance,
             checkInTime: data.defaultCheckInTime || '09:00',
             checkOutTime: data.defaultCheckOutTime || '18:00',
-            gracePeriod: data.gracePeriod || 15
+            gracePeriod: data.gracePeriod || 15,
+            shiftDuration: data.shiftDuration !== undefined ? data.shiftDuration : '9.0'
           },
           leaves: {
             sick: data.sickLeavesLimit !== undefined ? data.sickLeavesLimit : 12,
@@ -135,6 +137,7 @@ const Settings = () => {
           defaultCheckInTime: settings.attendance.checkInTime,
           defaultCheckOutTime: settings.attendance.checkOutTime,
           gracePeriod: settings.attendance.gracePeriod,
+          shiftDuration: settings.attendance.shiftDuration,
           shortForm: settings.general.shortForm,
           sickLeavesLimit: settings.leaves.sick,
           casualLeavesLimit: settings.leaves.casual,
@@ -405,6 +408,16 @@ const Settings = () => {
                     type="number" 
                     value={settings.attendance.gracePeriod}
                     onChange={(e) => updateSetting('attendance', 'gracePeriod', e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Shift Duration (Hours)</label>
+                  <input 
+                    type="number" 
+                    step="0.5"
+                    value={settings.attendance.shiftDuration}
+                    onChange={(e) => updateSetting('attendance', 'shiftDuration', e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all"
                   />
                 </div>

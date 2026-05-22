@@ -25,6 +25,7 @@ public class AdminService {
             if (a.getTenantId() != null) {
                 long count = userRepository.findByTenantId(a.getTenantId()).stream()
                         .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
+                        .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
                         .count();
                 a.setUserCount(count);
             }
@@ -135,6 +136,13 @@ public class AdminService {
             Object gp = settings.get("gracePeriod");
             if (gp instanceof Integer) admin.setGracePeriod((Integer) gp);
             else if (gp instanceof String) admin.setGracePeriod(Integer.parseInt((String) gp));
+        }
+        if (settings.containsKey("shiftDuration")) {
+            Object sd = settings.get("shiftDuration");
+            if (sd instanceof Double) admin.setShiftDuration((Double) sd);
+            else if (sd instanceof Float) admin.setShiftDuration(((Float) sd).doubleValue());
+            else if (sd instanceof Integer) admin.setShiftDuration(((Integer) sd).doubleValue());
+            else if (sd instanceof String) admin.setShiftDuration(Double.parseDouble((String) sd));
         }
         if (settings.containsKey("shortForm") || settings.containsKey("short_form")) {
             String newShortForm = (String) (settings.containsKey("shortForm") ? settings.get("shortForm") : settings.get("short_form"));

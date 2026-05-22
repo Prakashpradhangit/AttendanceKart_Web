@@ -17,6 +17,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.Kart.Attendance.Entity.LeaveRequest;
+import com.Kart.Attendance.Entity.ClockOutRequest;
+import com.Kart.Attendance.Repository.ClockOutRequestRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class AttendanceService {
     private final UserRepository userRepository;
     private final com.Kart.Attendance.Repository.LeaveRepository leaveRepository;
     private final com.Kart.Attendance.Repository.AdminRepository adminRepository;
+    private final ClockOutRequestRepository requestRepository;
 
     public Optional<AttendanceDetails> getTodayAttendance(Long userId) {
         String tenantId = TenantContext.getCurrentTenant();
@@ -269,5 +272,60 @@ public class AttendanceService {
         String tenantId = TenantContext.getCurrentTenant();
         String today = LocalDate.now().toString();
         return attendanceRepository.findByTenantIdAndAttendanceDate(tenantId, today);
+    }
+
+    public List<AttendanceDetails> getMissingClockOuts(Long userId) {
+        String tenantId = TenantContext.getCurrentTenant();
+        String today = LocalDate.now().toString();
+
+        List<AttendanceDetails> nullCheckOuts = attendanceRepository.findByUserIdAndTenantIdAndCheckOutTimeIsNull(String.valueOf(userId), tenantId);
+
+        List<AttendanceDetails> pastMissing = nullCheckOuts.stream()
+                .filter(a -> a.getAttendanceDate().compareTo(today) < 0)
+                .collect(Collectors.toList());
+
+        List<ClockOutRequest> requests = requestRepository.findByUserIdAndTenantId(String.valueOf(userId), tenantId);
+        Set<String> requestedDates = requests.stream()
+                .filter(r -> "PENDING".equals(r.getStatus()) || "APPROVED".equals(r.getStatus()))
+                .map(ClockOutRequest::getAttendanceDate)
+                .collect(Collectors.toSet());
+
+        return pastMissing.stream()
+                .filter(a -> !requestedDates.contains(a.getAttendanceDate()))
+                .collect(Collectors.toList());
+    }
+
+    public boolean isEarlyCheckOut(AttendanceDetails attendance) {
+        if (attendance.getCheckInTime() == null || attendance.getCheckOutTime() == null) {
+            return false;
+        }
+        String tenantId = attendance.getTenantId();
+        Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
+        if (admin == null) {
+            return false;
+        }
+        
+        try {
+            LocalDateTime checkInDateTime = LocalDateTime.parse(attendance.getCheckInTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            LocalDateTime checkOutDateTime = LocalDateTime.parse(attendance.getCheckOutTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            
+            // 1. Check if checkout time is before expectedCheckOutTime
+            LocalTime checkOutTime = checkOutDateTime.toLocalTime();
+            LocalTime expectedCheckOutTime = LocalTime.parse(admin.getDefaultCheckOutTime());
+            if (checkOutTime.isBefore(expectedCheckOutTime)) {
+                return true;
+            }
+            
+            // 2. Check if actual work duration is less than shiftDuration (hours)
+            double requiredHours = admin.getShiftDuration();
+            Duration actualDuration = Duration.between(checkInDateTime, checkOutDateTime);
+            double actualWorkHours = actualDuration.toMinutes() / 60.0;
+            if (actualWorkHours < requiredHours) {
+                return true;
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return false;
     }
 }

@@ -15,6 +15,7 @@ public class ClockOutRequest {
     private String userId;
     private String employeeName;
     private String attendanceDate;
+    private String requestedCheckInTime; // ISO timestamp or HH:mm
     private String requestedCheckOutTime; // ISO timestamp or HH:mm
     private String note;
     

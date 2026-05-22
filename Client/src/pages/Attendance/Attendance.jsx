@@ -223,7 +223,8 @@ const Attendance = () => {
                     <tr>
                       <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">Employee</th>
                       <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">Date</th>
-                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">Time</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">Requested In</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">Requested Out</th>
                       <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">Note</th>
                       <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">Status</th>
                       <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 text-right">Actions</th>
@@ -232,7 +233,7 @@ const Attendance = () => {
                   <tbody className="divide-y divide-gray-100">
                     {clockOutRequests.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="p-8 text-center text-gray-500 text-sm">No requests found.</td>
+                        <td colSpan="7" className="p-8 text-center text-gray-500 text-sm">No requests found.</td>
                       </tr>
                     ) : (
                       clockOutRequests.map(req => (
@@ -242,7 +243,8 @@ const Attendance = () => {
                             <p className="text-xs text-gray-500">ID: {req.userId}</p>
                           </td>
                           <td className="p-4 text-sm font-medium text-gray-700">{req.attendanceDate}</td>
-                          <td className="p-4 text-sm font-medium text-gray-700">{req.requestedCheckOutTime}</td>
+                          <td className="p-4 text-sm font-medium text-gray-700">{req.requestedCheckInTime || '-'}</td>
+                          <td className="p-4 text-sm font-medium text-gray-700">{req.requestedCheckOutTime || '-'}</td>
                           <td className="p-4 text-sm text-gray-600 max-w-[200px] truncate" title={req.note}>{req.note || '-'}</td>
                           <td className="p-4">
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${

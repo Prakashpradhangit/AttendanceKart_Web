@@ -1,9 +1,11 @@
 package com.Kart.Attendance.Service;
 
 import com.Kart.Attendance.Config.TenantContext;
+import com.Kart.Attendance.Entity.Admin;
 import com.Kart.Attendance.Entity.AttendanceDetails;
 import com.Kart.Attendance.Entity.ClockOutRequest;
 import com.Kart.Attendance.Entity.User;
+import com.Kart.Attendance.Repository.AdminRepository;
 import com.Kart.Attendance.Repository.Attendance_Details;
 import com.Kart.Attendance.Repository.ClockOutRequestRepository;
 import com.Kart.Attendance.Repository.UserRepository;
@@ -25,8 +27,9 @@ public class ClockOutRequestService {
     private final ClockOutRequestRepository requestRepository;
     private final Attendance_Details attendanceRepository;
     private final UserRepository userRepository;
+    private final AdminRepository adminRepository;
 
-    public ClockOutRequest createRequest(Long userId, String date, String time, String note) {
+    public ClockOutRequest createRequest(Long userId, String date, String checkInTime, String checkOutTime, String note) {
         String tenantId = TenantContext.getCurrentTenant();
 
         User user = userRepository.findById(userId)
@@ -38,11 +41,7 @@ public class ClockOutRequestService {
 
         // Check if attendance exists for that date
         Optional<AttendanceDetails> attendance = attendanceRepository.findByUserIdAndTenantIdAndAttendanceDate(String.valueOf(userId), tenantId, date);
-        if (attendance.isEmpty()) {
-            throw new RuntimeException("No check-in record found for this date. You must check in before requesting a manual clock-out.");
-        }
-        
-        if (attendance.get().getCheckOutTime() != null) {
+        if (attendance.isPresent() && attendance.get().getCheckOutTime() != null) {
             throw new RuntimeException("You have already clocked out on this date.");
         }
 
@@ -58,8 +57,8 @@ public class ClockOutRequestService {
         request.setEmployeeName(user.getName());
         request.setAttendanceDate(date);
         
-        // Convert "HH:mm" to ISO if needed, or assume it's sent as HH:mm and we attach it to the date later
-        request.setRequestedCheckOutTime(time);
+        request.setRequestedCheckInTime(checkInTime);
+        request.setRequestedCheckOutTime(checkOutTime);
         request.setNote(note);
         request.setStatus("PENDING");
         request.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
@@ -87,39 +86,87 @@ public class ClockOutRequestService {
         }
 
         if ("APPROVED".equals(status) && "PENDING".equals(request.getStatus())) {
-            // Apply the clock-out
-            AttendanceDetails attendance = attendanceRepository.findByUserIdAndTenantIdAndAttendanceDate(
+            // Apply the clock-out and clock-in
+            Optional<AttendanceDetails> attendanceOpt = attendanceRepository.findByUserIdAndTenantIdAndAttendanceDate(
                     request.getUserId(), tenantId, request.getAttendanceDate()
-            ).orElseThrow(() -> new RuntimeException("Attendance record not found"));
+            );
 
-            LocalDateTime checkInTime = LocalDateTime.parse(attendance.getCheckInTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            
-            // requestedCheckOutTime might be just "HH:mm" or ISO. We assume "HH:mm" or "HH:mm:ss" if not ISO.
-            LocalDateTime checkOutTime;
-            try {
-                if (request.getRequestedCheckOutTime().contains("T")) {
-                    checkOutTime = LocalDateTime.parse(request.getRequestedCheckOutTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            AttendanceDetails attendance;
+            if (attendanceOpt.isPresent()) {
+                attendance = attendanceOpt.get();
+            } else {
+                User user = userRepository.findById(Long.parseLong(request.getUserId()))
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+                attendance = new AttendanceDetails();
+                attendance.setTenantId(tenantId);
+                attendance.setUserId(request.getUserId());
+                attendance.setUserName(user.getName());
+                attendance.setDepartment(user.getDepartment());
+                attendance.setDesignation(user.getDesignation());
+                attendance.setAttendanceDate(request.getAttendanceDate());
+            }
+
+            LocalDateTime checkInDateTime;
+            String reqCheckIn = request.getRequestedCheckInTime();
+            if (reqCheckIn == null || reqCheckIn.isEmpty()) {
+                if (attendance.getCheckInTime() != null) {
+                    checkInDateTime = LocalDateTime.parse(attendance.getCheckInTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                 } else {
-                    LocalTime time = LocalTime.parse(request.getRequestedCheckOutTime());
-                    checkOutTime = LocalDateTime.of(LocalDate.parse(request.getAttendanceDate()), time);
+                    Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
+                    String defaultIn = (admin != null) ? admin.getDefaultCheckInTime() : "09:00";
+                    LocalTime time = LocalTime.parse(defaultIn);
+                    checkInDateTime = LocalDateTime.of(LocalDate.parse(request.getAttendanceDate()), time);
+                }
+            } else {
+                try {
+                    if (reqCheckIn.contains("T")) {
+                        checkInDateTime = LocalDateTime.parse(reqCheckIn, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                    } else {
+                        LocalTime time = LocalTime.parse(reqCheckIn);
+                        checkInDateTime = LocalDateTime.of(LocalDate.parse(request.getAttendanceDate()), time);
+                    }
+                } catch (Exception e) {
+                    checkInDateTime = LocalDateTime.of(LocalDate.parse(request.getAttendanceDate()), LocalTime.of(9, 0));
+                }
+            }
+
+            LocalDateTime checkOutDateTime;
+            String reqCheckOut = request.getRequestedCheckOutTime();
+            try {
+                if (reqCheckOut.contains("T")) {
+                    checkOutDateTime = LocalDateTime.parse(reqCheckOut, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                } else {
+                    LocalTime time = LocalTime.parse(reqCheckOut);
+                    checkOutDateTime = LocalDateTime.of(LocalDate.parse(request.getAttendanceDate()), time);
                 }
             } catch (Exception e) {
-                // Fallback parsing if something fails
-                checkOutTime = LocalDateTime.now(); 
+                checkOutDateTime = LocalDateTime.now();
             }
 
-            // Ensure checkOutTime is after checkInTime
-            if (checkOutTime.isBefore(checkInTime)) {
-                // If it's a night shift that crossed midnight, add 1 day
-                checkOutTime = checkOutTime.plusDays(1);
+            // Ensure checkOutDateTime is after checkInDateTime
+            if (checkOutDateTime.isBefore(checkInDateTime)) {
+                checkOutDateTime = checkOutDateTime.plusDays(1);
             }
 
-            attendance.setCheckOutTime(checkOutTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            attendance.setCheckInTime(checkInDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            attendance.setCheckOutTime(checkOutDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
-            Duration duration = Duration.between(checkInTime, checkOutTime);
+            Duration duration = Duration.between(checkInDateTime, checkOutDateTime);
             long hours = duration.toHours();
             long minutes = duration.toMinutesPart();
             attendance.setWorkHours(String.format("%02d:%02d", hours, minutes));
+
+            // Set/update status (e.g. Present/Late)
+            Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
+            String defaultIn = (admin != null) ? admin.getDefaultCheckInTime() : "09:00";
+            int gracePeriod = (admin != null) ? admin.getGracePeriod() : 15;
+            LocalTime baseTime = LocalTime.parse(defaultIn);
+            LocalTime thresholdTime = baseTime.plusMinutes(gracePeriod);
+            if (checkInDateTime.toLocalTime().isAfter(thresholdTime)) {
+                attendance.setStatus("Late");
+            } else {
+                attendance.setStatus("Present");
+            }
 
             attendanceRepository.save(attendance);
         }

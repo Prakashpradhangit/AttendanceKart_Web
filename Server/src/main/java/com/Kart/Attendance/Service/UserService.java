@@ -40,10 +40,11 @@ public class UserService {
         Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
         List<User> tenantUsers = userRepository.findByTenantId(tenantId);
 
-        // Enforce maximum users limit (excluding ADMIN role)
+        // Enforce maximum users limit (excluding ADMIN role and Inactive users)
         if (admin != null && admin.getMaxUsers() != null) {
             long currentEmployeeCount = tenantUsers.stream()
                     .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
+                    .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
                     .count();
             if (currentEmployeeCount >= admin.getMaxUsers()) {
                 throw new RuntimeException("Maximum user limit of " + admin.getMaxUsers() + " reached for this organization. Please contact Super Admin to upgrade.");
@@ -83,6 +84,21 @@ public class UserService {
                 throw new RuntimeException("User not found for this tenant");
             }
 
+            // Check if status is transitioning from Inactive to Active and enforce limit
+            if (userDetails.getStatus() != null && "Active".equalsIgnoreCase(userDetails.getStatus()) && "Inactive".equalsIgnoreCase(user.getStatus())) {
+                Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
+                if (admin != null && admin.getMaxUsers() != null) {
+                    List<User> tenantUsers = userRepository.findByTenantId(tenantId);
+                    long currentEmployeeCount = tenantUsers.stream()
+                            .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
+                            .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
+                            .count();
+                    if (currentEmployeeCount >= admin.getMaxUsers()) {
+                        throw new RuntimeException("Maximum user limit of " + admin.getMaxUsers() + " reached for this organization. Please contact Super Admin to upgrade.");
+                    }
+                }
+            }
+
             if (userDetails.getName() != null) user.setName(userDetails.getName());
             if (userDetails.getEmail() != null) user.setEmail(userDetails.getEmail());
             if (userDetails.getPhoneNumber() != null) user.setPhoneNumber(userDetails.getPhoneNumber());
@@ -92,6 +108,7 @@ public class UserService {
             if (userDetails.getJoiningDate() != null) user.setJoiningDate(userDetails.getJoiningDate());
             if (userDetails.getEmployeeCode() != null) user.setEmployeeCode(userDetails.getEmployeeCode());
             if (userDetails.getGender() != null) user.setGender(userDetails.getGender());
+            if (userDetails.getStatus() != null) user.setStatus(userDetails.getStatus());
             
             if (userDetails.getPassword() != null && !userDetails.getPassword().isBlank()) {
                 user.setPassword(userDetails.getPassword());
@@ -138,6 +155,7 @@ public class UserService {
 
         long currentEmployeeCount = tenantUsers.stream()
                 .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
+                .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
                 .count();
 
         int maxAllowed = 100;

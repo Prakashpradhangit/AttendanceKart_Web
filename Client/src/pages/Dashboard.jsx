@@ -104,14 +104,15 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [navigate, fetchEmployees, fetchDashboardStats, fetchNotices, selectedMonth]);
 
-  // Dynamic Summary Stats
-  const totalEmployees = employees.length;
-  const activeEmployees = employees.filter(e => e.status === 'Active').length;
-  const departments = [...new Set(employees.map(e => e.department))];
+  // Dynamic Summary Stats (only count Active employees)
+  const activeEmployeesList = employees.filter(e => e.status === 'Active');
+  const totalEmployees = activeEmployeesList.length;
+  const activeEmployees = totalEmployees;
+  const departments = [...new Set(activeEmployeesList.map(e => e.department))];
   
   const deptData = departments.map(dept => ({
     name: dept,
-    value: employees.filter(e => e.department === dept).length
+    value: activeEmployeesList.filter(e => e.department === dept).length
   }));
 
   const dynamicSummaryCards = [
