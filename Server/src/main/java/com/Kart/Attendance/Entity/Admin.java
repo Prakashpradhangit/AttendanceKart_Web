@@ -86,4 +86,8 @@ public class Admin {
 
     @Column(columnDefinition = "TEXT")
     private String declaredHolidays = "[]";
+
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String emailVerificationToken;
 }

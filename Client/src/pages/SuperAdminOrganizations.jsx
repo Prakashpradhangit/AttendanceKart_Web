@@ -53,7 +53,8 @@ const SuperAdminOrganizations = () => {
         subscription_year: mapDuration(newOrg.duration),
         starting_date: newOrg.startDate,
         status: newOrg.status || 'Active',
-        max_users: parseInt(newOrg.totalUsers) || 100
+        max_users: parseInt(newOrg.totalUsers) || 100,
+        emailVerificationToken: newOrg.emailVerificationToken
       };
 
       if (newOrg.orgPassword) {

@@ -123,7 +123,8 @@ export const EmployeeProvider = ({ children }) => {
         department: employee.department,
         designation: employee.role,
         role: 'EMPLOYEE', // default role
-        joiningDate: employee.joiningDate
+        joiningDate: employee.joiningDate,
+        emailVerificationToken: employee.emailVerificationToken
       };
 
       const response = await fetch('/api/users', {

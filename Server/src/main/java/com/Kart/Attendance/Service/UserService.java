@@ -1,9 +1,6 @@
 package com.Kart.Attendance.Service;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +27,8 @@ public class UserService {
     private final LeaveRepository leaveRepository;
     private final AdminRepository adminRepository;
     private final NoticeSseService noticeSseService;
+    private final EmailOtpService emailOtpService;
+    private final EmployeeOnboardingEmailService onboardingEmailService;
 
     public List<User> getAllUsers() {
         String tenantId = TenantContext.getCurrentTenant();
@@ -66,6 +65,11 @@ public class UserService {
     public User createUser(User user) {
         String tenantId = TenantContext.getCurrentTenant();
         user.setTenantId(tenantId);
+        emailOtpService.consumeVerification(
+                user.getEmail(),
+                EmailOtpService.PURPOSE_EMPLOYEE_REGISTRATION,
+                user.getEmailVerificationToken()
+        );
 
         Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
 
@@ -82,8 +86,12 @@ public class UserService {
                 : "EMP";
 
         user.setEmployeeCode(generateEmployeeCode(prefix, findMaxEmployeeNumber(tenantId, prefix) + 1));
+        String plainPassword = user.getPassword();
+        User savedUser = userRepository.save(user);
 
-        return userRepository.save(user);
+        String organizationName = (admin != null) ? admin.getOrganisation_name() : null;
+        onboardingEmailService.sendCredentials(savedUser, plainPassword, organizationName);
+        return savedUser;
     }
 
     public User updateUser(Long id, User userDetails) {
@@ -162,115 +170,20 @@ public class UserService {
 
     @Transactional
     public java.util.Map<String, Object> bulkCreateUsers(List<User> users) {
-        String tenantId = TenantContext.getCurrentTenant();
-        Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
-
-        long currentEmployeeCount = getActiveEmployeeCount(tenantId);
-
-        int maxAllowed = 100;
-        if (admin != null && admin.getMaxUsers() != null) {
-            maxAllowed = admin.getMaxUsers();
-        }
-
-        long vacancies = Math.max(0, maxAllowed - currentEmployeeCount);
-
         java.util.List<java.util.Map<String, String>> successEmployees = new java.util.ArrayList<>();
         java.util.List<java.util.Map<String, String>> failedEmployees = new java.util.ArrayList<>();
-        java.util.List<User> validUsers = new java.util.ArrayList<>();
-
-        int successCount = 0;
-        int failedCount = 0;
-        String prefix = (admin != null && admin.getShortForm() != null && !admin.getShortForm().isBlank())
-                ? admin.getShortForm().trim().toUpperCase()
-                : "EMP";
-        long nextEmployeeNumber = findMaxEmployeeNumber(tenantId, prefix) + 1;
-
-        Set<String> requestedEmails = users.stream()
-                .map(User::getEmail)
-                .filter(email -> email != null && !email.trim().isEmpty())
-                .map(email -> email.trim().toLowerCase())
-                .collect(Collectors.toSet());
-        Set<String> existingEmails = requestedEmails.isEmpty()
-                ? java.util.Collections.emptySet()
-                : userRepository.findByEmailIn(requestedEmails).stream()
-                        .map(User::getEmail)
-                        .map(email -> email.trim().toLowerCase())
-                        .collect(Collectors.toSet());
-        Set<String> seenEmails = new java.util.HashSet<>();
 
         for (User user : users) {
-            if (user.getName() == null || user.getName().trim().isEmpty()) {
-                failedEmployees.add(java.util.Map.of(
-                    "name", "Unknown",
+            failedEmployees.add(java.util.Map.of(
+                    "name", user.getName() != null ? user.getName() : "Unknown",
                     "email", user.getEmail() != null ? user.getEmail() : "",
-                    "error", "Name is required"
-                ));
-                failedCount++;
-                continue;
-            }
-
-            if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
-                failedEmployees.add(java.util.Map.of(
-                    "name", user.getName(),
-                    "email", "",
-                    "error", "Email is required"
-                ));
-                failedCount++;
-                continue;
-            }
-
-            String normalizedEmail = user.getEmail().trim().toLowerCase();
-
-            // Check if email already exists
-            if (existingEmails.contains(normalizedEmail) || !seenEmails.add(normalizedEmail)) {
-                failedEmployees.add(java.util.Map.of(
-                    "name", user.getName(),
-                    "email", user.getEmail(),
-                    "error", "Email is already registered"
-                ));
-                failedCount++;
-                continue;
-            }
-
-            // Check limit capacity
-            if (successCount >= vacancies) {
-                failedEmployees.add(java.util.Map.of(
-                    "name", user.getName(),
-                    "email", user.getEmail(),
-                    "error", "User limit exceeded (maximum capacity of " + maxAllowed + " employees reached)"
-                ));
-                failedCount++;
-                continue;
-            }
-
-            // Valid user, generate credentials
-            String password = generateRandomPassword();
-            user.setPassword(password);
-            user.setEmail(normalizedEmail);
-            user.setRole(com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE);
-            user.setTenantId(tenantId);
-            user.setEmployeeCode(generateEmployeeCode(prefix, nextEmployeeNumber++));
-            validUsers.add(user);
-
-            successEmployees.add(java.util.Map.of(
-                "name", user.getName(),
-                "email", user.getEmail(),
-                "phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "",
-                "department", user.getDepartment() != null ? user.getDepartment() : "",
-                "designation", user.getDesignation() != null ? user.getDesignation() : "",
-                "employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "",
-                "password", password
+                    "error", "Bulk import requires individual email OTP verification. Please add employees one by one."
             ));
-            successCount++;
-        }
-
-        if (!validUsers.isEmpty()) {
-            userRepository.saveAll(validUsers);
         }
 
         return java.util.Map.of(
-            "successCount", successCount,
-            "failedCount", failedCount,
+            "successCount", 0,
+            "failedCount", failedEmployees.size(),
             "successEmployees", successEmployees,
             "failedEmployees", failedEmployees
         );

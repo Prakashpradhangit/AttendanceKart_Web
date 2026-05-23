@@ -17,10 +17,18 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
 
   const [formData, setFormData] = useState(initialData || initialFormState);
   const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setShowPassword(false);
+      setOtp('');
+      setVerificationToken('');
+      setOtpMessage('');
       if (initialData) {
         setFormData({
           ...initialData,
@@ -34,9 +42,70 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
     }
   }, [isOpen, initialData]);
 
+  const requestOtp = async () => {
+    if (!formData.email) {
+      setOtpMessage('Enter email first.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpMessage('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/email-otp/request', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.email, purpose: 'EMPLOYEE_REGISTRATION' })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setOtpMessage('OTP sent to employee email.');
+    } catch (err) {
+      setOtpMessage(err.message || 'Failed to send OTP.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!otp) {
+      setOtpMessage('Enter OTP first.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpMessage('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/email-otp/verify', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.email, purpose: 'EMPLOYEE_REGISTRATION', otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid OTP.');
+      setVerificationToken(data.verificationToken);
+      setOtpMessage('Email verified.');
+    } catch (err) {
+      setVerificationToken('');
+      setOtpMessage(err.message || 'Failed to verify OTP.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    if (!initialData && !verificationToken) {
+      setOtpMessage('Verify email OTP before adding employee.');
+      return;
+    }
+    onSubmit({ ...formData, emailVerificationToken: verificationToken });
     onClose();
   };
 
@@ -101,7 +170,13 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                   initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed font-semibold' : 'bg-gray-50 focus:ring-2 focus:ring-primary/20'
                 }`}
                 value={formData.email}
-                onChange={(e) => !initialData && setFormData({...formData, email: e.target.value})}
+                onChange={(e) => {
+                  if (initialData) return;
+                  setFormData({...formData, email: e.target.value});
+                  setVerificationToken('');
+                  setOtp('');
+                  setOtpMessage('');
+                }}
                 placeholder="john@example.com"
                 disabled={!!initialData}
               />
@@ -146,6 +221,40 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
               />
             </div>
           </div>
+
+          {!initialData && (
+            <div className="space-y-2 rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
+              <label className="text-sm font-semibold text-gray-700">Email OTP Verification</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  className="min-w-0 flex-1 bg-white border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="6 digit OTP"
+                />
+                <button
+                  type="button"
+                  onClick={requestOtp}
+                  disabled={isSendingOtp || !!verificationToken}
+                  className="px-3 py-2 bg-white border border-blue-200 text-blue-600 rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  {isSendingOtp ? 'Sending' : 'Send'}
+                </button>
+                <button
+                  type="button"
+                  onClick={verifyOtp}
+                  disabled={isVerifyingOtp || !!verificationToken}
+                  className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  {verificationToken ? 'Verified' : isVerifyingOtp ? 'Checking' : 'Verify'}
+                </button>
+              </div>
+              {otpMessage && <p className="text-xs font-semibold text-gray-500">{otpMessage}</p>}
+            </div>
+          )}
 
           <div className="space-y-1">
             <label className="text-sm font-semibold text-gray-700">Joining Date</label>

@@ -19,6 +19,11 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
 
   const [formData, setFormData] = useState(initialFormState);
   const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -41,12 +46,76 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
         setFormData(initialFormState);
       }
       setShowPassword(false);
+      setOtp('');
+      setVerificationToken('');
+      setOtpMessage('');
     }
   }, [isOpen, initialData]);
 
+  const requestOtp = async () => {
+    if (!formData.orgEmail) {
+      setOtpMessage('Enter organization email first.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpMessage('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/email-otp/request', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.orgEmail, purpose: 'ADMIN_REGISTRATION' })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setOtpMessage('OTP sent to organization email.');
+    } catch (err) {
+      setOtpMessage(err.message || 'Failed to send OTP.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!otp) {
+      setOtpMessage('Enter OTP first.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpMessage('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/email-otp/verify', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.orgEmail, purpose: 'ADMIN_REGISTRATION', otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid OTP.');
+      setVerificationToken(data.verificationToken);
+      setOtpMessage('Email verified.');
+    } catch (err) {
+      setVerificationToken('');
+      setOtpMessage(err.message || 'Failed to verify OTP.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    if (!initialData && !verificationToken) {
+      setOtpMessage('Verify email OTP before registering organization.');
+      return;
+    }
+    onSubmit({ ...formData, emailVerificationToken: verificationToken });
     onClose();
   };
 
@@ -203,10 +272,51 @@ const OrganizationForm = ({ isOpen, onClose, onSubmit, initialData = null }) => 
                 type="email" 
                 className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
                 value={formData.orgEmail}
-                onChange={(e) => setFormData({...formData, orgEmail: e.target.value})}
+                onChange={(e) => {
+                  setFormData({...formData, orgEmail: e.target.value});
+                  if (!initialData) {
+                    setVerificationToken('');
+                    setOtp('');
+                    setOtpMessage('');
+                  }
+                }}
                 placeholder="admin@organization.com"
               />
             </div>
+
+            {!initialData && (
+              <div className="space-y-2 md:col-span-2 rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
+                <label className="text-sm font-semibold text-[#1E293B] ml-1">Email OTP Verification</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    className="min-w-0 flex-1 bg-white border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-[#3B82F6] transition-all font-medium text-sm"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    placeholder="6 digit OTP"
+                  />
+                  <button
+                    type="button"
+                    onClick={requestOtp}
+                    disabled={isSendingOtp || !!verificationToken}
+                    className="px-4 py-3 bg-white border border-blue-200 text-blue-600 rounded-2xl text-xs font-bold disabled:opacity-50"
+                  >
+                    {isSendingOtp ? 'Sending' : 'Send OTP'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={verifyOtp}
+                    disabled={isVerifyingOtp || !!verificationToken}
+                    className="px-4 py-3 bg-[#3B82F6] text-white rounded-2xl text-xs font-bold disabled:opacity-50"
+                  >
+                    {verificationToken ? 'Verified' : isVerifyingOtp ? 'Checking' : 'Verify'}
+                  </button>
+                </div>
+                {otpMessage && <p className="text-xs font-semibold text-gray-500 ml-1">{otpMessage}</p>}
+              </div>
+            )}
 
             {/* Org Password */}
             <div className={`space-y-1.5 ${initialData ? 'md:col-span-1' : 'md:col-span-2'}`}>

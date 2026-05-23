@@ -21,6 +21,7 @@ public class AdminService {
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
     private final NoticeSseService noticeSseService;
+    private final EmailOtpService emailOtpService;
 
     public List<Admin> getAllAdmin(){
         List<Admin> admins = adminRepository.findAll();
@@ -38,6 +39,11 @@ public class AdminService {
 
     @Transactional
     public Admin createNewAdmin(Admin admin){
+        emailOtpService.consumeVerification(
+                admin.getEmail(),
+                EmailOtpService.PURPOSE_ADMIN_REGISTRATION,
+                admin.getEmailVerificationToken()
+        );
         ensureTenantId(admin);
         Admin savedAdmin = adminRepository.save(admin);
         syncAdminUser(savedAdmin);
