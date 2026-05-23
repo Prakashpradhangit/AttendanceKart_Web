@@ -13,6 +13,7 @@ public interface Attendance_Details extends JpaRepository<AttendanceDetails, Lon
     Optional<AttendanceDetails> findByUserIdAndTenantIdAndAttendanceDate(String userId, String tenantId, String attendanceDate);
     List<AttendanceDetails> findByUserIdAndTenantIdAndAttendanceDateStartingWith(String userId, String tenantId, String yearMonth);
     List<AttendanceDetails> findByTenantIdAndAttendanceDateStartingWith(String tenantId, String yearMonth);
+    List<AttendanceDetails> findByTenantIdAndAttendanceDateBetween(String tenantId, String startDate, String endDate);
     long countByTenantIdAndAttendanceDate(String tenantId, String attendanceDate);
     List<AttendanceDetails> findByTenantIdAndAttendanceDate(String tenantId, String attendanceDate);
     List<AttendanceDetails> findByUserIdAndTenantIdAndCheckOutTimeIsNull(String userId, String tenantId);

@@ -11,6 +11,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,6 +23,10 @@ import jakarta.persistence.Transient;
 @Entity
 @Getter
 @Setter
+@Table(indexes = {
+    @Index(name = "idx_admin_auth_token", columnList = "authToken"),
+    @Index(name = "idx_admin_status", columnList = "status")
+})
 public class Admin {
     
     @Id

@@ -138,9 +138,8 @@ public class AttendanceService {
         }
 
         List<AttendanceDetails> attendanceList = attendanceRepository.findByTenantIdAndAttendanceDateStartingWith(tenantId, queryYearMonth);
-        List<LeaveRequest> leaveList = leaveRepository.findByTenantId(tenantId).stream()
-                .filter(l -> "APPROVED".equals(l.getStatus()))
-                .collect(Collectors.toList());
+        List<LeaveRequest> leaveList = leaveRepository.findByTenantIdAndStatus(tenantId, "APPROVED");
+        long totalEmployees = userRepository.countByTenantIdAndRole(tenantId, com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE);
 
         List<Map<String, Object>> trends = new ArrayList<>();
         for (int i = 1; i <= daysInMonth; i++) {
@@ -168,7 +167,7 @@ public class AttendanceService {
             dayData.put("name", label);
             dayData.put("present", presentCount);
             dayData.put("leave", leaveCount);
-            dayData.put("absent", Math.max(0, userRepository.countByTenantIdAndRole(tenantId, com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE) - presentCount - leaveCount));
+            dayData.put("absent", Math.max(0, totalEmployees - presentCount - leaveCount));
             trends.add(dayData);
         }
         return trends;
@@ -202,8 +201,7 @@ public class AttendanceService {
                 })
                 .count();
 
-        long onLeaveToday = leaveRepository.findByTenantId(tenantId).stream()
-                .filter(l -> "APPROVED".equals(l.getStatus()))
+        long onLeaveToday = leaveRepository.findByTenantIdAndStatus(tenantId, "APPROVED").stream()
                 .filter(l -> {
                     try {
                         LocalDate start = LocalDate.parse(l.getFromDate());
@@ -234,16 +232,19 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
 
         long totalEmployees = userRepository.countByTenantIdAndRole(tenantId, com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE);
-        List<LeaveRequest> allLeaves = leaveRepository.findByTenantId(tenantId).stream()
-                .filter(l -> "APPROVED".equals(l.getStatus()))
-                .collect(Collectors.toList());
+        List<LeaveRequest> allLeaves = leaveRepository.findByTenantIdAndStatus(tenantId, "APPROVED");
+        LocalDate startDate = today.minusDays(6);
+        Map<String, Long> presentCountsByDate = attendanceRepository
+                .findByTenantIdAndAttendanceDateBetween(tenantId, startDate.toString(), today.toString())
+                .stream()
+                .collect(Collectors.groupingBy(AttendanceDetails::getAttendanceDate, Collectors.counting()));
 
         for (int i = 6; i >= 0; i--) {
             LocalDate date = today.minusDays(i);
             String dateStr = date.toString();
             String label = date.format(DateTimeFormatter.ofPattern("dd MMM"));
 
-            long presentCount = attendanceRepository.countByTenantIdAndAttendanceDate(tenantId, dateStr);
+            long presentCount = presentCountsByDate.getOrDefault(dateStr, 0L);
             long leaveCount = allLeaves.stream()
                     .filter(l -> {
                         try {

@@ -1,7 +1,13 @@
 package com.Kart.Attendance.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.Kart.Attendance.Config.TenantContext;
@@ -33,20 +39,39 @@ public class UserService {
         return userRepository.findByTenantId(tenantId);
     }
 
+    public Page<User> getUsersPage(int page, int size, String search, String department) {
+        String tenantId = TenantContext.getCurrentTenant();
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        PageRequest pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "id"));
+
+        if ("SYSTEM_SUPER_ADMIN".equals(tenantId)) {
+            return userRepository.findEmployeesForSuperAdmin(
+                    com.Kart.Attendance.Entity.Type.User_Role.ADMIN,
+                    normalize(search),
+                    normalizeDepartment(department),
+                    pageable
+            );
+        }
+
+        return userRepository.findEmployeesByTenant(
+                tenantId,
+                com.Kart.Attendance.Entity.Type.User_Role.ADMIN,
+                normalize(search),
+                normalizeDepartment(department),
+                pageable
+        );
+    }
+
     public User createUser(User user) {
         String tenantId = TenantContext.getCurrentTenant();
         user.setTenantId(tenantId);
 
-        // Auto-generate unique sequential employee code based on organisation short form
         Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
-        List<User> tenantUsers = userRepository.findByTenantId(tenantId);
 
         // Enforce maximum users limit (excluding ADMIN role and Inactive users)
         if (admin != null && admin.getMaxUsers() != null) {
-            long currentEmployeeCount = tenantUsers.stream()
-                    .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
-                    .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
-                    .count();
+            long currentEmployeeCount = getActiveEmployeeCount(tenantId);
             if (currentEmployeeCount >= admin.getMaxUsers()) {
                 throw new RuntimeException("Maximum user limit of " + admin.getMaxUsers() + " reached for this organization. Please contact Super Admin to upgrade.");
             }
@@ -56,24 +81,7 @@ public class UserService {
                 ? admin.getShortForm().trim().toUpperCase()
                 : "EMP";
 
-        long maxNum = 0;
-        for (User u : tenantUsers) {
-            String code = u.getEmployeeCode();
-            if (code != null && code.startsWith(prefix)) {
-                try {
-                    String numPart = code.substring(prefix.length());
-                    long num = Long.parseLong(numPart);
-                    if (num > maxNum) {
-                        maxNum = num;
-                    }
-                } catch (Exception e) {
-                    // Ignore malformed or older codes
-                }
-            }
-        }
-        long nextNum = maxNum + 1;
-        String nextCode = String.format("%s%05d", prefix, nextNum);
-        user.setEmployeeCode(nextCode);
+        user.setEmployeeCode(generateEmployeeCode(prefix, findMaxEmployeeNumber(tenantId, prefix) + 1));
 
         return userRepository.save(user);
     }
@@ -89,11 +97,7 @@ public class UserService {
             if (userDetails.getStatus() != null && "Active".equalsIgnoreCase(userDetails.getStatus()) && "Inactive".equalsIgnoreCase(user.getStatus())) {
                 Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
                 if (admin != null && admin.getMaxUsers() != null) {
-                    List<User> tenantUsers = userRepository.findByTenantId(tenantId);
-                    long currentEmployeeCount = tenantUsers.stream()
-                            .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
-                            .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
-                            .count();
+                    long currentEmployeeCount = getActiveEmployeeCount(tenantId);
                     if (currentEmployeeCount >= admin.getMaxUsers()) {
                         throw new RuntimeException("Maximum user limit of " + admin.getMaxUsers() + " reached for this organization. Please contact Super Admin to upgrade.");
                     }
@@ -160,12 +164,8 @@ public class UserService {
     public java.util.Map<String, Object> bulkCreateUsers(List<User> users) {
         String tenantId = TenantContext.getCurrentTenant();
         Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
-        List<User> tenantUsers = userRepository.findByTenantId(tenantId);
 
-        long currentEmployeeCount = tenantUsers.stream()
-                .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
-                .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
-                .count();
+        long currentEmployeeCount = getActiveEmployeeCount(tenantId);
 
         int maxAllowed = 100;
         if (admin != null && admin.getMaxUsers() != null) {
@@ -176,9 +176,27 @@ public class UserService {
 
         java.util.List<java.util.Map<String, String>> successEmployees = new java.util.ArrayList<>();
         java.util.List<java.util.Map<String, String>> failedEmployees = new java.util.ArrayList<>();
+        java.util.List<User> validUsers = new java.util.ArrayList<>();
 
         int successCount = 0;
         int failedCount = 0;
+        String prefix = (admin != null && admin.getShortForm() != null && !admin.getShortForm().isBlank())
+                ? admin.getShortForm().trim().toUpperCase()
+                : "EMP";
+        long nextEmployeeNumber = findMaxEmployeeNumber(tenantId, prefix) + 1;
+
+        Set<String> requestedEmails = users.stream()
+                .map(User::getEmail)
+                .filter(email -> email != null && !email.trim().isEmpty())
+                .map(email -> email.trim().toLowerCase())
+                .collect(Collectors.toSet());
+        Set<String> existingEmails = requestedEmails.isEmpty()
+                ? java.util.Collections.emptySet()
+                : userRepository.findByEmailIn(requestedEmails).stream()
+                        .map(User::getEmail)
+                        .map(email -> email.trim().toLowerCase())
+                        .collect(Collectors.toSet());
+        Set<String> seenEmails = new java.util.HashSet<>();
 
         for (User user : users) {
             if (user.getName() == null || user.getName().trim().isEmpty()) {
@@ -201,8 +219,10 @@ public class UserService {
                 continue;
             }
 
+            String normalizedEmail = user.getEmail().trim().toLowerCase();
+
             // Check if email already exists
-            if (userRepository.findByEmail(user.getEmail().trim().toLowerCase()).isPresent()) {
+            if (existingEmails.contains(normalizedEmail) || !seenEmails.add(normalizedEmail)) {
                 failedEmployees.add(java.util.Map.of(
                     "name", user.getName(),
                     "email", user.getEmail(),
@@ -226,22 +246,26 @@ public class UserService {
             // Valid user, generate credentials
             String password = generateRandomPassword();
             user.setPassword(password);
-            user.setEmail(user.getEmail().trim().toLowerCase());
+            user.setEmail(normalizedEmail);
             user.setRole(com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE);
-            
-            // Create user (to generate employee ID and save)
-            User saved = createUser(user);
+            user.setTenantId(tenantId);
+            user.setEmployeeCode(generateEmployeeCode(prefix, nextEmployeeNumber++));
+            validUsers.add(user);
 
             successEmployees.add(java.util.Map.of(
-                "name", saved.getName(),
-                "email", saved.getEmail(),
-                "phoneNumber", saved.getPhoneNumber() != null ? saved.getPhoneNumber() : "",
-                "department", saved.getDepartment() != null ? saved.getDepartment() : "",
-                "designation", saved.getDesignation() != null ? saved.getDesignation() : "",
-                "employeeCode", saved.getEmployeeCode() != null ? saved.getEmployeeCode() : "",
+                "name", user.getName(),
+                "email", user.getEmail(),
+                "phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "",
+                "department", user.getDepartment() != null ? user.getDepartment() : "",
+                "designation", user.getDesignation() != null ? user.getDesignation() : "",
+                "employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "",
                 "password", password
             ));
             successCount++;
+        }
+
+        if (!validUsers.isEmpty()) {
+            userRepository.saveAll(validUsers);
         }
 
         return java.util.Map.of(
@@ -250,6 +274,46 @@ public class UserService {
             "successEmployees", successEmployees,
             "failedEmployees", failedEmployees
         );
+    }
+
+    private long getActiveEmployeeCount(String tenantId) {
+        return userRepository.countByTenantIdAndRoleNotAndStatusNotIgnoreCase(
+                tenantId,
+                com.Kart.Attendance.Entity.Type.User_Role.ADMIN,
+                "Inactive"
+        );
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String normalizeDepartment(String department) {
+        String normalized = normalize(department);
+        return "All Departments".equalsIgnoreCase(normalized) ? "" : normalized;
+    }
+
+    private long findMaxEmployeeNumber(String tenantId, String prefix) {
+        return userRepository.findTopByTenantIdAndEmployeeCodeStartingWithOrderByEmployeeCodeDesc(tenantId, prefix)
+                .map(User::getEmployeeCode)
+                .map(code -> parseEmployeeNumber(code, prefix))
+                .orElse(0L);
+    }
+
+    private long parseEmployeeNumber(String employeeCode, String prefix) {
+        if (employeeCode == null || !employeeCode.startsWith(prefix)) {
+            return 0;
+        }
+
+        try {
+            return Long.parseLong(employeeCode.substring(prefix.length()));
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private String generateEmployeeCode(String prefix, long number) {
+        return String.format("%s%05d", prefix, number);
     }
 
     private String generateRandomPassword() {

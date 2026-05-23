@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "clock_out_requests")
+@Table(name = "clock_out_requests", indexes = {
+    @Index(name = "idx_clockout_tenant_status", columnList = "tenantId, status"),
+    @Index(name = "idx_clockout_user_tenant_date", columnList = "userId, tenantId, attendanceDate")
+})
 @Data
 public class ClockOutRequest {
     @Id

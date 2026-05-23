@@ -4,7 +4,11 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "leave_requests")
+@Table(name = "leave_requests", indexes = {
+    @Index(name = "idx_leave_tenant_status", columnList = "tenantId, status"),
+    @Index(name = "idx_leave_user_tenant_status", columnList = "userId, tenantId, status"),
+    @Index(name = "idx_leave_tenant_dates", columnList = "tenantId, fromDate, toDate")
+})
 @Data
 public class LeaveRequest {
     @Id

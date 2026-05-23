@@ -13,6 +13,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
@@ -22,7 +23,11 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table(name = "Employee") // Good practice to use plural for tables, avoiding reserved keywords like "user" in some DBs
+@Table(name = "Employee", indexes = {
+    @Index(name = "idx_employee_tenant_role_status", columnList = "tenantId, role, status"),
+    @Index(name = "idx_employee_tenant_code", columnList = "tenantId, employeeCode"),
+    @Index(name = "idx_employee_auth_token", columnList = "authToken")
+})
 public class User {
 
     @Id

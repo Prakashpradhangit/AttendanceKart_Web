@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,6 +21,10 @@ public class SuperAdminService {
 
     public List<AdminResponseDTO> getDashboardStats() {
         List<Admin> admins = adminRepository.findAll();
+        Map<String, Long> activeCountsByTenant = userRepository
+                .countActiveEmployeesByTenant(com.Kart.Attendance.Entity.Type.User_Role.ADMIN, "Inactive")
+                .stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
         return admins.stream().map(admin -> {
             AdminResponseDTO dto = new AdminResponseDTO();
             dto.setId(admin.getId());
@@ -57,12 +62,7 @@ public class SuperAdminService {
                 dto.setSubscriptionYear(admin.getSubscription_year().name());
             }
             
-            // Calculate active employee count
-            long count = userRepository.findByTenantId(admin.getTenantId()).stream()
-                    .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
-                    .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
-                    .count();
-            dto.setUserCount(count);
+            dto.setUserCount(activeCountsByTenant.getOrDefault(admin.getTenantId(), 0L));
             dto.setMaxUsers(admin.getMaxUsers());
             return dto;
         }).collect(Collectors.toList());

@@ -1,6 +1,8 @@
 package com.Kart.Attendance.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +24,13 @@ public class AdminService {
 
     public List<Admin> getAllAdmin(){
         List<Admin> admins = adminRepository.findAll();
+        Map<String, Long> activeCountsByTenant = userRepository
+                .countActiveEmployeesByTenant(User_Role.ADMIN, "Inactive")
+                .stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
         for (Admin a : admins) {
             if (a.getTenantId() != null) {
-                long count = userRepository.findByTenantId(a.getTenantId()).stream()
-                        .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
-                        .filter(u -> !"Inactive".equalsIgnoreCase(u.getStatus()))
-                        .count();
-                a.setUserCount(count);
+                a.setUserCount(activeCountsByTenant.getOrDefault(a.getTenantId(), 0L));
             }
         }
         return admins;
@@ -64,9 +66,7 @@ public class AdminService {
                 if ("Inactive".equalsIgnoreCase(adminDetails.getStatus())) {
                     admin.setAuthToken(null);
                     if (admin.getTenantId() != null && !admin.getTenantId().isBlank()) {
-                        List<User> tenantUsers = userRepository.findByTenantId(admin.getTenantId());
-                        tenantUsers.forEach(user -> user.setAuthToken(null));
-                        userRepository.saveAll(tenantUsers);
+                        userRepository.clearAuthTokensByTenantId(admin.getTenantId());
                         noticeSseService.forceLogoutTenant(admin.getTenantId());
                     }
                 }

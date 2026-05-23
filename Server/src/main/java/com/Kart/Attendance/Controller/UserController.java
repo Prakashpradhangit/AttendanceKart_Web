@@ -19,12 +19,17 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<?> getAllUsers(HttpServletRequest request) {
+    public ResponseEntity<?> getAllUsers(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String department
+    ) {
         if (!isAdminRequest(request)) {
             return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         }
-        List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(userService.getUsersPage(page, size, search, department));
     }
 
     @GetMapping("/dashboard")

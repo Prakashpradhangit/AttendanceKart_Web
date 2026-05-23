@@ -8,7 +8,17 @@ import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Employees = () => {
-  const { employees, maxUsers, addEmployee, addBulkEmployees, updateEmployee, deleteEmployee, resetTodayAttendance } = useEmployees();
+  const {
+    employees,
+    employeePagination,
+    fetchEmployees,
+    maxUsers,
+    addEmployee,
+    addBulkEmployees,
+    updateEmployee,
+    deleteEmployee,
+    resetTodayAttendance
+  } = useEmployees();
   const activeEmployeeCount = employees.filter(e => e.status === 'Active').length;
   const { showConfirm } = useAlert();
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,21 +32,27 @@ const Employees = () => {
   const [bulkResult, setBulkResult] = useState(null);
   const [copiedPasswordIdx, setCopiedPasswordIdx] = useState(null);
 
-  const departments = ['All Departments', ...new Set(employees.map(emp => emp.department))];
+  React.useEffect(() => {
+    const handle = setTimeout(() => {
+      fetchEmployees({ page: 0, search: searchTerm, department: departmentFilter });
+    }, 300);
+
+    return () => clearTimeout(handle);
+  }, [searchTerm, departmentFilter, fetchEmployees]);
+
+  const departments = ['All Departments', ...new Set(employees.map(emp => emp.department).filter(Boolean))];
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), type === 'error' ? 5000 : 3000);
   };
 
-  const filteredEmployees = employees.filter(emp => {
-    const empCode = emp.empId || String(emp.id);
-    const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         empCode.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = departmentFilter === 'All Departments' || emp.department === departmentFilter;
-    return matchesSearch && matchesDept;
-  });
+  const filteredEmployees = employees;
+
+  const goToPage = (page) => {
+    if (page < 0 || page >= employeePagination.totalPages) return;
+    fetchEmployees({ page, search: searchTerm, department: departmentFilter });
+  };
 
   const handleAddEmployee = async (data) => {
     const res = await addEmployee(data);
@@ -329,11 +345,31 @@ const Employees = () => {
         
         {/* Pagination */}
         <div className="px-8 py-6 border-t border-gray-50 flex items-center justify-between bg-gray-50/30">
-          <p className="text-sm text-gray-500 font-semibold">Showing <span className="text-gray-900">{filteredEmployees.length}</span> of <span className="text-gray-900">{employees.length}</span> entries</p>
+          <p className="text-sm text-gray-500 font-semibold">
+            Showing <span className="text-gray-900">{filteredEmployees.length}</span> of <span className="text-gray-900">{employeePagination.totalElements}</span> entries
+          </p>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-400 cursor-not-allowed bg-white">Previous</button>
-            <button className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/20">1</button>
-            <button className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 bg-white">Next</button>
+            <button
+              onClick={() => goToPage(employeePagination.page - 1)}
+              disabled={employeePagination.page === 0}
+              className={`px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold bg-white ${
+                employeePagination.page === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Previous
+            </button>
+            <button className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/20">
+              {employeePagination.page + 1}
+            </button>
+            <button
+              onClick={() => goToPage(employeePagination.page + 1)}
+              disabled={employeePagination.page + 1 >= employeePagination.totalPages}
+              className={`px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold bg-white ${
+                employeePagination.page + 1 >= employeePagination.totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>

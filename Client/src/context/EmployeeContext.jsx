@@ -8,6 +8,23 @@ export const EmployeeProvider = ({ children }) => {
   const [activeChat, setActiveChat] = useState(null); // 'team' or 'employee'
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [maxUsers, setMaxUsers] = useState(100);
+  const [employeePage, setEmployeePage] = useState(0);
+  const [employeePagination, setEmployeePagination] = useState({
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0
+  });
+  const employeePageRef = React.useRef(0);
+  const employeePageSizeRef = React.useRef(20);
+
+  React.useEffect(() => {
+    employeePageRef.current = employeePage;
+  }, [employeePage]);
+
+  React.useEffect(() => {
+    employeePageSizeRef.current = employeePagination.size;
+  }, [employeePagination.size]);
 
   const fetchMaxUsers = React.useCallback(async () => {
     try {
@@ -30,16 +47,28 @@ export const EmployeeProvider = ({ children }) => {
     fetchMaxUsers();
   }, [fetchMaxUsers]);
 
-  const fetchEmployees = React.useCallback(async () => {
+  const fetchEmployees = React.useCallback(async (options = {}) => {
     try {
+      const page = options.page ?? employeePageRef.current;
+      const size = options.size ?? employeePageSizeRef.current;
+      const search = options.search || '';
+      const department = options.department || '';
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/users', {
+      const params = new URLSearchParams({
+        page: String(page),
+        size: String(size)
+      });
+      if (search) params.set('search', search);
+      if (department && department !== 'All Departments') params.set('department', department);
+
+      const response = await fetch(`/api/users?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
+        const pageContent = Array.isArray(data) ? data : data.content || [];
         // Map backend User to frontend Employee structure
-        const mappedData = data
+        const mappedData = pageContent
           .filter(user => user.role !== 'ADMIN') // Exclude Admin accounts from employee details
           .map(user => ({
             id: user.id,
@@ -55,6 +84,15 @@ export const EmployeeProvider = ({ children }) => {
             status: user.status || 'Active'
           }));
         setEmployees(mappedData);
+        if (!Array.isArray(data)) {
+          setEmployeePage(data.number || 0);
+          setEmployeePagination({
+            page: data.number || 0,
+            size: data.size || size,
+            totalElements: data.totalElements || 0,
+            totalPages: data.totalPages || 0
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to fetch employees:', err);
@@ -212,6 +250,9 @@ export const EmployeeProvider = ({ children }) => {
   return (
     <EmployeeContext.Provider value={{ 
       employees, 
+      employeePage,
+      employeePagination,
+      setEmployeePage,
       maxUsers,
       fetchMaxUsers,
       addEmployee, 
