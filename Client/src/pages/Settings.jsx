@@ -19,6 +19,7 @@ const Settings = () => {
     general: {
       companyName: 'AttendanceKart Pvt Ltd',
       companyEmail: 'admin@attendancekart.com',
+      companyAddress: '',
       shortForm: '',
       language: 'English (IN)',
       timezone: 'GMT +5:30',
@@ -87,6 +88,7 @@ const Settings = () => {
             ...prev.general,
             companyName: data.organisation_name || prev.general.companyName,
             companyEmail: data.email || prev.general.companyEmail,
+            companyAddress: data.organisation_address || '',
             shortForm: data.short_form || ''
           },
           attendance: {
@@ -139,6 +141,7 @@ const Settings = () => {
           gracePeriod: settings.attendance.gracePeriod,
           shiftDuration: settings.attendance.shiftDuration,
           shortForm: settings.general.shortForm,
+          organisationAddress: settings.general.companyAddress,
           sickLeavesLimit: settings.leaves.sick,
           casualLeavesLimit: settings.leaves.casual,
           emergencyLeavesLimit: settings.leaves.emergency,
@@ -231,6 +234,16 @@ const Settings = () => {
                     value={settings.general.companyName}
                     onChange={(e) => updateSetting('general', 'companyName', e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Company Address</label>
+                  <textarea 
+                    rows={2}
+                    value={settings.general.companyAddress}
+                    onChange={(e) => updateSetting('general', 'companyAddress', e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all resize-none text-sm"
+                    placeholder="Enter full company address for payslips"
                   />
                 </div>
                 <div className="space-y-2">

@@ -104,6 +104,16 @@ public class User {
 
     private String accountNumber;
 
+    private String bankName;
+
+    private String ifscCode;
+
+    private String uanNumber;
+
+    private String pfNumber;
+
+    private String esiNumber;
+
     @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String bankPassbook;
@@ -113,6 +123,8 @@ public class User {
     private String lastPayslip;
 
     private String status = "Active";
+
+    private Double basicSalary;
 
     @Transient
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)

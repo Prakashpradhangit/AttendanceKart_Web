@@ -56,6 +56,7 @@ public class AdminService {
             admin.setName(adminDetails.getName());
             admin.setEmail(adminDetails.getEmail());
             admin.setOrganisation_name(adminDetails.getOrganisation_name());
+            admin.setOrganisation_address(adminDetails.getOrganisation_address());
             admin.setShortForm(adminDetails.getShortForm());
             admin.setPhone_number(adminDetails.getPhone_number());
             if (adminDetails.getPassword() != null && !adminDetails.getPassword().isEmpty()) {
@@ -165,6 +166,12 @@ public class AdminService {
             String newShortForm = (String) (settings.containsKey("shortForm") ? settings.get("shortForm") : settings.get("short_form"));
             if (newShortForm != null) {
                 admin.setShortForm(newShortForm.trim().toUpperCase());
+            }
+        }
+        if (settings.containsKey("organisation_address") || settings.containsKey("organisationAddress")) {
+            String newAddress = (String) (settings.containsKey("organisation_address") ? settings.get("organisation_address") : settings.get("organisationAddress"));
+            if (newAddress != null) {
+                admin.setOrganisation_address(newAddress.trim());
             }
         }
         if (settings.containsKey("sickLeavesLimit")) {

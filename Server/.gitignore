@@ -32,4 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 .src/main/resources/application.properties
-.DB_OPTIMIZATION_REPORT.md
+DB_OPTIMIZATION_REPORT.md
+.env
+Server\src\main\resources\application.properties
+

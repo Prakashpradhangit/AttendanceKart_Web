@@ -52,11 +52,11 @@ public class EmailOtpService {
         message.setSubject("AttendanceKart email verification OTP");
         message.setText("Thank you for using AttendanceKart.\n" + //
                         "\n" + //
-                        "To complete your profile verification process, please use the following One-Time Password (OTP):\n" + code
+                        "To complete your profile verification process, please use the following One-Time Password (OTP):" + code
                         +"\n"+
                         "This OTP is valid for the next 10 minutes. Please do not share this code with anyone for security reasons.\n" + //
                         "\n" + //
-                        "If you did not request this verification, please ignore this email. " +". It expires in " + OTP_TTL_MINUTES + " minutes.");
+                        "If you did not request this verification, please ignore this email. " +".\n  It expires in " + OTP_TTL_MINUTES + " minutes.");
         mailSender.send(message);
     }
 

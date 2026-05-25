@@ -42,6 +42,9 @@ public class Admin {
     @JsonProperty("organisation_name")
     private String Organisation_name;
 
+    @JsonProperty("organisation_address")
+    private String Organisation_address = "461 Sai Sobagu, 1st Floor Outer Ring Road Teachers Colony, Sector 6 HSR Layout Bangalore Karnataka 560034 India";
+
     @JsonProperty("short_form")
     private String shortForm;
     
