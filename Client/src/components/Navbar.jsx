@@ -43,7 +43,10 @@ const Navbar = ({ onMenuClick }) => {
   const [profile, setProfile] = useState({
     name: localStorage.getItem('name') || 'User',
     role: localStorage.getItem('role') || 'Guest',
-    employeeCode: localStorage.getItem('employeeCode') || ''
+    employeeCode: localStorage.getItem('employeeCode') || '',
+    designation: localStorage.getItem('designation') || '',
+    employmentType: localStorage.getItem('employmentType') || '',
+    profileImage: localStorage.getItem('profileImage') || ''
   });
 
   const [notices, setNotices] = useState([]);
@@ -152,6 +155,13 @@ const Navbar = ({ onMenuClick }) => {
           localStorage.setItem('name', data.name);
           localStorage.setItem('role', data.role);
           if (data.employeeCode) localStorage.setItem('employeeCode', data.employeeCode);
+          if (data.designation) localStorage.setItem('designation', data.designation);
+          if (data.employmentType) localStorage.setItem('employmentType', data.employmentType);
+          if (data.profileImage) {
+            localStorage.setItem('profileImage', data.profileImage);
+          } else {
+            localStorage.removeItem('profileImage');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch profile:', err);
@@ -379,24 +389,58 @@ const Navbar = ({ onMenuClick }) => {
           }}
           className={`flex items-center gap-3 pl-3 lg:pl-6 border-l border-gray-100 ${userRole === 'USER' ? 'cursor-pointer hover:opacity-80 transition-all' : ''}`}
         >
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-gray-900">
-              {userRole === 'USER' ? 'Employee' : userName}
-            </p>
-            <p className="text-xs text-gray-500">
-              {userRole === 'USER' ? `${userName} ${employeeCode ? `(${employeeCode})` : ''}` : userRole.replace('_', ' ')}
-            </p>
-          </div>
-          {profile.profileImage ? (
-            <img 
-              src={profile.profileImage} 
-              alt={userName}
-              className="w-10 h-10 rounded-full object-cover border border-gray-100 shadow-sm shrink-0"
-            />
+          {userRole === 'USER' ? (
+            <>
+              <div className="text-right hidden sm:block">
+                <h3 className="text-sm font-bold text-gray-900 leading-tight">{profile.name}</h3>
+                <p className="text-xs text-gray-400 font-semibold leading-tight mt-0.5">{profile.designation || 'Staff'}</p>
+                <div className="flex items-center justify-end gap-1.5 mt-1">
+                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-black uppercase tracking-wider">
+                    ID: {profile.employeeCode}
+                  </span>
+                  {profile.employmentType && (
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                      profile.employmentType === 'INTERN'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : profile.employmentType === 'PROBATION'
+                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    }`}>
+                      {profile.employmentType.replace('_', ' ')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-black text-indigo-600 text-base border border-indigo-100/50 shadow-inner shrink-0 overflow-hidden">
+                {profile.profileImage ? (
+                  <img src={profile.profileImage} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  profile.name?.charAt(0)
+                )}
+              </div>
+            </>
           ) : (
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border border-gray-100 shadow-sm shrink-0 ${getColorClass(userName)}`}>
-               {getInitials(userName)}
-            </div>
+            <>
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-gray-900">
+                  {userName}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {userRole.replace('_', ' ')}
+                </p>
+              </div>
+              {profile.profileImage ? (
+                <img 
+                  src={profile.profileImage} 
+                  alt={userName}
+                  className="w-10 h-10 rounded-full object-cover border border-gray-100 shadow-sm shrink-0"
+                />
+              ) : (
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border border-gray-100 shadow-sm shrink-0 ${getColorClass(userName)}`}>
+                   {getInitials(userName)}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

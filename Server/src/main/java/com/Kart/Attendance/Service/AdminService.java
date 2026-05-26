@@ -200,6 +200,19 @@ public class AdminService {
         if (settings.containsKey("declaredHolidays")) {
             admin.setDeclaredHolidays((String) settings.get("declaredHolidays"));
         }
+        if (settings.containsKey("departments")) {
+            admin.setDepartments((String) settings.get("departments"));
+        }
+        if (settings.containsKey("internPeriodMonths")) {
+            Object v = settings.get("internPeriodMonths");
+            if (v instanceof Integer) admin.setInternPeriodMonths((Integer) v);
+            else if (v instanceof String) admin.setInternPeriodMonths(Integer.parseInt((String) v));
+        }
+        if (settings.containsKey("probationPeriodMonths")) {
+            Object v = settings.get("probationPeriodMonths");
+            if (v instanceof Integer) admin.setProbationPeriodMonths((Integer) v);
+            else if (v instanceof String) admin.setProbationPeriodMonths(Integer.parseInt((String) v));
+        }
         
         return adminRepository.save(admin);
     }

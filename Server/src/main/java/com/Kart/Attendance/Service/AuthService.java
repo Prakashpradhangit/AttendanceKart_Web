@@ -203,6 +203,7 @@ public class AuthService {
             profile.put("employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "");
             profile.put("department", user.getDepartment() != null ? user.getDepartment() : "");
             profile.put("designation", user.getDesignation() != null ? user.getDesignation() : "");
+            profile.put("employmentType", user.getEmploymentType() != null ? user.getEmploymentType() : "FULL_TIME");
             profile.put("tenantId", user.getTenantId() != null ? user.getTenantId() : "");
             profile.put("joiningDate", jd != null ? jd.toString() : "");
             profile.put("phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "");

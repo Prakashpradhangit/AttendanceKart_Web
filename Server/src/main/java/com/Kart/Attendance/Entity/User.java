@@ -56,6 +56,8 @@ public class User {
 
     private String designation;
 
+    private String employmentType = "FULL_TIME"; // INTERN, FULL_TIME, PROBATION
+
     private LocalDate joiningDate;
 
     private String employeeCode;

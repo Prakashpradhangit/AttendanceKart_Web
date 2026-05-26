@@ -44,7 +44,7 @@ const EmployeeLeaves = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [profile, setProfile] = useState(null);
-  const [limits, setLimits] = useState({ sick: 12, casual: 12, emergency: 6, accrualRate: 1.5, holidays: [] });
+  const [limits, setLimits] = useState({ sick: 12, casual: 12, emergency: 6, accrualRate: 1.5, internPeriodMonths: 3, probationPeriodMonths: 6, holidays: [] });
   const [historyTab, setHistoryTab] = useState('All');
 
   const fetchMyLeaves = async () => {
@@ -68,6 +68,8 @@ const EmployeeLeaves = () => {
           casual: data.casualLeavesLimit ?? 12,
           emergency: data.emergencyLeavesLimit ?? 6,
           accrualRate: data.monthlyAccrualRate ?? 1.5,
+          internPeriodMonths: data.internPeriodMonths ?? 3,
+          probationPeriodMonths: data.probationPeriodMonths ?? 6,
           holidays: (() => { try { return data.declaredHolidays ? JSON.parse(data.declaredHolidays) : []; } catch { return []; } })()
         });
       }
@@ -83,6 +85,12 @@ const EmployeeLeaves = () => {
   };
 
   useEffect(() => { fetchMyLeaves(); fetchLimits(); fetchProfile(); }, []);
+
+  useEffect(() => {
+    if (profile && (profile.employmentType === 'INTERN' || profile.employmentType === 'PROBATION')) {
+      setLeaveCategory('LOP');
+    }
+  }, [profile]);
 
   const calcLeaveDays = (from, to, duration) => {
     if (duration !== 'Full Day') return 0.5;
@@ -188,58 +196,54 @@ const EmployeeLeaves = () => {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-xs text-gray-400 font-medium">Accrual Rate</p>
-            <p className="text-sm font-bold text-indigo-600">{limits.accrualRate} days/month</p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
-            <TrendingUp size={18} className="text-indigo-500" />
-          </div>
-        </div>
+
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Accrued Balance', value: accruedAllowance, color: 'text-indigo-600', bg: 'bg-gradient-to-br from-indigo-50 to-indigo-100/60', border: 'border-indigo-100', sub: 'Total earned', accent: '#6366f1' },
-          { label: 'Paid Used', value: totalPaidUsed, color: 'text-rose-600', bg: 'bg-gradient-to-br from-rose-50 to-rose-100/60', border: 'border-rose-100', sub: 'All paid leaves', accent: '#f43f5e' },
-          { label: 'Remaining Paid', value: remainingPaid, color: 'text-emerald-600', bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100/60', border: 'border-emerald-100', sub: 'Available now', accent: '#10b981' },
-          { label: 'LOP Used', value: usedLop, color: 'text-amber-600', bg: 'bg-gradient-to-br from-amber-50 to-amber-100/60', border: 'border-amber-100', sub: 'Loss of pay', accent: '#f59e0b' },
-        ].map((card, i) => (
-          <div key={i} className={`${card.bg} ${card.border} border rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default`}>
-            <p className={`text-[10px] font-black uppercase tracking-widest ${card.color} opacity-70 mb-2`}>{card.label}</p>
-            <p className={`text-4xl font-black ${card.color} tabular-nums`}>{card.value}</p>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-gray-400">{card.sub}</p>
-              <div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: card.accent }} />
+      {!(profile?.employmentType === 'INTERN' || profile?.employmentType === 'PROBATION') && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Accrued Balance', value: accruedAllowance, color: 'text-indigo-600', bg: 'bg-gradient-to-br from-indigo-50 to-indigo-100/60', border: 'border-indigo-100', sub: 'Total earned', accent: '#6366f1' },
+            { label: 'Paid Used', value: totalPaidUsed, color: 'text-rose-600', bg: 'bg-gradient-to-br from-rose-50 to-rose-100/60', border: 'border-rose-100', sub: 'All paid leaves', accent: '#f43f5e' },
+            { label: 'Remaining Paid', value: remainingPaid, color: 'text-emerald-600', bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100/60', border: 'border-emerald-100', sub: 'Available now', accent: '#10b981' },
+            { label: 'LOP Used', value: usedLop, color: 'text-amber-600', bg: 'bg-gradient-to-br from-amber-50 to-amber-100/60', border: 'border-amber-100', sub: 'Loss of pay', accent: '#f59e0b' },
+          ].map((card, i) => (
+            <div key={i} className={`${card.bg} ${card.border} border rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default`}>
+              <p className={`text-[10px] font-black uppercase tracking-widest ${card.color} opacity-70 mb-2`}>{card.label}</p>
+              <p className={`text-4xl font-black ${card.color} tabular-nums`}>{card.value}</p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-400">{card.sub}</p>
+                <div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: card.accent }} />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Leave Pool Bars */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: 'Sick Leave', used: usedSick, limit: limits.sick, color: 'bg-red-500', trackColor: 'bg-red-100' },
-          { label: 'Casual Leave', used: usedCasual, limit: limits.casual, color: 'bg-blue-500', trackColor: 'bg-blue-100' },
-          { label: 'Emergency Leave', used: usedEmergency, limit: limits.emergency, color: 'bg-purple-500', trackColor: 'bg-purple-100' },
-        ].map((pool, i) => (
-          <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-3">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{pool.label}</p>
-              <span className="text-xs font-semibold text-gray-400">{pool.used} / {pool.limit} days</span>
+      {/* Leave Pool Bars — only for Full-Time employees */}
+      {!(profile?.employmentType === 'INTERN' || profile?.employmentType === 'PROBATION') && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { label: 'Sick Leave', used: usedSick, limit: limits.sick, color: 'bg-red-500', trackColor: 'bg-red-100' },
+            { label: 'Casual Leave', used: usedCasual, limit: limits.casual, color: 'bg-blue-500', trackColor: 'bg-blue-100' },
+            { label: 'Emergency Leave', used: usedEmergency, limit: limits.emergency, color: 'bg-purple-500', trackColor: 'bg-purple-100' },
+          ].map((pool, i) => (
+            <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{pool.label}</p>
+                <span className="text-xs font-semibold text-gray-400">{pool.used} / {pool.limit} days</span>
+              </div>
+              <div className={`w-full ${pool.trackColor} h-2.5 rounded-full overflow-hidden`}>
+                <div
+                  className={`${pool.color} h-full rounded-full transition-all duration-700`}
+                  style={{ width: `${Math.min(100, (pool.used / pool.limit) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-2">{Math.max(0, pool.limit - pool.used)} days remaining</p>
             </div>
-            <div className={`w-full ${pool.trackColor} h-2.5 rounded-full overflow-hidden`}>
-              <div
-                className={`${pool.color} h-full rounded-full transition-all duration-700`}
-                style={{ width: `${Math.min(100, (pool.used / pool.limit) * 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-400 mt-2">{Math.max(0, pool.limit - pool.used)} days remaining</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Main: Apply Form + History */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -292,7 +296,14 @@ const EmployeeLeaves = () => {
             {/* Leave Category Toggle */}
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Category</label>
-              <div className="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100">
+              {(profile?.employmentType === 'INTERN' || profile?.employmentType === 'PROBATION') ? (
+                <div className="flex gap-2 p-1 bg-amber-50 rounded-2xl border border-amber-250">
+                  <div className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-white shadow text-center cursor-default flex items-center justify-center gap-1.5">
+                    <AlertCircle size={14} /> Loss of Pay (LOP) [Required for {profile.employmentType === 'INTERN' ? 'Intern' : 'Probation'}]
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100">
                 {['Paid', 'LOP'].map(cat => (
                   <button
                     key={cat}
@@ -307,7 +318,8 @@ const EmployeeLeaves = () => {
                     {cat === 'LOP' ? 'Loss of Pay (LOP)' : 'Paid Leave'}
                   </button>
                 ))}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Duration */}

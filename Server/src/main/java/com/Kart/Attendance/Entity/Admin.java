@@ -90,6 +90,12 @@ public class Admin {
     @Column(columnDefinition = "TEXT")
     private String declaredHolidays = "[]";
 
+    @Column(columnDefinition = "TEXT")
+    private String departments = "[\"Development\", \"Design\", \"HR\", \"Marketing\", \"Sales\"]";
+
+    private int internPeriodMonths = 3;
+    private int probationPeriodMonths = 6;
+
     @Transient
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String emailVerificationToken;

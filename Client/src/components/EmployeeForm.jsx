@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEmployees } from '../context/EmployeeContext';
 
 const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
+  const { departmentsList } = useEmployees();
   const initialFormState = {
     empId: '',
     name: '',
     email: '',
     phone: '',
-    department: 'Development',
+    department: departmentsList[0] || 'Development',
     role: '',
     password: '',
     joiningDate: new Date().toISOString().split('T')[0],
-    status: 'Active'
+    status: 'Active',
+    employmentType: 'FULL_TIME'
   };
 
   const [formData, setFormData] = useState(initialData || initialFormState);
@@ -34,13 +37,14 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
           ...initialData,
           empId: initialData.empId || initialData.id || '',
           password: initialData.password || '',
-          status: initialData.status || 'Active'
+          status: initialData.status || 'Active',
+          employmentType: initialData.employmentType || 'FULL_TIME'
         });
       } else {
         setFormData(initialFormState);
       }
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, departmentsList]);
 
   const requestOtp = async () => {
     if (!formData.email) {
@@ -112,12 +116,12 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-black/50 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-md my-auto flex flex-col max-h-[90vh]"
       >
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h2 className="text-xl font-semibold text-gray-900">{initialData ? 'Edit Employee' : 'Add New Employee'}</h2>
@@ -126,7 +130,7 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           <div className="space-y-1">
             <label className="text-sm font-semibold text-gray-700">Password</label>
             <div className="relative">
@@ -202,11 +206,13 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                 value={formData.department}
                 onChange={(e) => setFormData({...formData, department: e.target.value})}
               >
-                <option>Development</option>
-                <option>Design</option>
-                <option>HR</option>
-                <option>Marketing</option>
-                <option>Sales</option>
+                {departmentsList.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+
+
+
+
               </select>
             </div>
             <div className="space-y-1">
@@ -221,6 +227,35 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
               />
             </div>
           </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-semibold text-gray-700">Employment Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'FULL_TIME', label: 'Full Time' },
+                { value: 'INTERN', label: 'Intern' },
+                { value: 'PROBATION', label: 'Probation' }
+              ].map(type => {
+                const isSelected = formData.employmentType === type.value;
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setFormData({...formData, employmentType: type.value})}
+                    className={`py-3 rounded-xl border text-xs font-bold text-center transition-all duration-200 ${
+                      isSelected
+                        ? 'bg-indigo-600 border-transparent text-white shadow-sm'
+                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            </div>
+
 
           {!initialData && (
             <div className="space-y-2 rounded-2xl border border-blue-100 bg-blue-50/40 p-4">

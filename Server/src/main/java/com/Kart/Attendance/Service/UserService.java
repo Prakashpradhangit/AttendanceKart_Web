@@ -118,6 +118,7 @@ public class UserService {
             if (userDetails.getRole() != null) user.setRole(userDetails.getRole());
             if (userDetails.getDepartment() != null) user.setDepartment(userDetails.getDepartment());
             if (userDetails.getDesignation() != null) user.setDesignation(userDetails.getDesignation());
+            if (userDetails.getEmploymentType() != null) user.setEmploymentType(userDetails.getEmploymentType());
             if (userDetails.getJoiningDate() != null) user.setJoiningDate(userDetails.getJoiningDate());
             if (userDetails.getEmployeeCode() != null) user.setEmployeeCode(userDetails.getEmployeeCode());
             if (userDetails.getGender() != null) user.setGender(userDetails.getGender());

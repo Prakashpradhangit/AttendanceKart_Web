@@ -21,6 +21,11 @@ public class LeaveService {
 
     public LeaveRequest applyLeave(LeaveRequest request, Long userId) {
         String tenantId = TenantContext.getCurrentTenant();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if ("INTERN".equalsIgnoreCase(user.getEmploymentType()) || "PROBATION".equalsIgnoreCase(user.getEmploymentType())) {
+            request.setLeaveCategory("LOP");
+        }
         request.setTenantId(tenantId);
         request.setUserId(String.valueOf(userId));
         request.setStatus("PENDING");

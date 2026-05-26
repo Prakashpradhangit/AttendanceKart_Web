@@ -8,6 +8,7 @@ export const EmployeeProvider = ({ children }) => {
   const [activeChat, setActiveChat] = useState(null); // 'team' or 'employee'
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [maxUsers, setMaxUsers] = useState(100);
+  const [departmentsList, setDepartmentsList] = useState(['Development', 'Design', 'HR', 'Marketing', 'Sales']);
   const [employeePage, setEmployeePage] = useState(0);
   const [employeePagination, setEmployeePagination] = useState({
     page: 0,
@@ -34,6 +35,16 @@ export const EmployeeProvider = ({ children }) => {
       });
       if (res.ok) {
         const data = await res.json();
+        if (data && data.departments) {
+          try {
+            const depts = JSON.parse(data.departments);
+            if (Array.isArray(depts)) {
+              setDepartmentsList(depts);
+            }
+          } catch (e) {
+            console.error('Failed to parse departments:', e);
+          }
+        }
         if (data && data.maxUsers !== undefined) {
           setMaxUsers(data.maxUsers);
         }
@@ -81,7 +92,8 @@ export const EmployeeProvider = ({ children }) => {
             userRole: user.role,
             joiningDate: user.joiningDate,
             profileImage: user.profileImage,
-            status: user.status || 'Active'
+            status: user.status || 'Active',
+            employmentType: user.employmentType || 'FULL_TIME'
           }));
         setEmployees(mappedData);
         if (!Array.isArray(data)) {
@@ -124,7 +136,8 @@ export const EmployeeProvider = ({ children }) => {
         designation: employee.role,
         role: 'EMPLOYEE', // default role
         joiningDate: employee.joiningDate,
-        emailVerificationToken: employee.emailVerificationToken
+        emailVerificationToken: employee.emailVerificationToken,
+        employmentType: employee.employmentType || 'FULL_TIME'
       };
 
       const response = await fetch('/api/users', {
@@ -206,7 +219,8 @@ export const EmployeeProvider = ({ children }) => {
         designation: updatedData.role,
         role: updatedData.userRole, // Send the enum role back
         joiningDate: updatedData.joiningDate,
-        status: updatedData.status || 'Active'
+        status: updatedData.status || 'Active',
+        employmentType: updatedData.employmentType || 'FULL_TIME'
       };
 
       const response = await fetch(`/api/users/${id}`, {
@@ -256,6 +270,8 @@ export const EmployeeProvider = ({ children }) => {
       setEmployeePage,
       maxUsers,
       fetchMaxUsers,
+      departmentsList,
+      setDepartmentsList,
       addEmployee, 
       addBulkEmployees,
       updateEmployee, 
