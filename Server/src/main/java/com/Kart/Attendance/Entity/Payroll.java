@@ -50,24 +50,42 @@ public class Payroll {
     private double specialAllowance;
     private double otherAllowances;
     private double performanceBonus;
+    private double incentives;
+    private double overtime;
+    private double otherEarnings;
 
     // Deductions
     private double providentFund;
     private double professionalTax;
     private double incomeTax;
     private double esi;
+    private double insurance;
+    private double advanceDeduction;
+    private double loanDeduction;
     private double otherDeductions;
     private double attendanceDeduction; // Deductions from absence or LOP leaves
+
+    // Policy Deductions / Penalties
+    private double lateComingPenalty;
+    private double earlyCheckoutPenalty;
+    private double missingPunchPenalty;
 
     // Attendance stats
     private double totalDays;
     private double presentDays;
     private double absentDays;
     private double leaveDays;
+    private double weekOffs;
+    private double holidays;
 
     private double totalEarnings;
     private double totalDeductions;
     private double netSalary;
+
+    // Manual Adjustments Audit
+    private boolean adjustedManually = false;
+    @Column(columnDefinition = "TEXT")
+    private String auditLog;
 
     // Employer Statutory Contributions
     private double employerPf;

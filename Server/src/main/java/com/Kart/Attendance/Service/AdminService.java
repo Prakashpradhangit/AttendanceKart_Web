@@ -162,6 +162,39 @@ public class AdminService {
             else if (sd instanceof Integer) admin.setShiftDuration(((Integer) sd).doubleValue());
             else if (sd instanceof String) admin.setShiftDuration(Double.parseDouble((String) sd));
         }
+        if (settings.containsKey("lateCountThreshold")) {
+            Object val = settings.get("lateCountThreshold");
+            if (val instanceof Integer) admin.setLateCountThreshold((Integer) val);
+            else if (val instanceof String) admin.setLateCountThreshold(Integer.parseInt((String) val));
+        }
+        if (settings.containsKey("lateDeductionDays")) {
+            Object val = settings.get("lateDeductionDays");
+            if (val instanceof Double) admin.setLateDeductionDays((Double) val);
+            else if (val instanceof Integer) admin.setLateDeductionDays(((Integer) val).doubleValue());
+            else if (val instanceof String) admin.setLateDeductionDays(Double.parseDouble((String) val));
+        }
+        if (settings.containsKey("lateMinutesHalfDayThreshold")) {
+            Object val = settings.get("lateMinutesHalfDayThreshold");
+            if (val instanceof Integer) admin.setLateMinutesHalfDayThreshold((Integer) val);
+            else if (val instanceof String) admin.setLateMinutesHalfDayThreshold(Integer.parseInt((String) val));
+        }
+        if (settings.containsKey("earlyCheckoutHourThreshold")) {
+            Object val = settings.get("earlyCheckoutHourThreshold");
+            if (val instanceof Double) admin.setEarlyCheckoutHourThreshold((Double) val);
+            else if (val instanceof Integer) admin.setEarlyCheckoutHourThreshold(((Integer) val).doubleValue());
+            else if (val instanceof String) admin.setEarlyCheckoutHourThreshold(Double.parseDouble((String) val));
+        }
+        if (settings.containsKey("earlyCheckoutDeductionDays")) {
+            Object val = settings.get("earlyCheckoutDeductionDays");
+            if (val instanceof Double) admin.setEarlyCheckoutDeductionDays((Double) val);
+            else if (val instanceof Integer) admin.setEarlyCheckoutDeductionDays(((Integer) val).doubleValue());
+            else if (val instanceof String) admin.setEarlyCheckoutDeductionDays(Double.parseDouble((String) val));
+        }
+        if (settings.containsKey("autoPenaltyRulesEnabled")) {
+            Object val = settings.get("autoPenaltyRulesEnabled");
+            if (val instanceof Boolean) admin.setAutoPenaltyRulesEnabled((Boolean) val);
+            else if (val instanceof String) admin.setAutoPenaltyRulesEnabled(Boolean.parseBoolean((String) val));
+        }
         if (settings.containsKey("shortForm") || settings.containsKey("short_form")) {
             String newShortForm = (String) (settings.containsKey("shortForm") ? settings.get("shortForm") : settings.get("short_form"));
             if (newShortForm != null) {

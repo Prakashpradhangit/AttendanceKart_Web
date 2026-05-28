@@ -27,7 +27,7 @@ const Attendance = () => {
   const [clockOutRequests, setClockOutRequests] = useState([]);
   const [showRequestsModal, setShowRequestsModal] = useState(false);
 
-  const fetchAttendanceData = async () => {
+  const fetchAttendanceData = async (selectedDate) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -36,7 +36,7 @@ const Attendance = () => {
       const [statsRes, trendsRes, recordsRes, settingsRes, requestsRes] = await Promise.all([
         fetch('/api/attendance/admin/today/stats', { headers }),
         fetch('/api/attendance/admin/stats/7days', { headers }),
-        fetch('/api/attendance/admin/today/all', { headers }),
+        fetch(`/api/attendance/admin/all?date=${selectedDate || dateFilter}`, { headers }),
         fetch('/api/admin/settings', { headers }),
         fetch('/api/attendance/clock-out-requests/admin', { headers })
       ]);
@@ -66,26 +66,19 @@ const Attendance = () => {
 
   const getDisplayStatus = (record) => {
     if (!record.checkInTime) return 'Absent';
-    if (record.status) {
-      const statusLower = record.status.toLowerCase();
-      if (statusLower === 'present' || statusLower === 'on time' || statusLower === 'on-time') {
-        return 'On Time';
-      }
-      if (statusLower === 'late') {
-        return 'Late';
-      }
-      if (statusLower === 'absent') {
-        return 'Absent';
-      }
-    }
-    // Fallback dynamic calculation:
+
+    // Always compute dynamically from admin's current shift settings.
+    // This ensures any change in shift time / grace period is immediately reflected.
     const [bHour, bMin] = checkInTime.split(':').map(Number);
     const totalMinutes = bMin + Number(gracePeriod);
     const tHour = bHour + Math.floor(totalMinutes / 60);
     const tMin = totalMinutes % 60;
 
     const checkIn = new Date(record.checkInTime);
-    if (checkIn.getHours() > tHour || (checkIn.getHours() === tHour && checkIn.getMinutes() > tMin)) {
+    const checkInHour = checkIn.getHours();
+    const checkInMin = checkIn.getMinutes();
+
+    if (checkInHour > tHour || (checkInHour === tHour && checkInMin > tMin)) {
       return 'Late';
     }
     return 'On Time';
@@ -104,9 +97,19 @@ const Attendance = () => {
     }
   };
 
+  // Re-fetch records whenever the date picker changes
   useEffect(() => {
-    fetchAttendanceData();
-  }, []);
+    fetchAttendanceData(dateFilter);
+  }, [dateFilter]);
+
+  // Re-fetch settings + records when admin returns to this tab after changing settings
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden) fetchAttendanceData(dateFilter);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [dateFilter]);
 
   const formattedRecords = useMemo(() => {
     return realRecords.map(r => ({

@@ -136,6 +136,16 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getAllTodayAttendance());
     }
 
+    @GetMapping("/admin/all")
+    public ResponseEntity<?> getAllAttendanceByDate(
+            @RequestParam(required = false) String date,
+            HttpServletRequest request) {
+        if (!"ADMIN".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        return ResponseEntity.ok(attendanceService.getAllAttendanceByDate(date));
+    }
+
     @GetMapping("/admin/today/stats")
     public ResponseEntity<?> getTodayStats(HttpServletRequest request) {
         if (!"ADMIN".equals(request.getAttribute("authenticatedRole"))) {

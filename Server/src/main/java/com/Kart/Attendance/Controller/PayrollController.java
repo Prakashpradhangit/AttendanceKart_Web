@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +38,88 @@ public class PayrollController {
         String tenantId = TenantContext.getCurrentTenant();
         try {
             return ResponseEntity.ok(payrollService.saveSalaryStructure(structure, tenantId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // SALARY BLUEPRINT TEMPLATE ENDPOINTS
+    @GetMapping("/templates")
+    public ResponseEntity<?> getTemplates(HttpServletRequest request) {
+        if (!isAdmin(request)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        String tenantId = TenantContext.getCurrentTenant();
+        return ResponseEntity.ok(payrollService.getTemplates(tenantId));
+    }
+
+    @PostMapping("/templates")
+    public ResponseEntity<?> saveTemplate(HttpServletRequest request, @RequestBody com.Kart.Attendance.Entity.SalaryTemplate template) {
+        if (!isAdmin(request)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        String tenantId = TenantContext.getCurrentTenant();
+        try {
+            return ResponseEntity.ok(payrollService.saveTemplate(template, tenantId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/templates/{id}")
+    public ResponseEntity<?> deleteTemplate(HttpServletRequest request, @PathVariable Long id) {
+        if (!isAdmin(request)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        String tenantId = TenantContext.getCurrentTenant();
+        try {
+            payrollService.deleteTemplate(id, tenantId);
+            return ResponseEntity.ok(Map.of("message", "Template deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/templates/{id}/assign")
+    public ResponseEntity<?> assignTemplate(
+            HttpServletRequest request,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body
+    ) {
+        if (!isAdmin(request)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        String tenantId = TenantContext.getCurrentTenant();
+        try {
+            List<?> uIdsRaw = (List<?>) body.get("userIds");
+            List<Long> userIds = new ArrayList<>();
+            for (Object o : uIdsRaw) {
+                if (o instanceof Number) userIds.add(((Number) o).longValue());
+                else if (o instanceof String) userIds.add(Long.parseLong((String) o));
+            }
+            
+            String effDateStr = (String) body.get("effectiveDate");
+            LocalDate effectiveDate = (effDateStr != null) ? LocalDate.parse(effDateStr) : LocalDate.now();
+
+            payrollService.assignTemplateToEmployees(id, userIds, effectiveDate, tenantId);
+            return ResponseEntity.ok(Map.of("message", "Template assigned successfully to selected employees"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<?> saveBulkPayroll(HttpServletRequest request, @RequestBody List<Payroll> payrolls) {
+        if (!isAdmin(request)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        String tenantId = TenantContext.getCurrentTenant();
+        try {
+            List<Payroll> saved = new ArrayList<>();
+            for (Payroll p : payrolls) {
+                saved.add(payrollService.savePayroll(p, tenantId));
+            }
+            return ResponseEntity.ok(saved);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

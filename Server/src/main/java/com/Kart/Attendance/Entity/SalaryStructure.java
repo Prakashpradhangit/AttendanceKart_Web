@@ -45,13 +45,28 @@ public class SalaryStructure {
     private double specialAllowance;
     private double otherAllowances;
     private double performanceBonus;
+    private double incentives;
+    private double overtime;
+    private double otherEarnings;
 
     // Deductions
     private double providentFund;
     private double esi;
     private double professionalTax = 200.0;
     private double tds;
+    private double insurance;
+    private double advanceDeduction;
+    private double loanDeduction;
     private double otherDeductions;
+
+    // Configuration Settings
+    private double monthlyCtc;
+    private double grossSalary;
+    private double netSalary;
+    private String salaryType = "Monthly"; // Monthly / Hourly / Daily
+    private String paymentMode = "Bank Transfer";
+    private String payrollFrequency = "Monthly";
+    private boolean active = true;
 
     // Banking & Statutory details associated with this structure version
     private String uanNumber;

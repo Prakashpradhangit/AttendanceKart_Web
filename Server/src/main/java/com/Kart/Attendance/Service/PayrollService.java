@@ -5,20 +5,30 @@ import com.Kart.Attendance.Entity.LeaveRequest;
 import com.Kart.Attendance.Entity.Payroll;
 import com.Kart.Attendance.Entity.PayslipRequest;
 import com.Kart.Attendance.Entity.SalaryStructure;
+import com.Kart.Attendance.Entity.SalaryTemplate;
 import com.Kart.Attendance.Entity.User;
+import com.Kart.Attendance.Entity.Admin;
 import com.Kart.Attendance.Repository.Attendance_Details;
 import com.Kart.Attendance.Repository.LeaveRepository;
 import com.Kart.Attendance.Repository.PayrollRepository;
 import com.Kart.Attendance.Repository.PayslipRequestRepository;
 import com.Kart.Attendance.Repository.SalaryStructureRepository;
+import com.Kart.Attendance.Repository.SalaryTemplateRepository;
 import com.Kart.Attendance.Repository.UserRepository;
+import com.Kart.Attendance.Repository.AdminRepository;
 import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
+import java.time.LocalTime;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 import java.util.*;
 
 @Service
@@ -30,6 +40,8 @@ public class PayrollService {
     private final Attendance_Details attendanceRepository;
     private final LeaveRepository leaveRepository;
     private final SalaryStructureRepository salaryStructureRepository;
+    private final SalaryTemplateRepository salaryTemplateRepository;
+    private final AdminRepository adminRepository;
 
     public List<User> getActiveEmployees(String tenantId) {
         List<User> all = userRepository.findByTenantId(tenantId);
@@ -42,6 +54,131 @@ public class PayrollService {
             }
         }
         return active;
+    }
+
+    // Salary Templates Operations
+    public List<SalaryTemplate> getTemplates(String tenantId) {
+        return salaryTemplateRepository.findByTenantId(tenantId);
+    }
+
+    public List<SalaryTemplate> getActiveTemplates(String tenantId) {
+        return salaryTemplateRepository.findByTenantIdAndActive(tenantId, true);
+    }
+
+    @Transactional
+    public SalaryTemplate saveTemplate(SalaryTemplate template, String tenantId) {
+        template.setTenantId(tenantId);
+        
+        double basic = template.getBasicSalary();
+        template.setHra(Math.round(basic * (template.getHraPercent() / 100.0)));
+        template.setDa(Math.round(basic * (template.getDaPercent() / 100.0)));
+        
+        double gross = basic + template.getHra() + template.getDa() + 
+                template.getConveyanceAllowance() + template.getMedicalAllowance() + 
+                template.getSpecialAllowance() + template.getOtherAllowances() +
+                template.getPerformanceBonus() + template.getIncentives() + template.getOvertime() + template.getOtherEarnings();
+
+        template.setProvidentFund(Math.round(basic * (template.getPfPercent() / 100.0)));
+        template.setEsi(Math.round(gross * (template.getEsiPercent() / 100.0)));
+        template.setTds(Math.round(gross * (template.getTdsPercent() / 100.0)));
+        
+        double totalDeductions = template.getProvidentFund() + template.getEsi() + template.getProfessionalTax() +
+                template.getTds() + template.getInsurance() + template.getAdvanceDeduction() + template.getLoanDeduction() +
+                template.getOtherDeductions();
+                
+        template.setGrossSalary(gross);
+        template.setNetSalary(gross - totalDeductions);
+        
+        double empPf = Math.round(basic * 0.12);
+        double empEsi = Math.round(gross * 0.0325);
+        template.setMonthlyCtc(gross + empPf + empEsi);
+        
+        return salaryTemplateRepository.save(template);
+    }
+
+    @Transactional
+    public void deleteTemplate(Long id, String tenantId) {
+        SalaryTemplate template = salaryTemplateRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found"));
+        if (!template.getTenantId().equals(tenantId)) {
+            throw new IllegalStateException("Unauthorized access");
+        }
+        salaryTemplateRepository.delete(template);
+    }
+
+    @Transactional
+    public void assignTemplateToEmployees(Long templateId, List<Long> userIds, LocalDate effectiveDate, String tenantId) {
+        SalaryTemplate template = salaryTemplateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found"));
+        if (!template.getTenantId().equals(tenantId)) {
+            throw new IllegalStateException("Unauthorized access");
+        }
+
+        LocalDate effDate = (effectiveDate != null) ? effectiveDate : LocalDate.now();
+
+        for (Long userId : userIds) {
+            SalaryStructure structure = new SalaryStructure();
+            structure.setUserId(userId);
+            structure.setTenantId(tenantId);
+            structure.setEffectiveDate(effDate);
+            structure.setStructureType(template.getSalaryType());
+            structure.setCalculationMode("PERCENTAGE_BASED");
+            
+            structure.setBasicSalary(template.getBasicSalary());
+            structure.setHraPercent(template.getHraPercent());
+            structure.setDaPercent(template.getDaPercent());
+            structure.setPfPercent(template.getPfPercent());
+            structure.setEsiPercent(template.getEsiPercent());
+            structure.setTdsPercent(template.getTdsPercent());
+            
+            structure.setHra(template.getHra());
+            structure.setDa(template.getDa());
+            structure.setConveyanceAllowance(template.getConveyanceAllowance());
+            structure.setMedicalAllowance(template.getMedicalAllowance());
+            structure.setSpecialAllowance(template.getSpecialAllowance());
+            structure.setOtherAllowances(template.getOtherAllowances());
+            structure.setPerformanceBonus(template.getPerformanceBonus());
+            structure.setIncentives(template.getIncentives());
+            structure.setOvertime(template.getOvertime());
+            structure.setOtherEarnings(template.getOtherEarnings());
+            
+            structure.setProvidentFund(template.getProvidentFund());
+            structure.setEsi(template.getEsi());
+            structure.setProfessionalTax(template.getProfessionalTax());
+            structure.setTds(template.getTds());
+            structure.setInsurance(template.getInsurance());
+            structure.setAdvanceDeduction(template.getAdvanceDeduction());
+            structure.setLoanDeduction(template.getLoanDeduction());
+            structure.setOtherDeductions(template.getOtherDeductions());
+            
+            structure.setGrossSalary(template.getGrossSalary());
+            structure.setNetSalary(template.getNetSalary());
+            structure.setMonthlyCtc(template.getMonthlyCtc());
+            structure.setSalaryType(template.getSalaryType());
+            structure.setPaymentMode(template.getPaymentMode());
+            structure.setPayrollFrequency(template.getPayrollFrequency());
+            structure.setActive(true);
+
+            // Inherit bank & statutory info from last structure
+            List<SalaryStructure> existing = salaryStructureRepository.findByUserIdAndTenantIdOrderByEffectiveDateDesc(userId, tenantId);
+            if (!existing.isEmpty()) {
+                SalaryStructure last = existing.get(0);
+                structure.setUanNumber(last.getUanNumber());
+                structure.setPfNumber(last.getPfNumber());
+                structure.setEsiNumber(last.getEsiNumber());
+                structure.setBankName(last.getBankName());
+                structure.setIfscCode(last.getIfscCode());
+                structure.setAccountNumber(last.getAccountNumber());
+            }
+
+            salaryStructureRepository.save(structure);
+            
+            // Sync to User entity profile
+            userRepository.findById(userId).ifPresent(user -> {
+                user.setBasicSalary(template.getBasicSalary());
+                userRepository.save(user);
+            });
+        }
     }
 
     // Salary Structure Configuration & Revision History
@@ -64,11 +201,23 @@ public class PayrollService {
             
             double gross = basic + structure.getHra() + structure.getDa() + 
                     structure.getConveyanceAllowance() + structure.getMedicalAllowance() + 
-                    structure.getSpecialAllowance() + structure.getOtherAllowances();
+                    structure.getSpecialAllowance() + structure.getOtherAllowances() +
+                    structure.getPerformanceBonus() + structure.getIncentives() + structure.getOvertime() + structure.getOtherEarnings();
 
             structure.setProvidentFund(Math.round(basic * (structure.getPfPercent() / 100.0)));
             structure.setEsi(Math.round(gross * (structure.getEsiPercent() / 100.0)));
             structure.setTds(Math.round(gross * (structure.getTdsPercent() / 100.0)));
+            
+            double totalDeductions = structure.getProvidentFund() + structure.getEsi() + structure.getProfessionalTax() +
+                    structure.getTds() + structure.getInsurance() + structure.getAdvanceDeduction() +
+                    structure.getLoanDeduction() + structure.getOtherDeductions();
+                    
+            structure.setGrossSalary(gross);
+            structure.setNetSalary(gross - totalDeductions);
+            
+            double empPf = Math.round(basic * 0.12);
+            double empEsi = Math.round(gross * 0.0325);
+            structure.setMonthlyCtc(gross + empPf + empEsi);
         }
 
         SalaryStructure saved = salaryStructureRepository.save(structure);
@@ -91,6 +240,10 @@ public class PayrollService {
     public Map<String, Object> calculateSuggestion(Long userId, String month, String tenantId) {
         User employee = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
+
+        // Load organization settings & policies
+        Admin admin = adminRepository.findByTenantId(tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Admin settings not found for tenant " + tenantId));
 
         // Parse month (e.g. "April 2025")
         String[] parts = month.trim().split("\\s+");
@@ -122,7 +275,7 @@ public class PayrollService {
         LocalDate monthStart = LocalDate.of(yearInt, monthInt, 1);
         LocalDate monthEnd = monthStart.withDayOfMonth(totalDays);
 
-        // 1. Fetch active SalaryStructure on or before monthEnd
+        // Fetch active SalaryStructure
         Optional<SalaryStructure> structOpt = salaryStructureRepository
                 .findFirstByUserIdAndTenantIdAndEffectiveDateLessThanEqualOrderByEffectiveDateDesc(userId, tenantId, monthEnd);
 
@@ -133,7 +286,10 @@ public class PayrollService {
         double medical = 1250.0;
         double special = 5000.0;
         double otherAllowances = 2000.0;
-        double bonus = 0.0;
+        double performanceBonus = 0.0;
+        double incentives = 0.0;
+        double overtimeBase = 0.0;
+        double otherEarnings = 0.0;
 
         double pfPercent = 12.0;
         double esiPercent = 0.75;
@@ -143,6 +299,9 @@ public class PayrollService {
         double esi = 0.0;
         double profTax = 200.0;
         double tds = 0.0;
+        double insurance = 0.0;
+        double advanceDeduction = 0.0;
+        double loanDeduction = 0.0;
         double otherDeductions = 0.0;
 
         String uan = employee.getUanNumber() != null ? employee.getUanNumber() : "";
@@ -151,6 +310,10 @@ public class PayrollService {
         String bank = employee.getBankName() != null ? employee.getBankName() : "";
         String ifsc = employee.getIfscCode() != null ? employee.getIfscCode() : "";
         String account = employee.getAccountNumber() != null ? employee.getAccountNumber() : "";
+        
+        String salaryType = "Monthly";
+        String paymentMode = "Bank Transfer";
+        String payrollFrequency = "Monthly";
 
         if (structOpt.isPresent()) {
             SalaryStructure struct = structOpt.get();
@@ -161,7 +324,10 @@ public class PayrollService {
             medical = struct.getMedicalAllowance();
             special = struct.getSpecialAllowance();
             otherAllowances = struct.getOtherAllowances();
-            bonus = struct.getPerformanceBonus();
+            performanceBonus = struct.getPerformanceBonus();
+            incentives = struct.getIncentives();
+            overtimeBase = struct.getOvertime();
+            otherEarnings = struct.getOtherEarnings();
 
             pfPercent = struct.getPfPercent();
             esiPercent = struct.getEsiPercent();
@@ -171,39 +337,150 @@ public class PayrollService {
             esi = struct.getEsi();
             profTax = struct.getProfessionalTax();
             tds = struct.getTds();
+            insurance = struct.getInsurance();
+            advanceDeduction = struct.getAdvanceDeduction();
+            loanDeduction = struct.getLoanDeduction();
             otherDeductions = struct.getOtherDeductions();
+            
+            salaryType = struct.getSalaryType() != null ? struct.getSalaryType() : "Monthly";
+            paymentMode = struct.getPaymentMode() != null ? struct.getPaymentMode() : "Bank Transfer";
+            payrollFrequency = struct.getPayrollFrequency() != null ? struct.getPayrollFrequency() : "Monthly";
         }
 
-        // 2. Fetch attendance records
+        // Fetch declared holidays from Admin
+        Set<LocalDate> holidayDates = new HashSet<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            List<?> list = mapper.readValue(admin.getDeclaredHolidays(), List.class);
+            for (Object item : list) {
+                if (item instanceof String) {
+                    LocalDate d = LocalDate.parse((String) item);
+                    if (!d.isBefore(monthStart) && !d.isAfter(monthEnd)) {
+                        holidayDates.add(d);
+                    }
+                } else if (item instanceof Map) {
+                    Object dateVal = ((Map<?, ?>) item).get("date");
+                    if (dateVal instanceof String) {
+                        LocalDate d = LocalDate.parse((String) dateVal);
+                        if (!d.isBefore(monthStart) && !d.isAfter(monthEnd)) {
+                            holidayDates.add(d);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // keep holiday list empty
+        }
+
+        // Fetch attendance records
         String yearMonth = year + "-" + monthNum;
         List<AttendanceDetails> attendances = attendanceRepository
                 .findByUserIdAndTenantIdAndAttendanceDateStartingWith(String.valueOf(userId), tenantId, yearMonth);
+
+        // Map attendance by date for O(1) lookup
+        Map<String, AttendanceDetails> attMap = new HashMap<>();
+        for (AttendanceDetails ad : attendances) {
+            if (ad.getAttendanceDate() != null) {
+                attMap.put(ad.getAttendanceDate(), ad);
+            }
+        }
+
+        // Standard Shifts configuration
+        LocalTime shiftStart = LocalTime.parse(admin.getDefaultCheckInTime());
+        LocalTime shiftEnd = LocalTime.parse(admin.getDefaultCheckOutTime());
+        int graceMinutes = admin.getGracePeriod();
+        LocalTime lateThreshold = shiftStart.plusMinutes(graceMinutes);
 
         double presentDays = 0;
         double absentDays = 0;
         int lateCount = 0;
         int halfDayCount = 0;
-        for (AttendanceDetails ad : attendances) {
-            String status = ad.getStatus();
-            if (status != null) {
-                if (status.equalsIgnoreCase("PRESENT") || status.equalsIgnoreCase("Present")
-                        || status.equalsIgnoreCase("ON TIME") || status.equalsIgnoreCase("On Time")
-                        || status.equalsIgnoreCase("ON-TIME") || status.equalsIgnoreCase("On-Time")) {
-                    presentDays += 1.0;
-                } else if (status.equalsIgnoreCase("LATE") || status.equalsIgnoreCase("Late")) {
-                    presentDays += 1.0;
-                    lateCount++;
-                } else if (status.equalsIgnoreCase("ABSENT") || status.equalsIgnoreCase("Absent")) {
-                    absentDays += 1.0;
-                } else if (status.equalsIgnoreCase("HALF_DAY") || status.equalsIgnoreCase("Half Day")
-                        || status.equalsIgnoreCase("First Half") || status.equalsIgnoreCase("Second Half")) {
+        int missingPunches = 0;
+        double totalOvertimeHours = 0.0;
+        
+        double lateComingPenalty = 0.0;
+        double earlyCheckoutPenalty = 0.0;
+        double missingPunchPenalty = 0.0;
+        int weekendDays = 0;
+        int holidays = 0;
+
+        // Process calendar day by day
+        for (LocalDate date = monthStart; !date.isAfter(monthEnd); date = date.plusDays(1)) {
+            String dateStr = date.toString();
+            boolean isWeekend = (date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY);
+            boolean isHoliday = holidayDates.contains(date);
+
+            if (isWeekend) {
+                weekendDays++;
+            } else if (isHoliday) {
+                holidays++;
+            }
+
+            if (attMap.containsKey(dateStr)) {
+                AttendanceDetails ad = attMap.get(dateStr);
+                String status = ad.getStatus();
+                
+                // Track check-in / check-out times for policy deductions
+                boolean hasCheckIn = ad.getCheckInTime() != null && !ad.getCheckInTime().isBlank();
+                boolean hasCheckOut = ad.getCheckOutTime() != null && !ad.getCheckOutTime().isBlank();
+
+                if (!hasCheckIn || !hasCheckOut) {
+                    missingPunches++;
+                    if (admin.isAutoPenaltyRulesEnabled()) {
+                        missingPunchPenalty += 0.5; // Unresolved missing punch counts as 0.5 LOP day penalty
+                    }
                     presentDays += 0.5;
-                    halfDayCount++;
+                } else {
+                    // Fully punched day
+                    try {
+                        LocalDateTime checkInDateTime = LocalDateTime.parse(ad.getCheckInTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                        LocalDateTime checkOutDateTime = LocalDateTime.parse(ad.getCheckOutTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                        LocalTime checkInTime = checkInDateTime.toLocalTime();
+                        LocalTime checkOutTime = checkOutDateTime.toLocalTime();
+
+                        // 1. Late arrival
+                        if (checkInTime.isAfter(lateThreshold)) {
+                            long minsLate = Duration.between(shiftStart, checkInTime).toMinutes();
+                            if (minsLate > admin.getLateMinutesHalfDayThreshold() && admin.isAutoPenaltyRulesEnabled()) {
+                                presentDays += 0.5;
+                                halfDayCount++;
+                            } else {
+                                presentDays += 1.0;
+                                lateCount++;
+                            }
+                        } else {
+                            presentDays += 1.0;
+                        }
+
+                        // 2. Early checkout
+                        double requiredHours = admin.getShiftDuration();
+                        Duration actualDuration = Duration.between(checkInDateTime, checkOutDateTime);
+                        double actualWorkHours = actualDuration.toMinutes() / 60.0;
+                        
+                        if (checkOutTime.isBefore(shiftEnd) || actualWorkHours < requiredHours) {
+                            double earlyHours = Math.max(0.0, requiredHours - actualWorkHours);
+                            if (earlyHours >= admin.getEarlyCheckoutHourThreshold() && admin.isAutoPenaltyRulesEnabled()) {
+                                earlyCheckoutPenalty += admin.getEarlyCheckoutDeductionDays();
+                            }
+                        }
+
+                        // 3. Overtime
+                        if (actualWorkHours > requiredHours) {
+                            totalOvertimeHours += (actualWorkHours - requiredHours);
+                        }
+                    } catch (Exception e) {
+                        presentDays += 1.0; // Fallback in case of parse error
+                    }
+                }
+            } else {
+                // Not punched
+                if (!isWeekend && !isHoliday) {
+                    absentDays += 1.0;
                 }
             }
         }
 
-        // 3. Fetch approved leaves overlapping this month
+        // Fetch leaves overlapping this month
         List<LeaveRequest> leaves = leaveRepository.findByUserIdAndTenantIdAndStatus(String.valueOf(userId), tenantId, "APPROVED");
         int totalLeaveDays = 0;
         int lopLeaveDays = 0;
@@ -224,39 +501,28 @@ public class PayrollService {
                     }
                 }
             } catch (Exception e) {
-                // Ignore parse exceptions
+                // ignore
             }
         }
 
-        // Count weekend days (Saturdays and Sundays) in the month
-        int weekendDays = 0;
-        for (LocalDate date = monthStart; !date.isAfter(monthEnd); date = date.plusDays(1)) {
-            java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
-            if (dayOfWeek == java.time.DayOfWeek.SATURDAY || dayOfWeek == java.time.DayOfWeek.SUNDAY) {
-                weekendDays++;
-            }
-        }
-        int workingDays = totalDays - weekendDays;
-        double computedAbsent = workingDays - presentDays - totalLeaveDays;
-        if (computedAbsent > absentDays) {
-            absentDays = Math.max(0.0, computedAbsent);
+        // Adjust absent days based on leaves
+        absentDays = Math.max(0.0, absentDays - totalLeaveDays);
+
+        // Apply 3 late marks policy
+        if (admin.isAutoPenaltyRulesEnabled() && lateCount > 0) {
+            lateComingPenalty = (lateCount / admin.getLateCountThreshold()) * admin.getLateDeductionDays();
         }
 
-        // 4. Late mark deduction rule: every 3 late marks count as 0.5 LOP days
-        double lateMarkLopDays = (lateCount / 3) * 0.5;
-
-        // 5. Total LOP Days calculation
-        double totalLopDays = absentDays + lopLeaveDays + lateMarkLopDays;
-
-        // 6. Paid Days / Payable Days calculation
-        // General: paidDays = totalDays - LOP days
+        // Total LOP Days computation
+        double totalLopDays = absentDays + lopLeaveDays + lateComingPenalty + earlyCheckoutPenalty + missingPunchPenalty + (halfDayCount * 0.5);
         double paidDays = totalDays - totalLopDays;
+        
         if (paidDays < 0) paidDays = 0;
         if (paidDays > totalDays) paidDays = totalDays;
 
         double prorationFactor = totalDays > 0 ? (double) paidDays / totalDays : 1.0;
 
-        // Prorated Earnings
+        // Pro-rate Earnings
         double proratedBasic = Math.round(basic * prorationFactor);
         double proratedHra = Math.round(hra * prorationFactor);
         double proratedDa = Math.round(da * prorationFactor);
@@ -264,22 +530,41 @@ public class PayrollService {
         double proratedMedical = Math.round(medical * prorationFactor);
         double proratedSpecial = Math.round(special * prorationFactor);
         double proratedOtherAllowances = Math.round(otherAllowances * prorationFactor);
-        double actualBonus = bonus; // Performance bonus is typically not prorated
+        double proratedOtherEarnings = Math.round(otherEarnings * prorationFactor);
+
+        // Fixed / Variable earnings
+        double actualBonus = performanceBonus;
+        double actualIncentives = incentives;
+        
+        // Calculate overtime earnings
+        double dailyRate = basic / (totalDays > 0 ? totalDays : 30.0);
+        double hourlyOvertimeRate = dailyRate / 8.0; // 8 hours work day
+        double computedOvertimePay = Math.round(totalOvertimeHours * hourlyOvertimeRate);
 
         double proratedGross = proratedBasic + proratedHra + proratedDa + 
-                proratedConveyance + proratedMedical + proratedSpecial + proratedOtherAllowances + actualBonus;
+                proratedConveyance + proratedMedical + proratedSpecial + proratedOtherAllowances + 
+                proratedOtherEarnings + actualBonus + actualIncentives + computedOvertimePay;
 
-        // Prorated Statutory Deductions
+        // Pro-rate Deductions
         double computedPf = Math.round(proratedBasic * (pfPercent / 100.0));
         double computedEsi = Math.round(proratedGross * (esiPercent / 100.0));
         double computedPT = proratedGross >= 15000.0 ? profTax : 0.0;
         double computedTds = Math.round(proratedGross * (tdsPercent / 100.0));
+        
+        double proratedInsurance = Math.round(insurance * prorationFactor);
+        double proratedAdvance = Math.round(advanceDeduction * prorationFactor);
+        double proratedLoan = Math.round(loanDeduction * prorationFactor);
         double proratedOtherDeductions = Math.round(otherDeductions * prorationFactor);
+        
+        // Dynamic Attendance LOP deduction representation for visual clarity
+        double basicAttendanceDeduction = Math.round((basic + hra + da + conveyance + medical + special + otherAllowances + otherEarnings) * (1 - prorationFactor));
 
-        double totalDeductions = computedPf + computedEsi + computedPT + computedTds + proratedOtherDeductions;
+        double totalDeductions = computedPf + computedEsi + computedPT + computedTds + 
+                proratedInsurance + proratedAdvance + proratedLoan + proratedOtherDeductions;
+                
         double netSalary = proratedGross - totalDeductions;
 
-        // Indian Compliance: Employer Contributions
+        // Employer Contributions
         double employerPf = Math.round(proratedBasic * 0.12);
         double employerEsi = Math.round(proratedGross * 0.0325);
         double ctc = proratedGross + employerPf + employerEsi;
@@ -311,25 +596,39 @@ public class PayrollService {
         result.put("specialAllowance", proratedSpecial);
         result.put("otherAllowances", proratedOtherAllowances);
         result.put("performanceBonus", actualBonus);
+        result.put("incentives", actualIncentives);
+        result.put("overtime", computedOvertimePay);
+        result.put("otherEarnings", proratedOtherEarnings);
 
         result.put("providentFund", computedPf);
         result.put("professionalTax", computedPT);
         result.put("incomeTax", computedTds);
         result.put("esi", computedEsi);
+        result.put("insurance", proratedInsurance);
+        result.put("advanceDeduction", proratedAdvance);
+        result.put("loanDeduction", proratedLoan);
         result.put("otherDeductions", proratedOtherDeductions);
-        result.put("attendanceDeduction", Math.round((basic + hra + da + conveyance + medical + special + otherAllowances) * (1 - prorationFactor)));
+        result.put("attendanceDeduction", basicAttendanceDeduction);
+
+        // Policy penalties breakdown
+        result.put("lateComingPenalty", Math.round(lateComingPenalty * dailyRate));
+        result.put("earlyCheckoutPenalty", Math.round(earlyCheckoutPenalty * dailyRate));
+        result.put("missingPunchPenalty", Math.round(missingPunchPenalty * dailyRate));
 
         result.put("totalDays", totalDays);
         result.put("presentDays", presentDays);
         result.put("absentDays", absentDays);
-        result.put("leaveDays", totalLeaveDays);
+        result.put("leaveDays", totalLeaveDays - lopLeaveDays);
         result.put("lopDays", totalLopDays);
         result.put("paidDays", paidDays);
         result.put("halfDays", halfDayCount);
         result.put("lateCount", lateCount);
         result.put("lopLeaveDays", lopLeaveDays);
+        result.put("weekOffs", weekendDays);
+        result.put("holidays", holidays);
+        result.put("missingPunches", missingPunches);
+        result.put("overtimeHours", totalOvertimeHours);
 
-        // Return the rates used so frontend can display and allow overrides
         result.put("pfPercent", pfPercent);
         result.put("esiPercent", esiPercent);
         result.put("tdsPercent", tdsPercent);
@@ -342,6 +641,10 @@ public class PayrollService {
         result.put("employerPf", employerPf);
         result.put("employerEsi", employerEsi);
         result.put("ctc", ctc);
+        
+        result.put("salaryType", salaryType);
+        result.put("paymentMode", paymentMode);
+        result.put("payrollFrequency", payrollFrequency);
 
         return result;
     }
@@ -353,8 +656,14 @@ public class PayrollService {
         // Prevent duplicate payroll generation for the same employee in the same month
         Optional<Payroll> existingOpt = payrollRepository.findByUserIdAndTenantIdAndMonth(
                 payroll.getUserId(), tenantId, payroll.getMonth());
+                
         if (existingOpt.isPresent()) {
-            throw new IllegalArgumentException("Payroll record has already been generated for this employee in " + payroll.getMonth());
+            Payroll existing = existingOpt.get();
+            if (!"DRAFT".equalsIgnoreCase(existing.getStatus())) {
+                throw new IllegalArgumentException("Payroll record has already been generated and processed for this employee in " + payroll.getMonth() + " (Status: " + existing.getStatus() + ")");
+            }
+            // Overwrite draft record instead of failing
+            payroll.setId(existing.getId());
         }
 
         // Fetch employee details to snapshot metadata
@@ -377,9 +686,11 @@ public class PayrollService {
         // Perform recalculation of totals for verification
         double earnings = payroll.getBasicSalary() + payroll.getHra() + payroll.getConveyanceAllowance() +
                 payroll.getMedicalAllowance() + payroll.getSpecialAllowance() + payroll.getOtherAllowances() +
-                payroll.getPerformanceBonus();
+                payroll.getPerformanceBonus() + payroll.getIncentives() + payroll.getOvertime() + payroll.getOtherEarnings();
+                
         double deductions = payroll.getProvidentFund() + payroll.getProfessionalTax() + payroll.getIncomeTax() +
-                payroll.getEsi() + payroll.getOtherDeductions() + payroll.getAttendanceDeduction();
+                payroll.getEsi() + payroll.getInsurance() + payroll.getAdvanceDeduction() + payroll.getLoanDeduction() +
+                payroll.getOtherDeductions() + payroll.getAttendanceDeduction();
 
         payroll.setTotalEarnings(earnings);
         payroll.setTotalDeductions(deductions);
@@ -401,6 +712,13 @@ public class PayrollService {
         if (!existing.getTenantId().equals(tenantId)) {
             throw new IllegalStateException("Unauthorized access to payroll");
         }
+        
+        // Processed payroll should remain immutable unless reversed or manually unlocked
+        if ("PAID".equalsIgnoreCase(existing.getStatus()) || "PROCESSED".equalsIgnoreCase(existing.getStatus())) {
+            if (!"CANCELLED".equalsIgnoreCase(details.getStatus()) && !"REVERSED".equalsIgnoreCase(details.getStatus())) {
+                throw new IllegalStateException("Processed or Paid payrolls are immutable and cannot be updated.");
+            }
+        }
 
         existing.setBasicSalary(details.getBasicSalary());
         existing.setHra(details.getHra());
@@ -409,21 +727,32 @@ public class PayrollService {
         existing.setSpecialAllowance(details.getSpecialAllowance());
         existing.setOtherAllowances(details.getOtherAllowances());
         existing.setPerformanceBonus(details.getPerformanceBonus());
+        existing.setIncentives(details.getIncentives());
+        existing.setOvertime(details.getOvertime());
+        existing.setOtherEarnings(details.getOtherEarnings());
 
         existing.setProvidentFund(details.getProvidentFund());
         existing.setProfessionalTax(details.getProfessionalTax());
         existing.setIncomeTax(details.getIncomeTax());
         existing.setEsi(details.getEsi());
+        existing.setInsurance(details.getInsurance());
+        existing.setAdvanceDeduction(details.getAdvanceDeduction());
+        existing.setLoanDeduction(details.getLoanDeduction());
         existing.setOtherDeductions(details.getOtherDeductions());
         existing.setAttendanceDeduction(details.getAttendanceDeduction());
+
+        existing.setLateComingPenalty(details.getLateComingPenalty());
+        existing.setEarlyCheckoutPenalty(details.getEarlyCheckoutPenalty());
+        existing.setMissingPunchPenalty(details.getMissingPunchPenalty());
 
         existing.setTotalDays(details.getTotalDays());
         existing.setPresentDays(details.getPresentDays());
         existing.setAbsentDays(details.getAbsentDays());
         existing.setLeaveDays(details.getLeaveDays());
+        existing.setWeekOffs(details.getWeekOffs());
+        existing.setHolidays(details.getHolidays());
         existing.setStatus(details.getStatus());
         
-        // Copy statutory snapshots & proration counts
         existing.setUanNumber(details.getUanNumber());
         existing.setPfNumber(details.getPfNumber());
         existing.setEsiNumber(details.getEsiNumber());
@@ -433,11 +762,16 @@ public class PayrollService {
         existing.setLopDays(details.getLopDays());
         existing.setPaidDays(details.getPaidDays());
 
+        existing.setAdjustedManually(details.isAdjustedManually());
+        existing.setAuditLog(details.getAuditLog());
+
         double earnings = details.getBasicSalary() + details.getHra() + details.getConveyanceAllowance() +
                 details.getMedicalAllowance() + details.getSpecialAllowance() + details.getOtherAllowances() +
-                details.getPerformanceBonus();
+                details.getPerformanceBonus() + details.getIncentives() + details.getOvertime() + details.getOtherEarnings();
+                
         double deductions = details.getProvidentFund() + details.getProfessionalTax() + details.getIncomeTax() +
-                details.getEsi() + details.getOtherDeductions() + details.getAttendanceDeduction();
+                details.getEsi() + details.getInsurance() + details.getAdvanceDeduction() + details.getLoanDeduction() +
+                details.getOtherDeductions() + details.getAttendanceDeduction();
 
         existing.setTotalEarnings(earnings);
         existing.setTotalDeductions(deductions);

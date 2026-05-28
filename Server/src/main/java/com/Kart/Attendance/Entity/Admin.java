@@ -71,6 +71,14 @@ public class Admin {
     private int gracePeriod = 15;
     private double shiftDuration = 9.0;
 
+    // Configurable Payroll Penalty Policies
+    private int lateCountThreshold = 3;
+    private double lateDeductionDays = 0.5;
+    private int lateMinutesHalfDayThreshold = 30;
+    private double earlyCheckoutHourThreshold = 1.0;
+    private double earlyCheckoutDeductionDays = 0.5;
+    private boolean autoPenaltyRulesEnabled = true;
+
     @JsonProperty("maxUsers")
     @JsonAlias("max_users")
     private Integer maxUsers = 100;
