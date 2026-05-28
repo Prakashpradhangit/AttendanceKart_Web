@@ -35,8 +35,10 @@ public class PayrollService {
         List<User> all = userRepository.findByTenantId(tenantId);
         List<User> active = new ArrayList<>();
         for (User u : all) {
-            if ("Active".equalsIgnoreCase(u.getStatus())) {
-                active.add(u);
+            if (u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN) {
+                if (u.getStatus() == null || !"Inactive".equalsIgnoreCase(u.getStatus())) {
+                    active.add(u);
+                }
             }
         }
         return active;
@@ -177,19 +179,26 @@ public class PayrollService {
         List<AttendanceDetails> attendances = attendanceRepository
                 .findByUserIdAndTenantIdAndAttendanceDateStartingWith(String.valueOf(userId), tenantId, yearMonth);
 
-        int presentDays = 0;
-        int absentDays = 0;
+        double presentDays = 0;
+        double absentDays = 0;
         int lateCount = 0;
+        int halfDayCount = 0;
         for (AttendanceDetails ad : attendances) {
             String status = ad.getStatus();
             if (status != null) {
-                if (status.equalsIgnoreCase("PRESENT") || status.equalsIgnoreCase("Present")) {
-                    presentDays++;
+                if (status.equalsIgnoreCase("PRESENT") || status.equalsIgnoreCase("Present")
+                        || status.equalsIgnoreCase("ON TIME") || status.equalsIgnoreCase("On Time")
+                        || status.equalsIgnoreCase("ON-TIME") || status.equalsIgnoreCase("On-Time")) {
+                    presentDays += 1.0;
                 } else if (status.equalsIgnoreCase("LATE") || status.equalsIgnoreCase("Late")) {
-                    presentDays++;
+                    presentDays += 1.0;
                     lateCount++;
                 } else if (status.equalsIgnoreCase("ABSENT") || status.equalsIgnoreCase("Absent")) {
-                    absentDays++;
+                    absentDays += 1.0;
+                } else if (status.equalsIgnoreCase("HALF_DAY") || status.equalsIgnoreCase("Half Day")
+                        || status.equalsIgnoreCase("First Half") || status.equalsIgnoreCase("Second Half")) {
+                    presentDays += 0.5;
+                    halfDayCount++;
                 }
             }
         }
@@ -217,6 +226,20 @@ public class PayrollService {
             } catch (Exception e) {
                 // Ignore parse exceptions
             }
+        }
+
+        // Count weekend days (Saturdays and Sundays) in the month
+        int weekendDays = 0;
+        for (LocalDate date = monthStart; !date.isAfter(monthEnd); date = date.plusDays(1)) {
+            java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
+            if (dayOfWeek == java.time.DayOfWeek.SATURDAY || dayOfWeek == java.time.DayOfWeek.SUNDAY) {
+                weekendDays++;
+            }
+        }
+        int workingDays = totalDays - weekendDays;
+        double computedAbsent = workingDays - presentDays - totalLeaveDays;
+        if (computedAbsent > absentDays) {
+            absentDays = Math.max(0.0, computedAbsent);
         }
 
         // 4. Late mark deduction rule: every 3 late marks count as 0.5 LOP days
@@ -302,7 +325,16 @@ public class PayrollService {
         result.put("leaveDays", totalLeaveDays);
         result.put("lopDays", totalLopDays);
         result.put("paidDays", paidDays);
-        
+        result.put("halfDays", halfDayCount);
+        result.put("lateCount", lateCount);
+        result.put("lopLeaveDays", lopLeaveDays);
+
+        // Return the rates used so frontend can display and allow overrides
+        result.put("pfPercent", pfPercent);
+        result.put("esiPercent", esiPercent);
+        result.put("tdsPercent", tdsPercent);
+        result.put("profTax", computedPT);
+
         result.put("totalEarnings", proratedGross);
         result.put("totalDeductions", totalDeductions);
         result.put("netSalary", netSalary);

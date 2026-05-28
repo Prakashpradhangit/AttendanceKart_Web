@@ -51,17 +51,7 @@ const Attendance = () => {
       if (trendsRes.ok) setTrends(await trendsRes.json());
       if (recordsRes.ok) {
         const data = await recordsRes.json();
-        const formatted = data.map(r => ({
-          id: r.id,
-          empId: r.userId,
-          name: r.userName,
-          department: r.department || 'General',
-          date: r.attendanceDate,
-          status: getDisplayStatus(r),
-          checkIn: formatTime(r.checkInTime),
-          checkOut: formatTime(r.checkOutTime)
-        }));
-        setRealRecords(formatted);
+        setRealRecords(data);
       }
       if (requestsRes.ok) {
         const data = await requestsRes.json();
@@ -76,6 +66,19 @@ const Attendance = () => {
 
   const getDisplayStatus = (record) => {
     if (!record.checkInTime) return 'Absent';
+    if (record.status) {
+      const statusLower = record.status.toLowerCase();
+      if (statusLower === 'present' || statusLower === 'on time' || statusLower === 'on-time') {
+        return 'On Time';
+      }
+      if (statusLower === 'late') {
+        return 'Late';
+      }
+      if (statusLower === 'absent') {
+        return 'Absent';
+      }
+    }
+    // Fallback dynamic calculation:
     const [bHour, bMin] = checkInTime.split(':').map(Number);
     const totalMinutes = bMin + Number(gracePeriod);
     const tHour = bHour + Math.floor(totalMinutes / 60);
@@ -85,7 +88,7 @@ const Attendance = () => {
     if (checkIn.getHours() > tHour || (checkIn.getHours() === tHour && checkIn.getMinutes() > tMin)) {
       return 'Late';
     }
-    return 'Present';
+    return 'On Time';
   };
 
   const formatTime = (isoStr) => {
@@ -105,14 +108,27 @@ const Attendance = () => {
     fetchAttendanceData();
   }, []);
 
+  const formattedRecords = useMemo(() => {
+    return realRecords.map(r => ({
+      id: r.id,
+      empId: r.userId,
+      name: r.userName,
+      department: r.department || 'General',
+      date: r.attendanceDate,
+      status: getDisplayStatus(r),
+      checkIn: formatTime(r.checkInTime),
+      checkOut: formatTime(r.checkOutTime)
+    }));
+  }, [realRecords, checkInTime, gracePeriod]);
+
   const filteredRecords = useMemo(() => {
-    return realRecords.filter(record => {
+    return formattedRecords.filter(record => {
       const matchesSearch = record.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           record.empId.toLowerCase().includes(searchTerm.toLowerCase());
+                           (record.empId && record.empId.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = statusFilter === 'All Status' || record.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [realRecords, searchTerm, statusFilter]);
+  }, [formattedRecords, searchTerm, statusFilter]);
 
   const handleExport = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredRecords);

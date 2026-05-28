@@ -35,6 +35,12 @@
     print-color-adjust: exact !important;
   }
 
+  /* Ensure all elements print with exact colors and backgrounds */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* The print wrapper is injected as a direct child of body by JS */
   #print-wrapper {
     display: block !important;
@@ -43,15 +49,15 @@
     padding: 0 !important;
   }
 
-  /* Clean up payslip styling for print */
+  /* Clean up payslip styling for print - match preview appearance */
   #print-wrapper .printable-payslip-content {
     border: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     max-width: 100% !important;
-    padding: 1.5rem !important; /* Compact padding to ensure it fits single A4 page */
+    padding: 1.5rem !important;
     margin: 0 !important;
-    font-size: 12px !important; /* Slightly scale down for perfect layout containment */
+    font-size: 11.5px !important;
   }
 
   /* Ensure standard display styles persist */
@@ -62,10 +68,9 @@
     display: flex !important;
   }
 
-  .border-dashed {
-    border: none !important;
-  }
+  /* Do NOT override border-dashed - payslip uses dashed borders for dividers */
 
+  /* Page setup */
   @page {
     size: A4 portrait;
     margin: 0.8cm;

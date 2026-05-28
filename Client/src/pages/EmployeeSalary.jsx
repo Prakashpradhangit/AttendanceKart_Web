@@ -37,7 +37,7 @@ const EmployeeSalary = () => {
   const [showRequestModal, setShowRequestModal] = React.useState(false);
   const [requestReason, setRequestReason] = React.useState('');
   const [reasonError, setReasonError] = React.useState('');
-  const [selectedMonth, setSelectedMonth] = React.useState('May 2026');
+  const [selectedMonth, setSelectedMonth] = React.useState('');
   const [orgDetails, setOrgDetails] = React.useState(null);
 
   const fetchMyData = async () => {
@@ -91,14 +91,10 @@ const EmployeeSalary = () => {
     fetchMyData();
   }, []);
 
-  // Compute standard months dropdown values
-  const months = Array.from(new Set([
-    'January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026',
-    ...payrolls.map(p => p.month)
-  ])).sort((a, b) => {
-    // Sort chronologically/id based
-    return b.localeCompare(a); 
-  });
+  // Compute standard months dropdown values from actual payrolls
+  const months = payrolls.length > 0
+    ? Array.from(new Set(payrolls.map(p => p.month))).sort((a, b) => b.localeCompare(a))
+    : [];
 
   const activePayroll = payrolls.find(p => p.month === selectedMonth);
   const hasRequestPending = requests.some(r => r.month === selectedMonth && r.status === 'PENDING');
@@ -365,10 +361,15 @@ const EmployeeSalary = () => {
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="appearance-none bg-white border border-gray-100 text-[#1E293B] text-sm font-semibold rounded-2xl py-3 pl-6 pr-12 shadow-sm hover:border-[#0061E0]/30 transition-all outline-none cursor-pointer min-w-[180px]"
+            disabled={months.length === 0}
           >
-            {months.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
+            {months.length > 0 ? (
+              months.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))
+            ) : (
+              <option value="">No Payroll Generated</option>
+            )}
           </select>
           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-[#0061E0] transition-colors">
             <ChevronDown size={18} />

@@ -60,10 +60,10 @@ public class Payroll {
     private double attendanceDeduction; // Deductions from absence or LOP leaves
 
     // Attendance stats
-    private int totalDays;
-    private int presentDays;
-    private int absentDays;
-    private int leaveDays;
+    private double totalDays;
+    private double presentDays;
+    private double absentDays;
+    private double leaveDays;
 
     private double totalEarnings;
     private double totalDeductions;

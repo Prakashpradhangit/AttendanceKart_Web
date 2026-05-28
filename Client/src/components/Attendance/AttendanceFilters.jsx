@@ -40,6 +40,7 @@ const AttendanceFilters = ({
             className="appearance-none bg-gray-50 border border-gray-100 rounded-2xl py-3 pl-5 pr-10 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-[11px] font-semibold text-gray-600 cursor-pointer w-full md:min-w-[140px]"
           >
             <option>All Status</option>
+            <option>On Time</option>
             <option>Present</option>
             <option>Absent</option>
             <option>Late</option>

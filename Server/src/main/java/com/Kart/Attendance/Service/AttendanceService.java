@@ -74,7 +74,7 @@ public class AttendanceService {
         if (nowTime.isAfter(thresholdTime)) {
             attendance.setStatus("Late");
         } else {
-            attendance.setStatus("Present");
+            attendance.setStatus("On Time");
         }
 
         return attendanceRepository.save(attendance);

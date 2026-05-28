@@ -65,10 +65,20 @@ const Payroll = () => {
     otherDeductions: '',
     attendanceDeduction: '0',
     status: 'DRAFT',
+    // Attendance breakdown
     totalDays: 0,
     presentDays: 0,
     absentDays: 0,
-    leaveDays: 0
+    leaveDays: 0,
+    lopDays: 0,
+    paidDays: 0,
+    halfDays: 0,
+    lateCount: 0,
+    lopLeaveDays: 0,
+    // Rate overrides (admin-editable)
+    pfPercent: '12',
+    esiPercent: '0.75',
+    tdsPercent: '0',
   });
 
   // Salary Structure Form State
@@ -245,7 +255,15 @@ const Payroll = () => {
               totalDays: data.totalDays || 0,
               presentDays: data.presentDays || 0,
               absentDays: data.absentDays || 0,
-              leaveDays: data.leaveDays || 0
+              leaveDays: data.leaveDays || 0,
+              lopDays: data.lopDays || 0,
+              paidDays: data.paidDays || 0,
+              halfDays: data.halfDays || 0,
+              lateCount: data.lateCount || 0,
+              lopLeaveDays: data.lopLeaveDays || 0,
+              pfPercent: String(data.pfPercent || 12),
+              esiPercent: String(data.esiPercent || 0.75),
+              tdsPercent: String(data.tdsPercent || 0),
             }));
           } else {
             const errData = await res.json().catch(() => ({}));
@@ -308,6 +326,31 @@ const Payroll = () => {
     structForm.otherAllowances,
     structForm.performanceBonus
   ]);
+
+  // Auto-recalculate PF/ESI/TDS when admin changes rate overrides or salary components
+  useEffect(() => {
+    if ((modalType === 'create' || modalType === 'edit') && formData.basicSalary) {
+      const basic = parseFloat(formData.basicSalary) || 0;
+      const gross = [
+        formData.basicSalary, formData.hra, formData.conveyanceAllowance,
+        formData.medicalAllowance, formData.specialAllowance,
+        formData.otherAllowances, formData.performanceBonus
+      ].reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
+      const pfPct  = parseFloat(formData.pfPercent)  || 0;
+      const esiPct = parseFloat(formData.esiPercent) || 0;
+      const tdsPct = parseFloat(formData.tdsPercent) || 0;
+      setFormData(prev => ({
+        ...prev,
+        providentFund: String(Math.round(basic * pfPct / 100)),
+        esi:           String(Math.round(gross * esiPct / 100)),
+        incomeTax:     String(Math.round(gross * tdsPct / 100)),
+      }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.pfPercent, formData.esiPercent, formData.tdsPercent,
+      formData.basicSalary, formData.hra, formData.conveyanceAllowance,
+      formData.medicalAllowance, formData.specialAllowance,
+      formData.otherAllowances, formData.performanceBonus]);
 
   // Calculations for total net pay preview
   const calculateTotal = () => {
@@ -372,7 +415,15 @@ const Payroll = () => {
         totalDays: 0,
         presentDays: 0,
         absentDays: 0,
-        leaveDays: 0
+        leaveDays: 0,
+        lopDays: 0,
+        paidDays: 0,
+        halfDays: 0,
+        lateCount: 0,
+        lopLeaveDays: 0,
+        pfPercent: '12',
+        esiPercent: '0.75',
+        tdsPercent: '0',
       });
     } else if (type === 'edit' && item) {
       setFormData({ 
@@ -395,7 +446,15 @@ const Payroll = () => {
         totalDays: item.totalDays || 0,
         presentDays: item.presentDays || 0,
         absentDays: item.absentDays || 0,
-        leaveDays: item.leaveDays || 0
+        leaveDays: item.leaveDays || 0,
+        lopDays: item.lopDays || 0,
+        paidDays: item.paidDays || 0,
+        halfDays: item.halfDays || 0,
+        lateCount: item.lateCount || 0,
+        lopLeaveDays: item.lopLeaveDays || 0,
+        pfPercent: '12',
+        esiPercent: '0.75',
+        tdsPercent: '0',
       });
     } else if (type === 'payment') {
       setPaymentData({ method: 'Bank Transfer', transactionId: '' });
@@ -483,6 +542,9 @@ const Payroll = () => {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
+        const savedPayroll = await res.json();
+        setSelectedItem(savedPayroll);
+        setModalType('edit');
         fetchPayrolls();
         setModalStep('success');
       } else {
@@ -516,6 +578,8 @@ const Payroll = () => {
     presentDays: Number(formData.presentDays || 0),
     absentDays: Number(formData.absentDays || 0),
     leaveDays: Number(formData.leaveDays || 0),
+    lopDays: Number(formData.lopDays || 0),
+    paidDays: Number(formData.paidDays || 0),
     status: overrideStatus || formData.status
   });
 
@@ -696,7 +760,7 @@ const Payroll = () => {
       bonus: `₹${pay.performanceBonus.toLocaleString('en-IN')}`,
       deductions: `₹${pay.totalDeductions.toLocaleString('en-IN')}`,
       total: `₹${pay.netSalary.toLocaleString('en-IN')}`,
-      status: pay.status.charAt(0).toUpperCase() + pay.status.slice(1).toLowerCase()
+      status: pay.status === 'DRAFT' ? 'Pending Draft' : (pay.status === 'PENDING' ? 'Pending Payout' : pay.status.charAt(0).toUpperCase() + pay.status.slice(1).toLowerCase())
     };
   });
 
@@ -926,13 +990,14 @@ const Payroll = () => {
                         <td className="px-8 py-6 text-center">
                           <span className={`px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest inline-block shadow-sm ${
                             pay.status === 'Paid' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
-                            pay.status === 'Pending' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-gray-100 text-gray-500'
+                            pay.status === 'Pending Payout' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 
+                            pay.status === 'Pending Draft' ? 'bg-gray-100 text-gray-400 border border-gray-100 bg-gray-50' : 'bg-gray-100 text-gray-500'
                           }`}>
                             {pay.status}
                           </span>
                         </td>
                         <td className="px-8 py-6">
-                          {pay.status !== 'Draft' ? (
+                          {pay.status !== 'Pending Draft' ? (
                             <button 
                               onClick={() => openModal('download', pay)}
                               className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-xs group/link"
@@ -949,7 +1014,7 @@ const Payroll = () => {
                                <button className="flex items-center gap-2 px-5 py-2 bg-gray-100 text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-wider cursor-default border border-transparent">
                                   <Check size={14} /> Disbursed
                                </button>
-                             ) : pay.status === 'Pending' ? (
+                             ) : pay.status === 'Pending Payout' ? (
                                <button 
                                  onClick={() => openModal('payment', pay)}
                                  className="flex items-center gap-2 px-5 py-2 bg-indigo-50 text-indigo-600 border-2 border-indigo-100 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95"
@@ -1184,68 +1249,132 @@ const Payroll = () => {
               {/* Create / Edit Payroll Form */}
               {(modalType === 'create' || modalType === 'edit') && (
                 <div className="space-y-6">
+
+                  {/* Row 1: Employee + Month selectors */}
+                  <div className="bg-gray-50/60 p-5 rounded-[28px] border border-gray-100">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-7 h-7 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center"><User size={14}/></div>
+                      <h3 className="text-sm font-bold text-gray-800">Month-End Payroll Processing</h3>
+                      <span className="ml-auto text-[10px] bg-amber-50 text-amber-600 border border-amber-100 px-3 py-1 rounded-full font-bold uppercase tracking-widest">Step 1 of 2</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Select Employee<span className="text-rose-500 ml-0.5">*</span></label>
+                        <div className="relative">
+                          <select
+                            value={formData.employeeId}
+                            onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                            className="w-full bg-white border border-gray-200 rounded-2xl py-3 px-5 outline-none focus:border-indigo-500/50 font-bold text-sm appearance-none cursor-pointer"
+                            disabled={modalType === 'edit'}
+                          >
+                            <option value="">Select Employee</option>
+                            {employeesList.map(emp => (
+                              <option key={emp.id} value={emp.id}>{emp.name} ({emp.employeeCode || emp.id})</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Salary Month<span className="text-rose-500 ml-0.5">*</span></label>
+                        <div className="relative">
+                          <select
+                            value={formData.month}
+                            onChange={(e) => setFormData({...formData, month: e.target.value})}
+                            className="w-full bg-white border border-gray-200 rounded-2xl py-3 px-5 outline-none focus:border-indigo-500/50 font-bold text-sm appearance-none cursor-pointer"
+                            disabled={modalType === 'edit'}
+                          >
+                            {MONTH_OPTIONS.map(m => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Attendance Breakdown (shown after employee+month selected) */}
+                  {formData.totalDays > 0 && (
+                    <div className="bg-slate-50 p-5 rounded-[28px] border border-slate-100">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-7 h-7 bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center"><CalendarDays size={14}/></div>
+                        <h3 className="text-sm font-bold text-slate-700">Attendance Breakdown — {formData.month}</h3>
+                        {isLoading && <Loader2 size={14} className="animate-spin text-indigo-500 ml-auto"/>}
+                      </div>
+                      <div className="grid grid-cols-4 gap-3">
+                        {[
+                          { label: 'Total Days',   value: formData.totalDays,   color: 'bg-gray-100 text-gray-600',    dot: 'bg-gray-400' },
+                          { label: 'Present',      value: formData.presentDays, color: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+                          { label: 'Half Days',    value: formData.halfDays,    color: 'bg-sky-50 text-sky-700',       dot: 'bg-sky-400' },
+                          { label: 'Late Mark',    value: formData.lateCount,   color: 'bg-amber-50 text-amber-700',   dot: 'bg-amber-400' },
+                          { label: 'Leave Taken',  value: formData.leaveDays,   color: 'bg-purple-50 text-purple-700', dot: 'bg-purple-400' },
+                          { label: 'Absent',       value: formData.absentDays,  color: 'bg-rose-50 text-rose-700',     dot: 'bg-rose-500' },
+                          { label: 'LOP Days',     value: formData.lopDays,     color: 'bg-orange-50 text-orange-700', dot: 'bg-orange-500' },
+                          { label: 'Paid Days',    value: formData.paidDays,    color: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-500' },
+                        ].map(stat => (
+                          <div key={stat.label} className={`${stat.color} rounded-2xl p-3 text-center`}>
+                            <div className="flex justify-center mb-1"><span className={`w-2 h-2 rounded-full ${stat.dot} inline-block`}/></div>
+                            <p className="text-xl font-black">{Number(stat.value).toFixed(1).replace('.0', '')}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-widest opacity-70 mt-0.5">{stat.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Row 3: Rate Config + Earnings | Deductions + Summary */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Left Column: General & Earnings */}
+                    {/* Left: Rate Config + Earnings */}
                     <div className="space-y-6">
-                      <div className="bg-gray-50/50 p-6 rounded-[32px] border border-gray-100 space-y-5">
-                        <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                          <User size={18} className="text-indigo-600" /> General Info
+
+                      {/* Rate Override Section */}
+                      <div className="bg-violet-50/50 p-5 rounded-[28px] border border-violet-100/70 space-y-4">
+                        <h3 className="text-sm font-bold text-violet-800 flex items-center gap-2">
+                          <Percent size={16}/> Statutory Rate Configuration <span className="text-[9px] font-bold bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full ml-1 uppercase tracking-widest">Admin Override</span>
                         </h3>
-                        <div className="grid grid-cols-1 gap-4">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Select Employee<span className="text-rose-500 ml-0.5">*</span></label>
-                            <div className="relative">
-                              <select 
-                                value={formData.employeeId}
-                                onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-                                className="w-full bg-white border border-gray-200 rounded-2xl py-3 px-5 outline-none focus:border-indigo-500/50 font-bold text-sm appearance-none cursor-pointer"
-                                disabled={modalType === 'edit'}
-                              >
-                                <option value="">Select Employee</option>
-                                {employeesList.map(emp => (
-                                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.employeeCode || emp.id})</option>
-                                ))}
-                              </select>
-                              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { id: 'pfPercent',    label: 'PF %',       note: 'of Basic' },
+                            { id: 'esiPercent',   label: 'ESI %',      note: 'of Gross' },
+                            { id: 'tdsPercent',   label: 'TDS %',      note: 'of Gross' },
+                            { id: 'professionalTax', label: 'Prof. Tax ₹', note: 'Flat Amount' },
+                          ].map(f => (
+                            <div key={f.id} className="space-y-1">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">{f.label}</label>
+                              <input
+                                type="number"
+                                value={formData[f.id]}
+                                onChange={(e) => setFormData({...formData, [f.id]: e.target.value})}
+                                placeholder="0"
+                                step="0.01"
+                                className="w-full bg-white border border-violet-100 rounded-xl py-2.5 px-4 outline-none focus:border-violet-400 font-bold text-sm"
+                              />
+                              <p className="text-[9px] text-gray-400 ml-1">{f.note}</p>
                             </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Salary Month<span className="text-rose-500 ml-0.5">*</span></label>
-                            <div className="relative">
-                              <select
-                                value={formData.month}
-                                onChange={(e) => setFormData({...formData, month: e.target.value})}
-                                className="w-full bg-white border border-gray-200 rounded-2xl py-3 px-5 outline-none focus:border-indigo-500/50 font-bold text-sm appearance-none cursor-pointer"
-                                disabled={modalType === 'edit'}
-                              >
-                                {MONTH_OPTIONS.map(m => (
-                                  <option key={m} value={m}>{m}</option>
-                                ))}
-                              </select>
-                              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
 
-                      <div className="bg-emerald-50/30 p-6 rounded-[32px] border border-emerald-100/50 space-y-5">
+                      {/* Earnings */}
+                      <div className="bg-emerald-50/30 p-5 rounded-[28px] border border-emerald-100/50 space-y-4">
                         <h3 className="text-sm font-bold text-emerald-700 flex items-center gap-2">
-                          <PlusCircle size={18} /> Earnings (Prorated Suggestion) (₹)
+                          <PlusCircle size={16}/> Earnings — Prorated (₹)
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                           {[
-                            { id: 'basicSalary', label: 'Basic Salary' },
-                            { id: 'hra', label: 'HRA' },
+                            { id: 'basicSalary',         label: 'Basic Salary' },
+                            { id: 'hra',                 label: 'HRA' },
                             { id: 'conveyanceAllowance', label: 'Conveyance' },
-                            { id: 'medicalAllowance', label: 'Medical' },
-                            { id: 'specialAllowance', label: 'Special' },
-                            { id: 'otherAllowances', label: 'Other' },
-                            { id: 'performanceBonus', label: 'Performance Bonus' },
+                            { id: 'medicalAllowance',    label: 'Medical' },
+                            { id: 'specialAllowance',    label: 'Special' },
+                            { id: 'otherAllowances',     label: 'Other Allow.' },
+                            { id: 'performanceBonus',    label: 'Performance Bonus' },
                           ].map(field => (
-                            <div key={field.id} className="space-y-1.5">
+                            <div key={field.id} className="space-y-1">
                               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">{field.label}</label>
-                              <input 
-                                type="number" 
+                              <input
+                                type="number"
                                 value={formData[field.id]}
                                 onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
                                 placeholder="0"
@@ -1257,25 +1386,25 @@ const Payroll = () => {
                       </div>
                     </div>
 
-                    {/* Right Column: Deductions & Summary */}
+                    {/* Right: Deductions + Summary + Status */}
                     <div className="space-y-6">
-                      <div className="bg-rose-50/30 p-6 rounded-[32px] border border-rose-100/50 space-y-5">
+                      <div className="bg-rose-50/30 p-5 rounded-[28px] border border-rose-100/50 space-y-4">
                         <h3 className="text-sm font-bold text-rose-700 flex items-center gap-2">
-                          <MinusCircle size={18} /> Deductions (Computed Statutory) (₹)
+                          <MinusCircle size={16}/> Deductions (Auto + Manual) (₹)
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                           {[
-                            { id: 'providentFund', label: 'Provident Fund (12%)' },
-                            { id: 'esi', label: 'ESI (0.75%)' },
-                            { id: 'professionalTax', label: 'Prof. Tax (PT)' },
-                            { id: 'incomeTax', label: 'Income Tax (TDS)' },
-                            { id: 'otherDeductions', label: 'Other Deductions' },
-                            { id: 'attendanceDeduction', label: 'LOP Deduction' }
+                            { id: 'providentFund',      label: 'Provident Fund' },
+                            { id: 'esi',                label: 'ESI' },
+                            { id: 'professionalTax',    label: 'Prof. Tax (PT)' },
+                            { id: 'incomeTax',          label: 'Income Tax (TDS)' },
+                            { id: 'otherDeductions',    label: 'Other Deductions' },
+                            { id: 'attendanceDeduction', label: 'LOP / Absent Ded.' },
                           ].map(field => (
-                            <div key={field.id} className="space-y-1.5">
+                            <div key={field.id} className="space-y-1">
                               <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">{field.label}</label>
-                              <input 
-                                type="number" 
+                              <input
+                                type="number"
                                 value={formData[field.id]}
                                 onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
                                 placeholder="0"
@@ -1286,7 +1415,7 @@ const Payroll = () => {
                         </div>
                       </div>
 
-                      <div className="bg-indigo-600 p-8 rounded-[32px] text-white shadow-xl shadow-indigo-200 space-y-6">
+                      <div className="bg-indigo-600 p-7 rounded-[28px] text-white shadow-xl shadow-indigo-200 space-y-5">
                         <div className="flex justify-between items-center border-b border-white/10 pb-4">
                           <span className="text-xs font-bold uppercase tracking-widest opacity-80">Gross Earnings</span>
                           <span className="text-xl font-bold">₹ {getGrossEarnings().toLocaleString('en-IN')}</span>
@@ -1304,37 +1433,36 @@ const Payroll = () => {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Processing Status</label>
                         <div className="relative">
-                          <select 
+                          <select
                             value={formData.status}
                             onChange={(e) => setFormData({...formData, status: e.target.value})}
                             className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-5 outline-none focus:border-indigo-500/30 font-bold text-sm appearance-none cursor-pointer"
                           >
-                            <option value="DRAFT">DRAFT</option>
-                            <option value="PENDING">PROCESSED (PENDING DISBURSEMENT)</option>
+                            <option value="DRAFT">PENDING DRAFT</option>
+                            <option value="PENDING">PROCEED</option>
                           </select>
                           <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
                         </div>
                       </div>
                     </div>
                   </div>
-                  
+
                   {apiError && (
                     <div className="flex items-center gap-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl px-5 py-3 text-sm font-semibold">
-                      <AlertCircle size={16} />
-                      {apiError}
+                      <AlertCircle size={16} />{apiError}
                     </div>
                   )}
-                  
+
                   <div className="flex justify-end gap-4 pt-4">
                     <button onClick={closeModal} className="px-7 py-3.5 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors">Cancel</button>
                     {modalType === 'create' && (
-                       <button
-                         onClick={handleSaveDraft}
-                         disabled={isLoading}
-                         className="px-7 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50"
-                       >Save Draft</button>
+                      <button
+                        onClick={handleSaveDraft}
+                        disabled={isLoading}
+                        className="px-7 py-3.5 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50"
+                      >Save Draft</button>
                     )}
-                    <button 
+                    <button
                       onClick={handleProcessAction}
                       disabled={isLoading}
                       className="px-10 py-3.5 bg-indigo-600 text-white rounded-[20px] font-bold text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2 disabled:opacity-70"

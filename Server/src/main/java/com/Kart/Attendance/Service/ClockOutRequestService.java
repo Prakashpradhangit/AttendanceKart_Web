@@ -165,7 +165,7 @@ public class ClockOutRequestService {
             if (checkInDateTime.toLocalTime().isAfter(thresholdTime)) {
                 attendance.setStatus("Late");
             } else {
-                attendance.setStatus("Present");
+                attendance.setStatus("On Time");
             }
 
             attendanceRepository.save(attendance);

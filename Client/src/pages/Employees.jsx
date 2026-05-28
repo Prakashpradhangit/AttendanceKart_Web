@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw, Trash2, Copy, Download, Check, FileSpreadsheet, X } from 'lucide-react';
+import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw, Trash2, Copy, Download, Check, FileSpreadsheet, X, DollarSign } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
 import { useAlert } from '../context/AlertContext';
 import EmployeeForm from '../components/EmployeeForm';
 import ImportModal from '../components/ImportModal';
+import SalaryConfigModal from '../components/SalaryConfigModal';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -29,6 +30,7 @@ const Employees = () => {
   const [notification, setNotification] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [salaryEmployee, setSalaryEmployee] = useState(null);
   const [bulkResult, setBulkResult] = useState(null);
   const [copiedPasswordIdx, setCopiedPasswordIdx] = useState(null);
 
@@ -134,6 +136,11 @@ const Employees = () => {
 
   const handleEditClick = (emp) => {
     setEditingEmployee(emp);
+    setActiveMenuId(null);
+  };
+
+  const handleSalaryClick = (emp) => {
+    setSalaryEmployee(emp);
     setActiveMenuId(null);
   };
 
@@ -303,6 +310,13 @@ const Employees = () => {
                                   <RotateCcw size={18} />
                                 </button>
                                 <button
+                                  onClick={() => handleSalaryClick(emp)}
+                                  title="Configure Salary"
+                                  className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 hover:bg-indigo-100 transition-colors shadow-sm"
+                                >
+                                  <DollarSign size={18} />
+                                </button>
+                                <button
                                   onClick={() => handleEditClick(emp)}
                                   title="Edit Employee"
                                   className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"
@@ -390,6 +404,14 @@ const Employees = () => {
         onClose={() => setIsImportModalOpen(false)} 
         onImport={handleBulkImport}
       />
+
+      {salaryEmployee && (
+        <SalaryConfigModal
+          employee={salaryEmployee}
+          onClose={() => setSalaryEmployee(null)}
+          onSaved={() => fetchEmployees({ page: 0 })}
+        />
+      )}
 
       {/* Limit Exceeded Premium Modal */}
       <AnimatePresence>
