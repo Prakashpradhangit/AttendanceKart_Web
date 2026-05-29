@@ -1,562 +1,562 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import {
-  Calendar,
-  Clock,
-  CheckCircle2,
-  FileText,
-  Send,
-  Plus,
-  AlertCircle,
-  MoreVertical,
-  ChevronRight,
-  Upload,
-  CalendarDays,
-  Info,
-  X,
-  RefreshCw,
-  Award,
-  DollarSign
+  Calendar, Clock, CheckCircle2, FileText, Send, Plus, AlertCircle,
+  X, RefreshCw, DollarSign, Thermometer, Briefcase, Zap, ChevronRight,
+  CalendarDays, ArrowRight, Trash2, SlidersHorizontal, TrendingUp, Sparkles
 } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
+
+const LEAVE_TYPES = [
+  { value: 'Sick Leave', label: 'Sick Leave', icon: Thermometer, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', selectedBg: 'bg-red-600', desc: 'Medical/health related' },
+  { value: 'Casual Leave', label: 'Casual Leave', icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', selectedBg: 'bg-blue-600', desc: 'Personal matters' },
+  { value: 'Emergency Leave', label: 'Emergency Leave', icon: Zap, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', selectedBg: 'bg-purple-600', desc: 'Urgent situations' },
+];
+
+const DURATION_OPTIONS = [
+  { value: 'Full Day', label: 'Full Day' },
+  { value: 'First Half', label: 'First Half' },
+  { value: 'Second Half', label: 'Second Half' },
+];
+
+const StatusPill = ({ status }) => {
+  const map = {
+    APPROVED: 'bg-green-100 text-green-700',
+    REJECTED: 'bg-red-100 text-red-700',
+    PENDING: 'bg-amber-100 text-amber-700',
+  };
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${map[status] || 'bg-gray-100 text-gray-600'}`}>
+      {status}
+    </span>
+  );
+};
 
 const EmployeeLeaves = () => {
+  const { showAlert, showConfirm } = useAlert();
   const [leaveType, setLeaveType] = useState('Sick Leave');
-  const [leaveCategory, setLeaveCategory] = useState('Paid'); // Paid, LOP
+  const [leaveCategory, setLeaveCategory] = useState('Paid');
   const [leaveDuration, setLeaveDuration] = useState('Full Day');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [reason, setReason] = useState('');
   const [leaveHistory, setLeaveHistory] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  
+  const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [profile, setProfile] = useState(null);
-  const [limits, setLimits] = useState({ sick: 12, casual: 12, emergency: 6, accrualRate: 1.5, holidays: [] });
+  const [limits, setLimits] = useState({ sick: 12, casual: 12, emergency: 6, accrualRate: 1.5, internPeriodMonths: 3, probationPeriodMonths: 6, holidays: [] });
+  const [historyTab, setHistoryTab] = useState('All');
 
   const fetchMyLeaves = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/leaves/my', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setLeaveHistory(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch leaves:', err);
-    } finally {
-      setLoading(false);
-    }
+      const res = await fetch('/api/leaves/my', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) setLeaveHistory(await res.json());
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
   const fetchLimits = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/settings', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch('/api/admin/settings', { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         setLimits({
-          sick: data.sickLeavesLimit !== undefined ? data.sickLeavesLimit : 12,
-          casual: data.casualLeavesLimit !== undefined ? data.casualLeavesLimit : 12,
-          emergency: data.emergencyLeavesLimit !== undefined ? data.emergencyLeavesLimit : 6,
-          accrualRate: data.monthlyAccrualRate !== undefined ? data.monthlyAccrualRate : 1.5,
-          holidays: (() => {
-            try {
-              return data.declaredHolidays ? JSON.parse(data.declaredHolidays) : [];
-            } catch (e) {
-              return [];
-            }
-          })()
+          sick: data.sickLeavesLimit ?? 12,
+          casual: data.casualLeavesLimit ?? 12,
+          emergency: data.emergencyLeavesLimit ?? 6,
+          accrualRate: data.monthlyAccrualRate ?? 1.5,
+          internPeriodMonths: data.internPeriodMonths ?? 3,
+          probationPeriodMonths: data.probationPeriodMonths ?? 6,
+          holidays: (() => { try { return data.declaredHolidays ? JSON.parse(data.declaredHolidays) : []; } catch { return []; } })()
         });
       }
-    } catch (err) {
-      console.error('Failed to fetch limits:', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/auth/profile', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch profile:', err);
-    }
+      const res = await fetch('/api/auth/profile', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) setProfile(await res.json());
+    } catch (err) { console.error(err); }
   };
 
-  useEffect(() => {
-    fetchMyLeaves();
-    fetchLimits();
-    fetchProfile();
-  }, []);
+  useEffect(() => { fetchMyLeaves(); fetchLimits(); fetchProfile(); }, []);
 
-  const calculateLeaveDays = (fromDateStr, toDateStr, duration) => {
+  useEffect(() => {
+    if (profile && (profile.employmentType === 'INTERN' || profile.employmentType === 'PROBATION')) {
+      setLeaveCategory('LOP');
+    }
+  }, [profile]);
+
+  const calcLeaveDays = (from, to, duration) => {
     if (duration !== 'Full Day') return 0.5;
-    if (!fromDateStr || !toDateStr) return 1.0;
-    
-    // YYYY-MM-DD parsing in UTC
-    const start = new Date(fromDateStr);
-    const end = new Date(toDateStr);
+    if (!from || !to) return 0;
     let count = 0;
-    
-    let current = new Date(start);
-    while (current <= end) {
-      const day = current.getUTCDay();
-      const dateStr = current.toISOString().split('T')[0];
-      
-      const isWeekend = (day === 0 || day === 6); // 0 = Sunday, 6 = Saturday
-      const isHoliday = limits.holidays && limits.holidays.some(h => h.date === dateStr);
-      
-      if (!isWeekend && !isHoliday) {
-        count++;
-      }
-      current.setUTCDate(current.getUTCDate() + 1);
+    let cur = new Date(from);
+    const end = new Date(to);
+    while (cur <= end) {
+      const day = cur.getUTCDay();
+      const ds = cur.toISOString().split('T')[0];
+      const isWeekend = day === 0 || day === 6;
+      const isHoliday = limits.holidays?.some(h => h.date === ds);
+      if (!isWeekend && !isHoliday) count++;
+      cur.setUTCDate(cur.getUTCDate() + 1);
     }
     return count;
   };
 
-  // Calculations based on profile joiningDate and monthlyAccrualRate
-  const joinDateStr = profile ? profile.joiningDate : null;
+  const joinDateStr = profile?.joiningDate;
   const now = new Date();
   let monthsElapsed = 1;
   if (joinDateStr) {
     const join = new Date(joinDateStr);
-    const diffMonths = (now.getFullYear() - join.getFullYear()) * 12 + (now.getMonth() - join.getMonth());
-    monthsElapsed = Math.max(1, diffMonths + 1);
+    const diff = (now.getFullYear() - join.getFullYear()) * 12 + (now.getMonth() - join.getMonth());
+    monthsElapsed = Math.max(1, diff + 1);
   }
   const accruedAllowance = Math.round(monthsElapsed * (limits.accrualRate || 1.5) * 10) / 10;
-
-  const approvedLeaves = leaveHistory.filter(l => l.status === 'APPROVED');
-
-  const usedSick = approvedLeaves
-    .filter(l => l.leaveType === 'Sick Leave' && l.leaveCategory !== 'LOP')
-    .reduce((acc, l) => acc + calculateLeaveDays(l.fromDate, l.toDate, l.duration), 0);
-
-  const usedCasual = approvedLeaves
-    .filter(l => l.leaveType === 'Casual Leave' && l.leaveCategory !== 'LOP')
-    .reduce((acc, l) => acc + calculateLeaveDays(l.fromDate, l.toDate, l.duration), 0);
-
-  const usedEmergency = approvedLeaves
-    .filter(l => l.leaveType === 'Emergency Leave' && l.leaveCategory !== 'LOP')
-    .reduce((acc, l) => acc + calculateLeaveDays(l.fromDate, l.toDate, l.duration), 0);
-
-  const usedLop = approvedLeaves
-    .filter(l => l.leaveCategory === 'LOP')
-    .reduce((acc, l) => acc + calculateLeaveDays(l.fromDate, l.toDate, l.duration), 0);
-
+  const approved = leaveHistory.filter(l => l.status === 'APPROVED');
+  const usedSick = approved.filter(l => l.leaveType === 'Sick Leave' && l.leaveCategory !== 'LOP').reduce((s, l) => s + calcLeaveDays(l.fromDate, l.toDate, l.duration), 0);
+  const usedCasual = approved.filter(l => l.leaveType === 'Casual Leave' && l.leaveCategory !== 'LOP').reduce((s, l) => s + calcLeaveDays(l.fromDate, l.toDate, l.duration), 0);
+  const usedEmergency = approved.filter(l => l.leaveType === 'Emergency Leave' && l.leaveCategory !== 'LOP').reduce((s, l) => s + calcLeaveDays(l.fromDate, l.toDate, l.duration), 0);
+  const usedLop = approved.filter(l => l.leaveCategory === 'LOP').reduce((s, l) => s + calcLeaveDays(l.fromDate, l.toDate, l.duration), 0);
   const totalPaidUsed = usedSick + usedCasual + usedEmergency;
   const remainingPaid = Math.max(0, accruedAllowance - totalPaidUsed);
+  const previewDays = calcLeaveDays(fromDate, leaveDuration === 'Full Day' ? (toDate || fromDate) : fromDate, leaveDuration);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    const actualDays = calculateLeaveDays(fromDate, leaveDuration === 'Full Day' ? toDate : fromDate, leaveDuration);
-    
-    if (actualDays <= 0) {
-      alert("Leave duration contains 0 working days (weekends or declared holidays skipped). Please pick different dates.");
-      setLoading(false);
-      return;
-    }
-
-    if (leaveCategory === 'Paid' && actualDays > remainingPaid) {
-      alert(`Insufficient accrued paid leave balance! You requested ${actualDays} days but only have ${remainingPaid} days remaining.`);
-      setLoading(false);
-      return;
-    }
-
+    const actualDays = calcLeaveDays(fromDate, leaveDuration === 'Full Day' ? toDate : fromDate, leaveDuration);
+    if (actualDays <= 0) { showAlert('Leave duration contains 0 working days. Please pick different dates.', 'error'); return; }
+    if (leaveCategory === 'Paid' && actualDays > remainingPaid) { showAlert(`Insufficient paid leave balance! Requested: ${actualDays} days, Available: ${remainingPaid} days.`, 'error'); return; }
+    setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('/api/leaves', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          leaveType,
-          leaveCategory,
-          duration: leaveDuration,
-          fromDate,
-          toDate: leaveDuration === 'Full Day' ? toDate : fromDate,
-          reason,
-          status: 'PENDING'
-        })
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ leaveType, leaveCategory, duration: leaveDuration, fromDate, toDate: leaveDuration === 'Full Day' ? toDate : fromDate, reason, status: 'PENDING' })
       });
-
       if (res.ok) {
-        setShowSuccessPopup(true);
-        setFromDate('');
-        setToDate('');
-        setReason('');
+        setShowSuccess(true);
+        setFromDate(''); setToDate(''); setReason('');
         fetchMyLeaves();
+        setTimeout(() => setShowSuccess(false), 3500);
       } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to apply leave');
+        const err = await res.json();
+        showAlert(err.error || 'Failed to apply leave', "error");
       }
-    } catch (err) {
-      console.error('Apply leave error:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this leave request?')) return;
-    
+    if (!(await showConfirm('Delete this leave request?'))) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/leaves/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchMyLeaves();
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to delete leave');
-      }
-    } catch (err) {
-      console.error('Delete leave error:', err);
-    }
+      const res = await fetch(`/api/leaves/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) fetchMyLeaves();
+    } catch (err) { console.error(err); }
   };
 
-  const leaveStats = [
-    { label: 'Accrued Paid Leaves', value: accruedAllowance.toString(), icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-    { label: 'Total Paid Used', value: totalPaidUsed.toString(), icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
-    { label: 'Paid Remaining', value: remainingPaid.toString(), icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
-    { label: 'Loss of Pay (LOP) Used', value: usedLop.toString(), icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-  ];
+  const selectedType = LEAVE_TYPES.find(t => t.value === leaveType);
+
+  const historyTabCounts = {
+    All: leaveHistory.length,
+    Pending: leaveHistory.filter(l => l.status === 'PENDING').length,
+    Approved: leaveHistory.filter(l => l.status === 'APPROVED').length,
+    Rejected: leaveHistory.filter(l => l.status === 'REJECTED').length,
+  };
+
+  const filteredHistory = historyTab === 'All'
+    ? leaveHistory
+    : leaveHistory.filter(l => l.status === historyTab.toUpperCase());
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in duration-700 max-w-7xl mx-auto pb-8">
-      {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto pb-10 space-y-8">
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Leave Management</h1>
-          <p className="text-sm text-gray-400 font-medium mt-1">
-            Apply for time off and view your live leave parameters
-            {profile && profile.joiningDate && (
-              <span className="ml-2 px-2.5 py-0.5 bg-gray-100 text-gray-600 rounded-full font-bold text-[10px] uppercase">
-                Joined: {profile.joiningDate}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <Sparkles size={16} className="text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">My Leave Dashboard</h1>
+          </div>
+          <p className="text-sm text-gray-400 mt-0.5">
+            Apply for time off · Track requests · View balances
+            {profile?.joiningDate && (
+              <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold">
+                Joined {profile.joiningDate}
               </span>
             )}
           </p>
         </div>
+
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {leaveStats.map((stat, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08 }}
-            className={`${stat.bg} ${stat.border} border p-5 rounded-[24px] shadow-sm flex items-center justify-between group hover:shadow-md transition-all`}
-          >
-            <div>
-              <p className={`text-[9px] font-bold ${stat.color} opacity-70 uppercase tracking-widest mb-1`}>{stat.label}</p>
-              <h3 className={`text-2xl font-bold ${stat.color}`}>{stat.value}</h3>
+      {/* Balance Cards */}
+      {!(profile?.employmentType === 'INTERN' || profile?.employmentType === 'PROBATION') && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Accrued Balance', value: accruedAllowance, color: 'text-indigo-600', bg: 'bg-gradient-to-br from-indigo-50 to-indigo-100/60', border: 'border-indigo-100', sub: 'Total earned', accent: '#6366f1' },
+            { label: 'Paid Used', value: totalPaidUsed, color: 'text-rose-600', bg: 'bg-gradient-to-br from-rose-50 to-rose-100/60', border: 'border-rose-100', sub: 'All paid leaves', accent: '#f43f5e' },
+            { label: 'Remaining Paid', value: remainingPaid, color: 'text-emerald-600', bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100/60', border: 'border-emerald-100', sub: 'Available now', accent: '#10b981' },
+            { label: 'LOP Used', value: usedLop, color: 'text-amber-600', bg: 'bg-gradient-to-br from-amber-50 to-amber-100/60', border: 'border-amber-100', sub: 'Loss of pay', accent: '#f59e0b' },
+          ].map((card, i) => (
+            <div key={i} className={`${card.bg} ${card.border} border rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default`}>
+              <p className={`text-[10px] font-black uppercase tracking-widest ${card.color} opacity-70 mb-2`}>{card.label}</p>
+              <p className={`text-4xl font-black ${card.color} tabular-nums`}>{card.value}</p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-400">{card.sub}</p>
+                <div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: card.accent }} />
+              </div>
             </div>
-            <div className="w-11 h-11 bg-white/70 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
-              <stat.icon size={22} className={stat.color} />
+          ))}
+        </div>
+      )}
+
+      {/* Leave Pool Bars — only for Full-Time employees */}
+      {!(profile?.employmentType === 'INTERN' || profile?.employmentType === 'PROBATION') && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { label: 'Sick Leave', used: usedSick, limit: limits.sick, color: 'bg-red-500', trackColor: 'bg-red-100' },
+            { label: 'Casual Leave', used: usedCasual, limit: limits.casual, color: 'bg-blue-500', trackColor: 'bg-blue-100' },
+            { label: 'Emergency Leave', used: usedEmergency, limit: limits.emergency, color: 'bg-purple-500', trackColor: 'bg-purple-100' },
+          ].map((pool, i) => (
+            <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{pool.label}</p>
+                <span className="text-xs font-semibold text-gray-400">{pool.used} / {pool.limit} days</span>
+              </div>
+              <div className={`w-full ${pool.trackColor} h-2.5 rounded-full overflow-hidden`}>
+                <div
+                  className={`${pool.color} h-full rounded-full transition-all duration-700`}
+                  style={{ width: `${Math.min(100, (pool.used / pool.limit) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-2">{Math.max(0, pool.limit - pool.used)} days remaining</p>
             </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Explanation Banner */}
-      <div className="bg-indigo-50/70 border border-indigo-100/50 p-4 rounded-3xl text-xs text-indigo-700 leading-relaxed">
-        <strong>💡 Accrual-Based Leave Policy:</strong> You accrue leaves at a rate of <strong>{limits.accrualRate} days per month</strong> starting from your joining date of <strong>{profile ? profile.joiningDate : 'N/A'}</strong>. 
-        Saturdays, Sundays, and declared company holidays are automatically excluded when calculating requested leave durations.
-      </div>
-
-      {/* Breakdown Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-gray-100 rounded-[24px] p-5 shadow-sm">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Sick Leave Pool</p>
-          <div className="flex justify-between items-end">
-            <span className="text-2xl font-bold text-red-600">{usedSick} <span className="text-sm text-gray-400 font-normal">/ {limits.sick} Days Limit</span></span>
-            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded">Paid</span>
-          </div>
-          <div className="w-full bg-gray-100 h-2 rounded-full mt-3 overflow-hidden">
-            <div className="bg-red-500 h-full" style={{ width: `${Math.min(100, (usedSick / limits.sick) * 100)}%` }}></div>
-          </div>
+          ))}
         </div>
+      )}
 
-        <div className="bg-white border border-gray-100 rounded-[24px] p-5 shadow-sm">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Casual Leave Pool</p>
-          <div className="flex justify-between items-end">
-            <span className="text-2xl font-bold text-blue-600">{usedCasual} <span className="text-sm text-gray-400 font-normal">/ {limits.casual} Days Limit</span></span>
-            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded">Paid</span>
-          </div>
-          <div className="w-full bg-gray-100 h-2 rounded-full mt-3 overflow-hidden">
-            <div className="bg-blue-500 h-full" style={{ width: `${Math.min(100, (usedCasual / limits.casual) * 100)}%` }}></div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-100 rounded-[24px] p-5 shadow-sm">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Emergency Leave Pool</p>
-          <div className="flex justify-between items-end">
-            <span className="text-2xl font-bold text-purple-600">{usedEmergency} <span className="text-sm text-gray-400 font-normal">/ {limits.emergency} Days Limit</span></span>
-            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded">Paid</span>
-          </div>
-          <div className="w-full bg-gray-100 h-2 rounded-full mt-3 overflow-hidden">
-            <div className="bg-purple-500 h-full" style={{ width: `${Math.min(100, (usedEmergency / limits.emergency) * 100)}%` }}></div>
-          </div>
-        </div>
-      </div>
-
+      {/* Main: Apply Form + History */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Side - History Table (8 Columns) */}
-        <div className="lg:col-span-8 bg-white rounded-[40px] p-8 shadow-sm border border-gray-50 overflow-hidden">
-          <div className="flex items-center justify-between mb-8 px-2">
-            <h2 className="text-xl font-bold text-gray-800 tracking-tight">Recent Leave Requests</h2>
-            <div className="flex gap-2">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-1.5 bg-gray-50 rounded-xl">Live Tracking</span>
+
+        {/* Apply Form */}
+        <div className="lg:col-span-5 bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
+          <div className="px-7 py-6 border-b border-gray-50 flex items-center gap-3">
+            <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center">
+              <Plus size={18} className="text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Apply for Leave</h2>
+              <p className="text-xs text-gray-400">Fill in the details below</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="px-7 py-6 space-y-6">
+
+            {/* Leave Type Cards */}
+            <div>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Leave Type</label>
+              <div className="grid grid-cols-3 gap-2">
+                {LEAVE_TYPES.map(type => {
+                  const Icon = type.icon;
+                  const isSelected = leaveType === type.value;
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setLeaveType(type.value)}
+                      className={`relative flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all duration-200 text-center ${
+                        isSelected
+                          ? `${type.selectedBg} border-transparent text-white shadow-md scale-105`
+                          : `${type.bg} ${type.border} ${type.color} hover:scale-102 hover:shadow-sm`
+                      }`}
+                    >
+                      <Icon size={18} />
+                      <span className="text-[10px] font-bold leading-tight">{type.label}</span>
+                      {isSelected && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow">
+                          <CheckCircle2 size={12} className={type.color} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Leave Category Toggle */}
+            <div>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Category</label>
+              {(profile?.employmentType === 'INTERN' || profile?.employmentType === 'PROBATION') ? (
+                <div className="flex gap-2 p-1 bg-amber-50 rounded-2xl border border-amber-250">
+                  <div className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-white shadow text-center cursor-default flex items-center justify-center gap-1.5">
+                    <AlertCircle size={14} /> Loss of Pay (LOP) [Required for {profile.employmentType === 'INTERN' ? 'Intern' : 'Probation'}]
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100">
+                {['Paid', 'LOP'].map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setLeaveCategory(cat)}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                      leaveCategory === cat
+                        ? cat === 'LOP' ? 'bg-amber-500 text-white shadow' : 'bg-indigo-600 text-white shadow'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {cat === 'LOP' ? 'Loss of Pay (LOP)' : 'Paid Leave'}
+                  </button>
+                ))}
+                </div>
+              )}
+            </div>
+
+            {/* Duration */}
+            <div>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Duration</label>
+              <div className="flex gap-2 p-1 bg-gray-50 rounded-2xl border border-gray-100">
+                {DURATION_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setLeaveDuration(opt.value)}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                      leaveDuration === opt.value
+                        ? 'bg-white text-gray-900 shadow border border-gray-100'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date Pickers */}
+            <div className={`grid gap-4 ${leaveDuration === 'Full Day' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">
+                  {leaveDuration === 'Full Day' ? 'From Date' : 'Date'}
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50 transition-all"
+                />
+              </div>
+              {leaveDuration === 'Full Day' && (
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">To Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={toDate}
+                    min={fromDate}
+                    onChange={e => setToDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50 transition-all"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Live Preview Badge */}
+            {fromDate && (
+              <div className={`flex items-center justify-between px-4 py-3 rounded-xl border ${selectedType?.bg} ${selectedType?.border}`}>
+                <div className="flex items-center gap-2">
+                  <CalendarDays size={16} className={selectedType?.color} />
+                  <span className={`text-sm font-semibold ${selectedType?.color}`}>{selectedType?.label}</span>
+                  <span className="text-gray-400 text-xs">·</span>
+                  <span className="text-xs text-gray-500">{leaveCategory}</span>
+                </div>
+                <span className={`text-lg font-bold ${selectedType?.color}`}>
+                  {previewDays} <span className="text-xs font-normal">day{previewDays !== 1 ? 's' : ''}</span>
+                </span>
+              </div>
+            )}
+
+            {/* Reason */}
+            <div>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Reason</label>
+              <textarea
+                required
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder="Briefly describe why you need this leave..."
+                rows={3}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50 resize-none transition-all"
+              />
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-200 transition-all duration-200 disabled:opacity-60"
+            >
+              {submitting ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+              {submitting ? 'Submitting...' : 'Submit Leave Request'}
+            </button>
+
+            {/* Notice */}
+            <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 rounded-xl border border-amber-100">
+              <AlertCircle size={15} className="text-amber-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-700 leading-relaxed">Submit requests at least 2 days in advance for timely approval.</p>
+            </div>
+          </form>
+        </div>
+
+        {/* History Table */}
+        <div className="lg:col-span-7 bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
+          <div className="px-7 py-5 border-b border-gray-50">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">My Leave Requests</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{leaveHistory.length} total · {historyTabCounts.Pending} pending</p>
+              </div>
+              <button onClick={fetchMyLeaves} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+            {/* Status Filter Tabs */}
+            <div className="flex gap-1 p-1 bg-gray-50 rounded-2xl border border-gray-100">
+              {['All', 'Pending', 'Approved', 'Rejected'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setHistoryTab(tab)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    historyTab === tab
+                      ? tab === 'Approved' ? 'bg-emerald-600 text-white shadow'
+                        : tab === 'Rejected' ? 'bg-rose-600 text-white shadow'
+                        : tab === 'Pending' ? 'bg-amber-500 text-white shadow'
+                        : 'bg-white text-gray-900 shadow border border-gray-100'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {tab}
+                  <span className={`text-[10px] font-black tabular-nums ${
+                    historyTab === tab ? 'opacity-80' : 'opacity-60'
+                  }`}>
+                    {historyTabCounts[tab]}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-50">
-                  <th className="pb-4 px-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Type & Category</th>
-                  <th className="pb-4 px-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Duration</th>
-                  <th className="pb-4 px-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Status</th>
-                  <th className="pb-4 px-2"></th>
+                <tr className="bg-gray-50/70 border-b border-gray-100">
+                  <th className="py-3 px-5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Type</th>
+                  <th className="py-3 px-5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dates</th>
+                  <th className="py-3 px-5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Days</th>
+                  <th className="py-3 px-5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reason</th>
+                  <th className="py-3 px-5 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                  <th className="py-3 px-4 w-10" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {leaveHistory.map((leave, index) => {
-                  const actualDays = calculateLeaveDays(leave.fromDate, leave.toDate, leave.duration);
+                {loading && (
+                  <tr><td colSpan="6" className="py-10 text-center">
+                    <RefreshCw size={20} className="animate-spin text-indigo-300 mx-auto" />
+                  </td></tr>
+                )}
+                {!loading && filteredHistory.map((leave, i) => {
+                  const typeInfo = LEAVE_TYPES.find(t => t.value === leave.leaveType);
+                  const Icon = typeInfo?.icon || FileText;
+                  const days = calcLeaveDays(leave.fromDate, leave.toDate, leave.duration);
                   return (
-                    <tr key={index} className="group hover:bg-gray-50/50 transition-colors">
-                      <td className="py-5 px-2">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            leave.leaveCategory === 'LOP' ? 'bg-amber-50 text-amber-600' :
-                            leave.leaveType === 'Sick Leave' ? 'bg-red-50 text-red-500' :
-                            leave.leaveType === 'Casual Leave' ? 'bg-blue-50 text-blue-500' : 'bg-purple-50 text-purple-500'
-                          }`}>
-                            <FileText size={16} />
+                    <tr key={i} className="group hover:bg-gray-50/50 transition-colors">
+                      <td className="py-4 px-5">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${typeInfo?.bg || 'bg-gray-50'}`}>
+                            <Icon size={15} className={typeInfo?.color || 'text-gray-500'} />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-gray-900">{leave.leaveType}</p>
-                            <p className="text-[9px] font-semibold text-gray-400 uppercase">
-                              Category: <span className={leave.leaveCategory === 'LOP' ? 'text-amber-600 font-bold' : 'text-green-600 font-bold'}>{leave.leaveCategory || 'Paid'}</span>
+                            <p className="text-sm font-semibold text-gray-800 leading-tight">{leave.leaveType}</p>
+                            <p className={`text-[10px] font-bold uppercase ${leave.leaveCategory === 'LOP' ? 'text-amber-500' : 'text-green-600'}`}>
+                              {leave.leaveCategory || 'Paid'}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-5 px-2">
-                        <p className="text-sm font-semibold text-gray-700">
-                          {leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} - ${leave.toDate}`}
+                      <td className="py-4 px-5">
+                        <p className="text-sm font-medium text-gray-700">
+                          {leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} – ${leave.toDate}`}
                         </p>
-                        <p className="text-[9px] text-gray-500 font-semibold uppercase">{leave.duration} ({actualDays} Work Days)</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{leave.duration}</p>
                       </td>
-                      <td className="py-5 px-2 text-center">
-                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest inline-block ${
-                          leave.status === 'APPROVED' ? 'bg-green-50 text-green-600' :
-                          leave.status === 'REJECTED' ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-600'
-                        }`}>
-                          {leave.status}
-                        </span>
+                      <td className="py-4 px-5">
+                        <span className="text-sm font-bold text-gray-800">{days}</span>
+                        <span className="text-xs text-gray-400 ml-1">day{days !== 1 ? 's' : ''}</span>
                       </td>
-                      <td className="py-5 px-2 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                           {leave.status === 'PENDING' && (
-                               <button 
-                                 onClick={() => handleDelete(leave.id)}
-                                 className="p-2 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
-                               >
-                                 <X size={18} />
-                               </button>
-                           )}
-                        </div>
+                      <td className="py-4 px-5">
+                        <p className="text-xs text-gray-600 max-w-[140px] truncate" title={leave.reason}>{leave.reason || '—'}</p>
+                      </td>
+                      <td className="py-4 px-5 text-center">
+                        <StatusPill status={leave.status} />
+                      </td>
+                      <td className="py-4 px-4">
+                        {leave.status === 'PENDING' && (
+                          <button
+                            onClick={() => handleDelete(leave.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Cancel"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
-                {leaveHistory.length === 0 && (
-                    <tr>
-                        <td colSpan="4" className="py-10 text-center text-gray-400 text-sm">No leave requests found</td>
-                    </tr>
+                {!loading && filteredHistory.length === 0 && (
+                  <tr>
+                    <td colSpan="6" className="py-14 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center">
+                          <FileText size={24} className="text-gray-200" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-400">
+                          {historyTab === 'All' ? 'No leave requests yet' : `No ${historyTab.toLowerCase()} requests`}
+                        </p>
+                        <p className="text-xs text-gray-300">
+                          {historyTab === 'All' ? 'Apply for your first leave using the form' : 'Switch tabs to view other requests'}
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
-
-        {/* Right Side - Form (4 Columns) */}
-        <div className="lg:col-span-4 bg-[#1E293B] rounded-[40px] p-8 shadow-xl text-white relative overflow-hidden min-h-[600px] flex flex-col">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="relative z-10 flex flex-col h-full"
-          >
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md">
-                <Plus size={20} className="text-blue-400" />
-              </div>
-              <h2 className="text-xl font-bold tracking-tight">Apply for Leave</h2>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6 flex-1">
-              <div>
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Leave Category</label>
-                <div className="grid grid-cols-2 gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setLeaveCategory('Paid')}
-                    className={`py-3 rounded-xl text-xs font-bold transition-all ${
-                      leaveCategory === 'Paid' ? 'bg-blue-600 text-white shadow-md' : 'text-white/60 hover:text-white'
-                    }`}
-                  >
-                    Paid Leave
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLeaveCategory('LOP')}
-                    className={`py-3 rounded-xl text-xs font-bold transition-all ${
-                      leaveCategory === 'LOP' ? 'bg-amber-600 text-white shadow-md' : 'text-white/60 hover:text-white'
-                    }`}
-                  >
-                    Loss of Pay (LOP)
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Leave Type</label>
-                  <select
-                    value={leaveType}
-                    onChange={(e) => setLeaveType(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all cursor-pointer appearance-none"
-                  >
-                    <option className="bg-[#1E293B]" value="Sick Leave">Sick Leave</option>
-                    <option className="bg-[#1E293B]" value="Casual Leave">Casual Leave</option>
-                    <option className="bg-[#1E293B]" value="Emergency Leave">Emergency Leave</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Duration</label>
-                  <select
-                    value={leaveDuration}
-                    onChange={(e) => setLeaveDuration(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all cursor-pointer appearance-none"
-                  >
-                    <option className="bg-[#1E293B]" value="Full Day">Full Day</option>
-                    <option className="bg-[#1E293B]" value="First Half">First Half</option>
-                    <option className="bg-[#1E293B]" value="Second Half">Second Half</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">
-                    {leaveDuration === 'Full Day' ? 'From Date' : 'Date'}
-                  </label>
-                  <input 
-                    type="date" 
-                    required
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs font-semibold outline-none focus:border-blue-400 transition-all [color-scheme:dark]" 
-                  />
-                </div>
-                {leaveDuration === 'Full Day' ? (
-                  <div>
-                    <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">To Date</label>
-                    <input 
-                        type="date" 
-                        required
-                        value={toDate}
-                        onChange={(e) => setToDate(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs font-semibold outline-none focus:border-blue-400 transition-all [color-scheme:dark]" 
-                    />
-                  </div>
-                ) : null}
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2">Reason</label>
-                <textarea
-                  placeholder="Tell us why you need this leave..."
-                  required
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-semibold outline-none focus:border-blue-400 transition-all min-h-[100px] resize-none"
-                ></textarea>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-[24px] font-bold text-sm uppercase tracking-widest shadow-xl shadow-blue-900/20 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 mt-4 disabled:opacity-50"
-              >
-                {loading ? <RefreshCw className="animate-spin" size={18} /> : <Send size={18} />}
-                {loading ? 'Submitting...' : 'Submit Request'}
-              </button>
-            </form>
-
-            <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-white/5 flex gap-3">
-              <AlertCircle size={20} className="text-yellow-500 shrink-0" />
-              <p className="text-[10px] font-medium text-white/60 leading-relaxed">
-                Requests should be submitted at least 2 days in advance for approval.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Decorative Background Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-600/10 rounded-full -ml-24 -mb-24 blur-3xl"></div>
-        </div>
       </div>
 
-      {/* Success Modal */}
-      {showSuccessPopup && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0, y: 40 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            className="bg-white rounded-[48px] shadow-2xl w-full max-w-[360px] overflow-hidden p-10 flex flex-col items-center text-center relative border border-white/20"
-          >
-            <div className="relative mb-10">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring" }}
-                className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center relative"
-              >
-                <Send size={44} className="text-[#0052CC]" />
-              </motion.div>
-            </div>
-
-            <h2 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">Request sent to admin</h2>
-            <p className="text-sm font-medium text-gray-500 mb-8 leading-relaxed px-4">
-              Your leave request has been sent successfully.
-            </p>
-
-            <button
-              className="w-full bg-[#0052CC] text-white py-5 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-2xl shadow-blue-200 transition-all"
-              onClick={() => setShowSuccessPopup(false)}
-            >
-              OK, Got it
-            </button>
-          </motion.div>
+      {/* Success Toast */}
+      {showSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-green-600 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-green-200 animate-in slide-in-from-bottom-4 duration-300">
+          <CheckCircle2 size={20} />
+          <div>
+            <p className="font-bold text-sm">Request Submitted!</p>
+            <p className="text-xs text-green-100">Your leave request has been sent to admin.</p>
+          </div>
+          <button onClick={() => setShowSuccess(false)} className="ml-2 text-green-200 hover:text-white">
+            <X size={16} />
+          </button>
         </div>
       )}
     </div>

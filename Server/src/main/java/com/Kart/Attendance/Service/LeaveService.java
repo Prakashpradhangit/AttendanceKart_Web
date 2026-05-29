@@ -8,7 +8,10 @@ import com.Kart.Attendance.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +21,11 @@ public class LeaveService {
 
     public LeaveRequest applyLeave(LeaveRequest request, Long userId) {
         String tenantId = TenantContext.getCurrentTenant();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if ("INTERN".equalsIgnoreCase(user.getEmploymentType()) || "PROBATION".equalsIgnoreCase(user.getEmploymentType())) {
+            request.setLeaveCategory("LOP");
+        }
         request.setTenantId(tenantId);
         request.setUserId(String.valueOf(userId));
         request.setStatus("PENDING");
@@ -31,7 +39,7 @@ public class LeaveService {
 
     public long getApprovedLeaveCount(Long userId) {
         String tenantId = TenantContext.getCurrentTenant();
-        return leaveRepository.findByUserIdAndTenantIdAndStatus(String.valueOf(userId), tenantId, "APPROVED").size();
+        return leaveRepository.countByUserIdAndTenantIdAndStatus(String.valueOf(userId), tenantId, "APPROVED");
     }
 
     public long getPendingLeaveCount() {
@@ -43,6 +51,21 @@ public class LeaveService {
         String tenantId = TenantContext.getCurrentTenant();
         List<LeaveRequest> list = leaveRepository.findByTenantId(tenantId);
         List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        List<Long> userIds = list.stream()
+                .map(LeaveRequest::getUserId)
+                .map(id -> {
+                    try {
+                        return Long.parseLong(id);
+                    } catch (Exception e) {
+                        return null;
+                    }
+                })
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, User> usersById = userIds.isEmpty()
+                ? Collections.emptyMap()
+                : userRepository.findByIdIn(userIds).stream().collect(Collectors.toMap(User::getId, user -> user));
         
         for (LeaveRequest req : list) {
             java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
@@ -59,9 +82,8 @@ public class LeaveService {
             
             try {
                 Long uId = Long.parseLong(req.getUserId());
-                java.util.Optional<User> uOpt = userRepository.findById(uId);
-                if (uOpt.isPresent()) {
-                    User u = uOpt.get();
+                User u = usersById.get(uId);
+                if (u != null) {
                     map.put("employeeName", u.getName() != null ? u.getName() : "");
                     map.put("employeeCode", u.getEmployeeCode() != null ? u.getEmployeeCode() : "");
                 } else {

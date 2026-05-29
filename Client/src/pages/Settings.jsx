@@ -2,21 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { 
   Lock, Save, ShieldCheck, Globe, Layout, Users, 
   Clock, IndianRupee, FileText, Bell, Trash2, Plus,
-  Camera, CheckCircle2, AlertCircle, RefreshCw
+  Camera, CheckCircle2, AlertCircle, RefreshCw, X
 } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 
 const Settings = () => {
+  const { showAlert } = useAlert();
   const [activeTab, setActiveTab] = useState('general');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [newHolidayName, setNewHolidayName] = useState('');
   const [newHolidayDate, setNewHolidayDate] = useState('');
+  const [newDeptName, setNewDeptName] = useState('');
+  const [showAddDeptInput, setShowAddDeptInput] = useState(false);
 
   // Settings State
   const [settings, setSettings] = useState({
     general: {
       companyName: 'AttendanceKart Pvt Ltd',
       companyEmail: 'admin@attendancekart.com',
+      companyAddress: '',
       shortForm: '',
       language: 'English (IN)',
       timezone: 'GMT +5:30',
@@ -36,6 +41,7 @@ const Settings = () => {
       checkInTime: '09:00',
       checkOutTime: '18:00',
       gracePeriod: '15',
+      shiftDuration: '9.0',
       workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
     },
     payroll: {
@@ -48,6 +54,8 @@ const Settings = () => {
       casual: 12,
       emergency: 6,
       accrualRate: 1.5,
+      internPeriodMonths: 3,
+      probationPeriodMonths: 6,
       holidays: []
     },
     reports: {
@@ -84,19 +92,33 @@ const Settings = () => {
             ...prev.general,
             companyName: data.organisation_name || prev.general.companyName,
             companyEmail: data.email || prev.general.companyEmail,
+            companyAddress: data.organisation_address || '',
             shortForm: data.short_form || ''
+          },
+          employees: {
+            ...prev.employees,
+            departments: (() => {
+              try {
+                return data.departments ? JSON.parse(data.departments) : prev.employees.departments;
+              } catch (e) {
+                return prev.employees.departments;
+              }
+            })()
           },
           attendance: {
             ...prev.attendance,
             checkInTime: data.defaultCheckInTime || '09:00',
             checkOutTime: data.defaultCheckOutTime || '18:00',
-            gracePeriod: data.gracePeriod || 15
+            gracePeriod: data.gracePeriod || 15,
+            shiftDuration: data.shiftDuration !== undefined ? data.shiftDuration : '9.0'
           },
           leaves: {
             sick: data.sickLeavesLimit !== undefined ? data.sickLeavesLimit : 12,
             casual: data.casualLeavesLimit !== undefined ? data.casualLeavesLimit : 12,
             emergency: data.emergencyLeavesLimit !== undefined ? data.emergencyLeavesLimit : 6,
             accrualRate: data.monthlyAccrualRate !== undefined ? data.monthlyAccrualRate : 1.5,
+            internPeriodMonths: data.internPeriodMonths !== undefined ? data.internPeriodMonths : 3,
+            probationPeriodMonths: data.probationPeriodMonths !== undefined ? data.probationPeriodMonths : 6,
             holidays: (() => {
               try {
                 return data.declaredHolidays ? JSON.parse(data.declaredHolidays) : [];
@@ -133,12 +155,17 @@ const Settings = () => {
           defaultCheckInTime: settings.attendance.checkInTime,
           defaultCheckOutTime: settings.attendance.checkOutTime,
           gracePeriod: settings.attendance.gracePeriod,
+          shiftDuration: settings.attendance.shiftDuration,
           shortForm: settings.general.shortForm,
+          organisationAddress: settings.general.companyAddress,
           sickLeavesLimit: settings.leaves.sick,
           casualLeavesLimit: settings.leaves.casual,
           emergencyLeavesLimit: settings.leaves.emergency,
           monthlyAccrualRate: settings.leaves.accrualRate,
-          declaredHolidays: JSON.stringify(settings.leaves.holidays)
+          declaredHolidays: JSON.stringify(settings.leaves.holidays),
+          departments: JSON.stringify(settings.employees.departments),
+          internPeriodMonths: settings.leaves.internPeriodMonths,
+          probationPeriodMonths: settings.leaves.probationPeriodMonths
         })
       });
 
@@ -226,6 +253,16 @@ const Settings = () => {
                     value={settings.general.companyName}
                     onChange={(e) => updateSetting('general', 'companyName', e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Company Address</label>
+                  <textarea 
+                    rows={2}
+                    value={settings.general.companyAddress}
+                    onChange={(e) => updateSetting('general', 'companyAddress', e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all resize-none text-sm"
+                    placeholder="Enter full company address for payslips"
                   />
                 </div>
                 <div className="space-y-2">
@@ -341,14 +378,75 @@ const Settings = () => {
                     {settings.employees.departments.map((dept, idx) => (
                       <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl font-semibold text-sm border border-indigo-100 group">
                         {dept}
-                        <button className="hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                        <button 
+                          onClick={() => {
+                            const updated = settings.employees.departments.filter((_, i) => i !== idx);
+                            updateSetting('employees', 'departments', updated);
+                          }}
+                          className="hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        >
                           <Trash2 size={14} />
                         </button>
                       </div>
                     ))}
-                    <button className="flex items-center gap-1 px-4 py-2 bg-gray-50 text-gray-500 rounded-xl font-semibold text-sm border border-dashed border-gray-300 hover:bg-gray-100 transition-all">
-                      <Plus size={14} /> Add New
-                    </button>
+                    {showAddDeptInput ? (
+                      <div className="flex items-center gap-2 bg-gray-50 border border-gray-250 rounded-xl p-1.5 animate-in fade-in duration-200">
+                        <input 
+                          type="text" 
+                          placeholder="New Department..."
+                          value={newDeptName}
+                          onChange={(e) => setNewDeptName(e.target.value)}
+                          className="bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs font-semibold outline-none w-36"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (!newDeptName.trim()) return;
+                              if (settings.employees.departments.includes(newDeptName.trim())) {
+                                showAlert("Department already exists!", "error");
+                                return;
+                              }
+                              const updated = [...settings.employees.departments, newDeptName.trim()];
+                              updateSetting('employees', 'departments', updated);
+                              setNewDeptName('');
+                              setShowAddDeptInput(false);
+                            }
+                          }}
+                        />
+                        <button 
+                          onClick={() => {
+                            if (!newDeptName.trim()) return;
+                            if (settings.employees.departments.includes(newDeptName.trim())) {
+                              showAlert("Department already exists!", "error");
+                              return;
+                            }
+                            const updated = [...settings.employees.departments, newDeptName.trim()];
+                            updateSetting('employees', 'departments', updated);
+                            setNewDeptName('');
+                            setShowAddDeptInput(false);
+                          }}
+                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-all"
+                        >
+                          <CheckCircle2 size={14} />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setNewDeptName('');
+                            setShowAddDeptInput(false);
+                          }}
+                          className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-all"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => setShowAddDeptInput(true)}
+                        className="flex items-center gap-1 px-4 py-2 bg-gray-50 text-gray-500 rounded-xl font-semibold text-sm border border-dashed border-gray-300 hover:bg-gray-100 transition-all"
+                      >
+                        <Plus size={14} /> Add New
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -403,6 +501,16 @@ const Settings = () => {
                     type="number" 
                     value={settings.attendance.gracePeriod}
                     onChange={(e) => updateSetting('attendance', 'gracePeriod', e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Shift Duration (Hours)</label>
+                  <input 
+                    type="number" 
+                    step="0.5"
+                    value={settings.attendance.shiftDuration}
+                    onChange={(e) => updateSetting('attendance', 'shiftDuration', e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold transition-all"
                   />
                 </div>
@@ -526,6 +634,47 @@ const Settings = () => {
                   </div>
                 </div>
 
+                {/* Intern & Probation Period Configuration */}
+                <div className="p-6 bg-amber-50/60 border border-amber-100 rounded-[32px] space-y-4">
+                  <div className="flex items-center gap-3 text-amber-700">
+                    <AlertCircle size={20} />
+                    <p className="font-bold text-sm">Restricted Employment Periods</p>
+                  </div>
+                  <p className="text-xs text-amber-600 font-medium leading-relaxed">
+                    Employees in <strong>Intern</strong> or <strong>Probation</strong> status can only apply for <strong>Loss of Pay (LOP)</strong> leaves — no paid leave is granted. Set the duration of each period below. After this period ends, the admin should manually update the employee's employment type to <strong>Full Time</strong>.
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-2xl p-4 border border-amber-100 space-y-2">
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Intern Period</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="24"
+                          value={settings.leaves.internPeriodMonths}
+                          onChange={(e) => updateSetting('leaves', 'internPeriodMonths', parseInt(e.target.value) || 1)}
+                          className="w-20 bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-center font-bold text-sm outline-none focus:ring-2 focus:ring-amber-400/30"
+                        />
+                        <span className="text-xs text-gray-500 font-semibold">months</span>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 border border-amber-100 space-y-2">
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Probation Period</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="24"
+                          value={settings.leaves.probationPeriodMonths}
+                          onChange={(e) => updateSetting('leaves', 'probationPeriodMonths', parseInt(e.target.value) || 1)}
+                          className="w-20 bg-gray-50 border border-gray-200 rounded-xl py-2 px-3 text-center font-bold text-sm outline-none focus:ring-2 focus:ring-amber-400/30"
+                        />
+                        <span className="text-xs text-gray-500 font-semibold">months</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Declared Holidays Manager */}
                 <div className="p-6 bg-white border border-gray-100 rounded-[32px] space-y-6">
                   <div>
@@ -560,7 +709,7 @@ const Settings = () => {
                         if (!newHolidayDate || !newHolidayName) return;
                         const existing = settings.leaves.holidays || [];
                         if (existing.some(h => h.date === newHolidayDate)) {
-                          alert("A holiday with this date is already declared!");
+                          showAlert("A holiday with this date is already declared!", "error");
                           return;
                         }
                         const updated = [...existing, { date: newHolidayDate, name: newHolidayName }].sort((a,b) => new Date(a.date) - new Date(b.date));

@@ -1,13 +1,27 @@
 import React, { useState } from 'react';
-import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw, Trash2, Copy, Download, Check, FileSpreadsheet, X } from 'lucide-react';
+import { Search, EllipsisVertical, Plus, Upload, CircleCheck, CircleAlert, Edit2, RotateCcw, Trash2, Copy, Download, Check, FileSpreadsheet, X, DollarSign } from 'lucide-react';
 import { useEmployees } from '../context/EmployeeContext';
+import { useAlert } from '../context/AlertContext';
 import EmployeeForm from '../components/EmployeeForm';
 import ImportModal from '../components/ImportModal';
+import SalaryConfigModal from '../components/SalaryConfigModal';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Employees = () => {
-  const { employees, maxUsers, addEmployee, addBulkEmployees, updateEmployee, deleteEmployee, resetTodayAttendance } = useEmployees();
+  const {
+    employees,
+    employeePagination,
+    fetchEmployees,
+    maxUsers,
+    addEmployee,
+    addBulkEmployees,
+    updateEmployee,
+    deleteEmployee,
+    resetTodayAttendance
+  } = useEmployees();
+  const activeEmployeeCount = employees.filter(e => e.status === 'Active').length;
+  const { showConfirm } = useAlert();
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -16,24 +30,31 @@ const Employees = () => {
   const [notification, setNotification] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [salaryEmployee, setSalaryEmployee] = useState(null);
   const [bulkResult, setBulkResult] = useState(null);
   const [copiedPasswordIdx, setCopiedPasswordIdx] = useState(null);
 
-  const departments = ['All Departments', ...new Set(employees.map(emp => emp.department))];
+  React.useEffect(() => {
+    const handle = setTimeout(() => {
+      fetchEmployees({ page: 0, search: searchTerm, department: departmentFilter });
+    }, 300);
+
+    return () => clearTimeout(handle);
+  }, [searchTerm, departmentFilter, fetchEmployees]);
+
+  const departments = ['All Departments', ...new Set(employees.map(emp => emp.department).filter(Boolean))];
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), type === 'error' ? 5000 : 3000);
   };
 
-  const filteredEmployees = employees.filter(emp => {
-    const empCode = emp.empId || String(emp.id);
-    const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         empCode.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = departmentFilter === 'All Departments' || emp.department === departmentFilter;
-    return matchesSearch && matchesDept;
-  });
+  const filteredEmployees = employees;
+
+  const goToPage = (page) => {
+    if (page < 0 || page >= employeePagination.totalPages) return;
+    fetchEmployees({ page, search: searchTerm, department: departmentFilter });
+  };
 
   const handleAddEmployee = async (data) => {
     const res = await addEmployee(data);
@@ -118,8 +139,13 @@ const Employees = () => {
     setActiveMenuId(null);
   };
 
-  const handleDeleteEmployee = (id) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
+  const handleSalaryClick = (emp) => {
+    setSalaryEmployee(emp);
+    setActiveMenuId(null);
+  };
+
+  const handleDeleteEmployee = async (id) => {
+    if (await showConfirm('Are you sure you want to delete this employee?')) {
       deleteEmployee(id);
       showNotification('Employee deleted successfully!');
       setActiveMenuId(null);
@@ -156,7 +182,7 @@ const Employees = () => {
         <div className="flex flex-col sm:flex-row gap-3">
           <button 
             onClick={() => {
-              if (maxUsers && maxUsers > 0 && employees.length >= maxUsers) {
+              if (maxUsers && maxUsers > 0 && activeEmployeeCount >= maxUsers) {
                 setLimitExceededModalOpen(true);
               } else {
                 setIsImportModalOpen(true);
@@ -168,7 +194,7 @@ const Employees = () => {
           </button>
           <button 
             onClick={() => {
-              if (maxUsers && maxUsers > 0 && employees.length >= maxUsers) {
+              if (maxUsers && maxUsers > 0 && activeEmployeeCount >= maxUsers) {
                 setLimitExceededModalOpen(true);
               } else {
                 setIsAddModalOpen(true);
@@ -227,9 +253,17 @@ const Employees = () => {
                   <td className="px-8 py-5 text-sm font-semibold text-gray-900">{emp.empId || emp.id}</td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shadow-sm">
-                        {emp.name.charAt(0)}
-                      </div>
+                      {emp.profileImage ? (
+                        <img 
+                          src={emp.profileImage} 
+                          alt={emp.name}
+                          className="w-10 h-10 rounded-2xl object-cover border border-gray-100 shadow-sm shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shadow-sm shrink-0">
+                          {emp.name.charAt(0)}
+                        </div>
+                      )}
                       <span className="text-sm font-semibold text-gray-900">{emp.name}</span>
                     </div>
                   </td>
@@ -276,6 +310,13 @@ const Employees = () => {
                                   <RotateCcw size={18} />
                                 </button>
                                 <button
+                                  onClick={() => handleSalaryClick(emp)}
+                                  title="Configure Salary"
+                                  className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 hover:bg-indigo-100 transition-colors shadow-sm"
+                                >
+                                  <DollarSign size={18} />
+                                </button>
+                                <button
                                   onClick={() => handleEditClick(emp)}
                                   title="Edit Employee"
                                   className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 hover:bg-blue-100 transition-colors shadow-sm"
@@ -318,11 +359,31 @@ const Employees = () => {
         
         {/* Pagination */}
         <div className="px-8 py-6 border-t border-gray-50 flex items-center justify-between bg-gray-50/30">
-          <p className="text-sm text-gray-500 font-semibold">Showing <span className="text-gray-900">{filteredEmployees.length}</span> of <span className="text-gray-900">{employees.length}</span> entries</p>
+          <p className="text-sm text-gray-500 font-semibold">
+            Showing <span className="text-gray-900">{filteredEmployees.length}</span> of <span className="text-gray-900">{employeePagination.totalElements}</span> entries
+          </p>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-400 cursor-not-allowed bg-white">Previous</button>
-            <button className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/20">1</button>
-            <button className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 bg-white">Next</button>
+            <button
+              onClick={() => goToPage(employeePagination.page - 1)}
+              disabled={employeePagination.page === 0}
+              className={`px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold bg-white ${
+                employeePagination.page === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Previous
+            </button>
+            <button className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold shadow-lg shadow-primary/20">
+              {employeePagination.page + 1}
+            </button>
+            <button
+              onClick={() => goToPage(employeePagination.page + 1)}
+              disabled={employeePagination.page + 1 >= employeePagination.totalPages}
+              className={`px-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold bg-white ${
+                employeePagination.page + 1 >= employeePagination.totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
@@ -343,6 +404,14 @@ const Employees = () => {
         onClose={() => setIsImportModalOpen(false)} 
         onImport={handleBulkImport}
       />
+
+      {salaryEmployee && (
+        <SalaryConfigModal
+          employee={salaryEmployee}
+          onClose={() => setSalaryEmployee(null)}
+          onSaved={() => fetchEmployees({ page: 0 })}
+        />
+      )}
 
       {/* Limit Exceeded Premium Modal */}
       <AnimatePresence>
@@ -382,7 +451,7 @@ const Employees = () => {
                 <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 flex justify-around text-center mt-2">
                   <div>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Employees</p>
-                    <p className="text-2xl font-extrabold text-slate-700 mt-1">{employees.length}</p>
+                    <p className="text-2xl font-extrabold text-slate-700 mt-1">{activeEmployeeCount}</p>
                   </div>
                   <div className="w-px bg-slate-200" />
                   <div>

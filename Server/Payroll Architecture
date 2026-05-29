@@ -1,0 +1,74 @@
+# Walkthrough: Dynamic Functional Payroll System
+
+We have successfully migrated the **Payroll Management** module from static placeholders to a fully functional, premium, backend-integrated system. Both admin-facing and employee-facing views are fully synchronized, enabling dynamic calculations driven by real attendance and leave data.
+
+---
+
+## 🛠️ Architecture & Core Components
+
+```mermaid
+graph TD
+    UserEntity[User Entity: basicSalary] -->|Reference| PayrollService[Payroll Service Engine]
+    AttendanceDetails[Attendance Details] -->|Count Present/Late/Absent| PayrollService
+    LeaveRequest[Leave Request] -->|Approved LOP Leaves| PayrollService
+    PayrollService -->|Automatic Suggestion| PayrollController[Payroll REST Controller]
+    PayrollController -->|Admin Actions| AdminUI[Payroll.jsx: Admin View]
+    PayrollController -->|Employee Actions| EmployeeUI[EmployeeSalary.jsx: Employee View]
+    EmployeeUI -->|Submit Request| PayslipRequest[Payslip Request Entity]
+    PayslipRequest -->|HR Review| AdminUI
+```
+
+### 1. Database & Entities
+*   **User Update:** Integrated `basicSalary` configuration inside `User.java` (default: 30,000.0) allowing individual compensation profiles.
+*   **`Payroll` Entity:** Persists monthly earnings, HRA, performance bonus, LOP leaves, presence counts, tax/PF/ESI deductions, net payout, and payment status (`DRAFT`, `PENDING`, `PAID`).
+*   **`PayslipRequest` Entity:** Allows employees to submit formal documents requests with customized reasons, editable status controls (`PENDING`, `APPROVED`, `REJECTED`), and automatic routing to administrators.
+
+### 2. Dynamic Calculations Engine (`PayrollService.java`)
+The core engine computes salaries using a prorated attendance and leave formula:
+$$Daily\ Rate = \frac{Basic\ Salary}{Days\ in\ Month}$$
+$$Unpaid\ Days = Absent\ Days + Approved\ LOP\ Leaves$$
+$$Attendance\ Deduction = Daily\ Rate \times Unpaid\ Days$$
+
+In addition to dynamic pro-rating, it applies standard professional components:
+*   **Earnings:** House Rent Allowance (40% of Basic), Conveyance, Medical, and Special Allowances, and custom Performance Bonuses.
+*   **Deductions:** PF (12% of Basic), Professional Tax (₹200 flat), ESI (3.25% of Basic), Income Tax/TDS, and Attendance-based pro-rated deductions.
+
+---
+
+## 🖥️ Premium UI Features & Frontends
+
+### 👑 Admin Payroll Management (`Payroll.jsx`)
+*   **Unlocked FIN Security:** Pin protection (default `1234`) keeps sensitive salary data protected.
+*   **Auto-Calculation Engine:** Select an employee and month in the creation dialog to automatically fetch calculated suggestions from the backend service engine!
+*   **Dynamic Stats Bar:** Tracks `Paid Payrolls`, `Pending Payments`, `Draft Payrolls`, and total payout counts dynamically from actual records.
+*   **One-Click Actions:** Complete status changes (`DRAFT` ➜ `PENDING` ➜ `PAID`), trigger quick modal-driven payments, and preview beautifully rendered payslip templates before saving.
+
+### 👥 Employee Salary Portal (`EmployeeSalary.jsx`)
+*   **Real-Time Sync:** Fetches personal payroll statements from `/api/payroll/my` with interactive month filtering.
+*   **Aesthetic Stats Cards:** Features card summaries highlighting Net Salary, Gross Earnings, Total Deductions, and accurate Days Worked ratios.
+*   **Breakdown Panels:** Renders responsive Earnings vs. Deductions comparative lists.
+*   **Interactive Area Chart:** Plots the employee's last 6 months of paid payouts using a premium, gradient-shaded Recharts area graph.
+*   **Payslip Approvals:** Triggers custom payslip request modals, showing interactive option cards and disabling requests when a duplicate approval is pending.
+
+---
+
+## 🧪 Verification Results
+
+We verified that the backend compiles cleanly inside Java release 21:
+```bash
+$ .\mvnw.cmd clean compile
+[INFO] --- compiler:3.14.1:compile (default-compile) @ Attendance ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 52 source files with javac [debug parameters release 21] to target\classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+```
+
+---
+
+> [!TIP]
+> **Suggested Verification Steps:**
+> 1. Start the backend Server application.
+> 2. Open the Admin dashboard at `/payroll`, enter security code `1234`, select an active employee, and click **Create Payroll** to verify the auto-suggested calculations.
+> 3. Log in as an employee, navigate to `/salary`, and select the corresponding month to view the detailed breakdown and download options.

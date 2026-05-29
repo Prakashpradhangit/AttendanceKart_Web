@@ -33,13 +33,14 @@ const SuperAdminDashboard = () => {
         const adminsData = await adminsResponse.json();
 
         // Fetch Users (All)
-        const usersResponse = await fetch('/api/users', { headers });
+        const usersResponse = await fetch('/api/users?page=0&size=1', { headers });
         const usersData = await usersResponse.json();
+        const totalUsers = Array.isArray(usersData) ? usersData.length : usersData.totalElements || 0;
 
         // Update Stats
         setStats([
           { label: 'Total Organizations', value: adminsData.length.toString(), change: '+12.5%', isPositive: true, icon: Building2, color: 'blue' },
-          { label: 'Active Users', value: usersData.length.toString(), change: '+18.2%', isPositive: true, icon: Users, color: 'emerald' },
+          { label: 'Active Users', value: totalUsers.toString(), change: '+18.2%', isPositive: true, icon: Users, color: 'emerald' },
           { label: 'Monthly Revenue', value: `$${(adminsData.length * 199).toLocaleString()}`, change: '+24.1%', isPositive: true, icon: CreditCard, color: 'amber' },
           { label: 'Platform Uptime', value: '99.99%', change: '-0.01%', isPositive: false, icon: Zap, color: 'blue' },
         ]);

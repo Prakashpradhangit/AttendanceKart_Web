@@ -11,6 +11,8 @@ public interface LeaveRepository extends JpaRepository<LeaveRequest, Long> {
     List<LeaveRequest> findByUserIdAndTenantId(String userId, String tenantId);
     List<LeaveRequest> findByUserIdAndTenantIdAndStatus(String userId, String tenantId, String status);
     List<LeaveRequest> findByTenantId(String tenantId);
+    List<LeaveRequest> findByTenantIdAndStatus(String tenantId, String status);
+    long countByUserIdAndTenantIdAndStatus(String userId, String tenantId, String status);
     long countByTenantIdAndStatus(String tenantId, String status);
     void deleteByUserIdAndTenantId(String userId, String tenantId);
 }

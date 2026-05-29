@@ -4,8 +4,13 @@ import com.Kart.Attendance.Config.TenantContext;
 import com.Kart.Attendance.Entity.Admin;
 import com.Kart.Attendance.Entity.AttendanceDetails;
 import com.Kart.Attendance.Entity.User;
+import com.Kart.Attendance.Entity.LeaveRequest;
+import com.Kart.Attendance.Entity.ClockOutRequest;
 import com.Kart.Attendance.Repository.Attendance_Details;
 import com.Kart.Attendance.Repository.UserRepository;
+import com.Kart.Attendance.Repository.LeaveRepository;
+import com.Kart.Attendance.Repository.AdminRepository;
+import com.Kart.Attendance.Repository.ClockOutRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +21,6 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
-import com.Kart.Attendance.Entity.LeaveRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -24,8 +28,9 @@ public class AttendanceService {
 
     private final Attendance_Details attendanceRepository;
     private final UserRepository userRepository;
-    private final com.Kart.Attendance.Repository.LeaveRepository leaveRepository;
-    private final com.Kart.Attendance.Repository.AdminRepository adminRepository;
+    private final LeaveRepository leaveRepository;
+    private final AdminRepository adminRepository;
+    private final ClockOutRequestRepository requestRepository;
 
     public Optional<AttendanceDetails> getTodayAttendance(Long userId) {
         String tenantId = TenantContext.getCurrentTenant();
@@ -58,20 +63,20 @@ public class AttendanceService {
         attendance.setDesignation(user.getDesignation());
         attendance.setAttendanceDate(today);
         attendance.setCheckInTime(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        
+
         // Calculate status based on settings
         Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
         String checkInTimeStr = (admin != null) ? admin.getDefaultCheckInTime() : "09:00";
         int gracePeriod = (admin != null) ? admin.getGracePeriod() : 15;
-        
+
         LocalTime baseTime = LocalTime.parse(checkInTimeStr);
         LocalTime thresholdTime = baseTime.plusMinutes(gracePeriod);
         LocalTime nowTime = LocalTime.now();
-        
+
         if (nowTime.isAfter(thresholdTime)) {
             attendance.setStatus("Late");
         } else {
-            attendance.setStatus("Present");
+            attendance.setStatus("On Time");
         }
 
         return attendanceRepository.save(attendance);
@@ -96,7 +101,7 @@ public class AttendanceService {
         Duration duration = Duration.between(checkInTime, checkOutTime);
         long hours = duration.toHours();
         long minutes = duration.toMinutesPart();
-        
+
         attendance.setWorkHours(String.format("%02d:%02d", hours, minutes));
 
         return attendanceRepository.save(attendance);
@@ -116,7 +121,7 @@ public class AttendanceService {
     public List<Map<String, Object>> getAttendanceTrends(String monthStr) {
         String tenantId = TenantContext.getCurrentTenant();
         LocalDate now = LocalDate.now();
-        
+
         LocalDate firstDay;
         int daysInMonth;
         String queryYearMonth;
@@ -135,9 +140,8 @@ public class AttendanceService {
         }
 
         List<AttendanceDetails> attendanceList = attendanceRepository.findByTenantIdAndAttendanceDateStartingWith(tenantId, queryYearMonth);
-        List<LeaveRequest> leaveList = leaveRepository.findByTenantId(tenantId).stream()
-                .filter(l -> "APPROVED".equals(l.getStatus()))
-                .collect(Collectors.toList());
+        List<LeaveRequest> leaveList = leaveRepository.findByTenantIdAndStatus(tenantId, "APPROVED");
+        long totalEmployees = userRepository.countByTenantIdAndRole(tenantId, com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE);
 
         List<Map<String, Object>> trends = new ArrayList<>();
         for (int i = 1; i <= daysInMonth; i++) {
@@ -165,7 +169,7 @@ public class AttendanceService {
             dayData.put("name", label);
             dayData.put("present", presentCount);
             dayData.put("leave", leaveCount);
-            dayData.put("absent", Math.max(0, userRepository.countByTenantIdAndRole(tenantId, com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE) - presentCount - leaveCount));
+            dayData.put("absent", Math.max(0, totalEmployees - presentCount - leaveCount));
             trends.add(dayData);
         }
         return trends;
@@ -179,9 +183,8 @@ public class AttendanceService {
         List<AttendanceDetails> todayAttendance = attendanceRepository.findByTenantIdAndAttendanceDate(tenantId, today);
         long presentToday = todayAttendance.size();
 
-        Admin admin = adminRepository.findByTenantId(tenantId)
-                .orElse(null);
-        
+        Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
+
         String checkInTimeStr = (admin != null) ? admin.getDefaultCheckInTime() : "09:00";
         int gracePeriod = (admin != null) ? admin.getGracePeriod() : 15;
 
@@ -199,8 +202,7 @@ public class AttendanceService {
                 })
                 .count();
 
-        long onLeaveToday = leaveRepository.findByTenantId(tenantId).stream()
-                .filter(l -> "APPROVED".equals(l.getStatus()))
+        long onLeaveToday = leaveRepository.findByTenantIdAndStatus(tenantId, "APPROVED").stream()
                 .filter(l -> {
                     try {
                         LocalDate start = LocalDate.parse(l.getFromDate());
@@ -231,16 +233,19 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
 
         long totalEmployees = userRepository.countByTenantIdAndRole(tenantId, com.Kart.Attendance.Entity.Type.User_Role.EMPLOYEE);
-        List<LeaveRequest> allLeaves = leaveRepository.findByTenantId(tenantId).stream()
-                .filter(l -> "APPROVED".equals(l.getStatus()))
-                .collect(Collectors.toList());
+        List<LeaveRequest> allLeaves = leaveRepository.findByTenantIdAndStatus(tenantId, "APPROVED");
+        LocalDate startDate = today.minusDays(6);
+        Map<String, Long> presentCountsByDate = attendanceRepository
+                .findByTenantIdAndAttendanceDateBetween(tenantId, startDate.toString(), today.toString())
+                .stream()
+                .collect(Collectors.groupingBy(AttendanceDetails::getAttendanceDate, Collectors.counting()));
 
         for (int i = 6; i >= 0; i--) {
             LocalDate date = today.minusDays(i);
             String dateStr = date.toString();
             String label = date.format(DateTimeFormatter.ofPattern("dd MMM"));
 
-            long presentCount = attendanceRepository.countByTenantIdAndAttendanceDate(tenantId, dateStr);
+            long presentCount = presentCountsByDate.getOrDefault(dateStr, 0L);
             long leaveCount = allLeaves.stream()
                     .filter(l -> {
                         try {
@@ -252,7 +257,7 @@ public class AttendanceService {
                         }
                     })
                     .count();
-            
+
             long absentCount = Math.max(0, totalEmployees - presentCount - leaveCount);
 
             Map<String, Object> dayData = new HashMap<>();
@@ -269,5 +274,66 @@ public class AttendanceService {
         String tenantId = TenantContext.getCurrentTenant();
         String today = LocalDate.now().toString();
         return attendanceRepository.findByTenantIdAndAttendanceDate(tenantId, today);
+    }
+
+    public List<AttendanceDetails> getAllAttendanceByDate(String date) {
+        String tenantId = TenantContext.getCurrentTenant();
+        String targetDate = (date != null && !date.isBlank()) ? date : LocalDate.now().toString();
+        return attendanceRepository.findByTenantIdAndAttendanceDate(tenantId, targetDate);
+    }
+
+    public List<AttendanceDetails> getMissingClockOuts(Long userId) {
+        String tenantId = TenantContext.getCurrentTenant();
+        String today = LocalDate.now().toString();
+
+        List<AttendanceDetails> nullCheckOuts = attendanceRepository.findByUserIdAndTenantIdAndCheckOutTimeIsNull(String.valueOf(userId), tenantId);
+
+        List<AttendanceDetails> pastMissing = nullCheckOuts.stream()
+                .filter(a -> a.getAttendanceDate().compareTo(today) < 0)
+                .collect(Collectors.toList());
+
+        List<ClockOutRequest> requests = requestRepository.findByUserIdAndTenantId(String.valueOf(userId), tenantId);
+        Set<String> requestedDates = requests.stream()
+                .filter(r -> "PENDING".equals(r.getStatus()) || "APPROVED".equals(r.getStatus()))
+                .map(ClockOutRequest::getAttendanceDate)
+                .collect(Collectors.toSet());
+
+        return pastMissing.stream()
+                .filter(a -> !requestedDates.contains(a.getAttendanceDate()))
+                .collect(Collectors.toList());
+    }
+
+    public boolean isEarlyCheckOut(AttendanceDetails attendance) {
+        if (attendance.getCheckInTime() == null || attendance.getCheckOutTime() == null) {
+            return false;
+        }
+        String tenantId = attendance.getTenantId();
+        Admin admin = adminRepository.findByTenantId(tenantId).orElse(null);
+        if (admin == null) {
+            return false;
+        }
+
+        try {
+            LocalDateTime checkInDateTime = LocalDateTime.parse(attendance.getCheckInTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            LocalDateTime checkOutDateTime = LocalDateTime.parse(attendance.getCheckOutTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+
+            // 1. Check if checkout time is before expectedCheckOutTime
+            LocalTime checkOutTime = checkOutDateTime.toLocalTime();
+            LocalTime expectedCheckOutTime = LocalTime.parse(admin.getDefaultCheckOutTime());
+            if (checkOutTime.isBefore(expectedCheckOutTime)) {
+                return true;
+            }
+
+            // 2. Check if actual work duration is less than shiftDuration (hours)
+            double requiredHours = admin.getShiftDuration();
+            Duration actualDuration = Duration.between(checkInDateTime, checkOutDateTime);
+            double actualWorkHours = actualDuration.toMinutes() / 60.0;
+            if (actualWorkHours < requiredHours) {
+                return true;
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return false;
     }
 }

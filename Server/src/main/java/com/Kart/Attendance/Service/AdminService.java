@@ -1,6 +1,8 @@
 package com.Kart.Attendance.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,15 +20,18 @@ import lombok.RequiredArgsConstructor;
 public class AdminService {
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
+    private final NoticeSseService noticeSseService;
+    private final EmailOtpService emailOtpService;
 
     public List<Admin> getAllAdmin(){
         List<Admin> admins = adminRepository.findAll();
+        Map<String, Long> activeCountsByTenant = userRepository
+                .countActiveEmployeesByTenant(User_Role.ADMIN, "Inactive")
+                .stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
         for (Admin a : admins) {
             if (a.getTenantId() != null) {
-                long count = userRepository.findByTenantId(a.getTenantId()).stream()
-                        .filter(u -> u.getRole() != com.Kart.Attendance.Entity.Type.User_Role.ADMIN)
-                        .count();
-                a.setUserCount(count);
+                a.setUserCount(activeCountsByTenant.getOrDefault(a.getTenantId(), 0L));
             }
         }
         return admins;
@@ -34,6 +39,11 @@ public class AdminService {
 
     @Transactional
     public Admin createNewAdmin(Admin admin){
+        emailOtpService.consumeVerification(
+                admin.getEmail(),
+                EmailOtpService.PURPOSE_ADMIN_REGISTRATION,
+                admin.getEmailVerificationToken()
+        );
         ensureTenantId(admin);
         Admin savedAdmin = adminRepository.save(admin);
         syncAdminUser(savedAdmin);
@@ -46,6 +56,7 @@ public class AdminService {
             admin.setName(adminDetails.getName());
             admin.setEmail(adminDetails.getEmail());
             admin.setOrganisation_name(adminDetails.getOrganisation_name());
+            admin.setOrganisation_address(adminDetails.getOrganisation_address());
             admin.setShortForm(adminDetails.getShortForm());
             admin.setPhone_number(adminDetails.getPhone_number());
             if (adminDetails.getPassword() != null && !adminDetails.getPassword().isEmpty()) {
@@ -59,6 +70,13 @@ public class AdminService {
             }
             if (adminDetails.getStatus() != null) {
                 admin.setStatus(adminDetails.getStatus());
+                if ("Inactive".equalsIgnoreCase(adminDetails.getStatus())) {
+                    admin.setAuthToken(null);
+                    if (admin.getTenantId() != null && !admin.getTenantId().isBlank()) {
+                        userRepository.clearAuthTokensByTenantId(admin.getTenantId());
+                        noticeSseService.forceLogoutTenant(admin.getTenantId());
+                    }
+                }
             }
             ensureTenantId(admin);
             Admin savedAdmin = adminRepository.save(admin);
@@ -72,6 +90,7 @@ public class AdminService {
         Admin admin = adminRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
         if (admin.getTenantId() != null && !admin.getTenantId().isBlank()) {
+            noticeSseService.forceLogoutTenant(admin.getTenantId());
             userRepository.deleteByTenantId(admin.getTenantId());
         }
         adminRepository.delete(admin);
@@ -136,10 +155,56 @@ public class AdminService {
             if (gp instanceof Integer) admin.setGracePeriod((Integer) gp);
             else if (gp instanceof String) admin.setGracePeriod(Integer.parseInt((String) gp));
         }
+        if (settings.containsKey("shiftDuration")) {
+            Object sd = settings.get("shiftDuration");
+            if (sd instanceof Double) admin.setShiftDuration((Double) sd);
+            else if (sd instanceof Float) admin.setShiftDuration(((Float) sd).doubleValue());
+            else if (sd instanceof Integer) admin.setShiftDuration(((Integer) sd).doubleValue());
+            else if (sd instanceof String) admin.setShiftDuration(Double.parseDouble((String) sd));
+        }
+        if (settings.containsKey("lateCountThreshold")) {
+            Object val = settings.get("lateCountThreshold");
+            if (val instanceof Integer) admin.setLateCountThreshold((Integer) val);
+            else if (val instanceof String) admin.setLateCountThreshold(Integer.parseInt((String) val));
+        }
+        if (settings.containsKey("lateDeductionDays")) {
+            Object val = settings.get("lateDeductionDays");
+            if (val instanceof Double) admin.setLateDeductionDays((Double) val);
+            else if (val instanceof Integer) admin.setLateDeductionDays(((Integer) val).doubleValue());
+            else if (val instanceof String) admin.setLateDeductionDays(Double.parseDouble((String) val));
+        }
+        if (settings.containsKey("lateMinutesHalfDayThreshold")) {
+            Object val = settings.get("lateMinutesHalfDayThreshold");
+            if (val instanceof Integer) admin.setLateMinutesHalfDayThreshold((Integer) val);
+            else if (val instanceof String) admin.setLateMinutesHalfDayThreshold(Integer.parseInt((String) val));
+        }
+        if (settings.containsKey("earlyCheckoutHourThreshold")) {
+            Object val = settings.get("earlyCheckoutHourThreshold");
+            if (val instanceof Double) admin.setEarlyCheckoutHourThreshold((Double) val);
+            else if (val instanceof Integer) admin.setEarlyCheckoutHourThreshold(((Integer) val).doubleValue());
+            else if (val instanceof String) admin.setEarlyCheckoutHourThreshold(Double.parseDouble((String) val));
+        }
+        if (settings.containsKey("earlyCheckoutDeductionDays")) {
+            Object val = settings.get("earlyCheckoutDeductionDays");
+            if (val instanceof Double) admin.setEarlyCheckoutDeductionDays((Double) val);
+            else if (val instanceof Integer) admin.setEarlyCheckoutDeductionDays(((Integer) val).doubleValue());
+            else if (val instanceof String) admin.setEarlyCheckoutDeductionDays(Double.parseDouble((String) val));
+        }
+        if (settings.containsKey("autoPenaltyRulesEnabled")) {
+            Object val = settings.get("autoPenaltyRulesEnabled");
+            if (val instanceof Boolean) admin.setAutoPenaltyRulesEnabled((Boolean) val);
+            else if (val instanceof String) admin.setAutoPenaltyRulesEnabled(Boolean.parseBoolean((String) val));
+        }
         if (settings.containsKey("shortForm") || settings.containsKey("short_form")) {
             String newShortForm = (String) (settings.containsKey("shortForm") ? settings.get("shortForm") : settings.get("short_form"));
             if (newShortForm != null) {
                 admin.setShortForm(newShortForm.trim().toUpperCase());
+            }
+        }
+        if (settings.containsKey("organisation_address") || settings.containsKey("organisationAddress")) {
+            String newAddress = (String) (settings.containsKey("organisation_address") ? settings.get("organisation_address") : settings.get("organisationAddress"));
+            if (newAddress != null) {
+                admin.setOrganisation_address(newAddress.trim());
             }
         }
         if (settings.containsKey("sickLeavesLimit")) {
@@ -167,6 +232,19 @@ public class AdminService {
         }
         if (settings.containsKey("declaredHolidays")) {
             admin.setDeclaredHolidays((String) settings.get("declaredHolidays"));
+        }
+        if (settings.containsKey("departments")) {
+            admin.setDepartments((String) settings.get("departments"));
+        }
+        if (settings.containsKey("internPeriodMonths")) {
+            Object v = settings.get("internPeriodMonths");
+            if (v instanceof Integer) admin.setInternPeriodMonths((Integer) v);
+            else if (v instanceof String) admin.setInternPeriodMonths(Integer.parseInt((String) v));
+        }
+        if (settings.containsKey("probationPeriodMonths")) {
+            Object v = settings.get("probationPeriodMonths");
+            if (v instanceof Integer) admin.setProbationPeriodMonths((Integer) v);
+            else if (v instanceof String) admin.setProbationPeriodMonths(Integer.parseInt((String) v));
         }
         
         return adminRepository.save(admin);

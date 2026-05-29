@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 
 @RestController
@@ -24,7 +25,25 @@ public class AttendanceController {
         }
         Long userId = (Long) request.getAttribute("authenticatedUserId");
         Optional<AttendanceDetails> attendance = attendanceService.getTodayAttendance(userId);
-        return ResponseEntity.ok(attendance.orElse(null));
+        if (attendance.isPresent()) {
+            AttendanceDetails att = attendance.get();
+            boolean earlyCheckOut = attendanceService.isEarlyCheckOut(att);
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", att.getId());
+            response.put("tenantId", att.getTenantId());
+            response.put("userId", att.getUserId());
+            response.put("userName", att.getUserName());
+            response.put("department", att.getDepartment());
+            response.put("designation", att.getDesignation());
+            response.put("attendanceDate", att.getAttendanceDate());
+            response.put("checkInTime", att.getCheckInTime());
+            response.put("checkOutTime", att.getCheckOutTime());
+            response.put("workHours", att.getWorkHours());
+            response.put("status", att.getStatus());
+            response.put("earlyCheckOut", earlyCheckOut);
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.ok(null);
     }
 
     @PostMapping("/clock-in")
@@ -48,9 +67,36 @@ public class AttendanceController {
         }
         Long userId = (Long) request.getAttribute("authenticatedUserId");
         try {
-            AttendanceDetails attendance = attendanceService.clockOut(userId);
-            return ResponseEntity.ok(attendance);
+            AttendanceDetails att = attendanceService.clockOut(userId);
+            boolean earlyCheckOut = attendanceService.isEarlyCheckOut(att);
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", att.getId());
+            response.put("tenantId", att.getTenantId());
+            response.put("userId", att.getUserId());
+            response.put("userName", att.getUserName());
+            response.put("department", att.getDepartment());
+            response.put("designation", att.getDesignation());
+            response.put("attendanceDate", att.getAttendanceDate());
+            response.put("checkInTime", att.getCheckInTime());
+            response.put("checkOutTime", att.getCheckOutTime());
+            response.put("workHours", att.getWorkHours());
+            response.put("status", att.getStatus());
+            response.put("earlyCheckOut", earlyCheckOut);
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/missing-clock-outs")
+    public ResponseEntity<?> getMissingClockOuts(HttpServletRequest request) {
+        if (!"USER".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        Long userId = (Long) request.getAttribute("authenticatedUserId");
+        try {
+            return ResponseEntity.ok(attendanceService.getMissingClockOuts(userId));
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
@@ -88,6 +134,16 @@ public class AttendanceController {
             return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         }
         return ResponseEntity.ok(attendanceService.getAllTodayAttendance());
+    }
+
+    @GetMapping("/admin/all")
+    public ResponseEntity<?> getAllAttendanceByDate(
+            @RequestParam(required = false) String date,
+            HttpServletRequest request) {
+        if (!"ADMIN".equals(request.getAttribute("authenticatedRole"))) {
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
+        return ResponseEntity.ok(attendanceService.getAllAttendanceByDate(date));
     }
 
     @GetMapping("/admin/today/stats")

@@ -26,15 +26,19 @@ const EmployeeLogin = () => {
 
       const data = await response.json();
 
-      if (response.ok && data.role === 'USER') {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('role', data.role);
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('name', data.name || '');
-        localStorage.setItem('employeeCode', data.employeeCode || '');
-        navigate('/employee/dashboard');
+      if (response.ok) {
+        if (data.role === 'USER') {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('role', data.role);
+          localStorage.setItem('isAuthenticated', 'true');
+          localStorage.setItem('name', data.name || '');
+          localStorage.setItem('employeeCode', data.employeeCode || '');
+          navigate('/employee/dashboard');
+        } else {
+          setError("Access denied. Employee privileges required.");
+        }
       } else {
-        setError(data.message || data.error || 'Invalid credentials or unauthorized access.');
+        setError(data.error || 'Invalid credentials or unauthorized access.');
       }
     } catch (err) {
       setError('Failed to connect to the server. Please try again.');

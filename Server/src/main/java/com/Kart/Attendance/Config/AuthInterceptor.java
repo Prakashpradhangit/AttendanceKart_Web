@@ -55,6 +55,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             Optional<Admin> adminOpt = adminRepository.findByAuthToken(token);
             if (adminOpt.isPresent()) {
                 Admin admin = adminOpt.get();
+                if ("Inactive".equalsIgnoreCase(admin.getStatus())) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"error\": \"Unauthorized - Organization is Inactive\"}");
+                    response.setContentType("application/json");
+                    return false;
+                }
                 TenantContext.setCurrentTenant(admin.getTenantId());
                 request.setAttribute("authenticatedRole", "ADMIN");
                 request.setAttribute("authenticatedAdminId", admin.getId());
@@ -65,6 +71,21 @@ public class AuthInterceptor implements HandlerInterceptor {
             Optional<User> userOpt = userRepository.findByAuthToken(token);
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
+                if ("Inactive".equalsIgnoreCase(user.getStatus())) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"error\": \"Unauthorized - User is Inactive\"}");
+                    response.setContentType("application/json");
+                    return false;
+                }
+                if (user.getTenantId() != null) {
+                    Admin tenantAdmin = adminRepository.findByTenantId(user.getTenantId()).orElse(null);
+                    if (tenantAdmin != null && "Inactive".equalsIgnoreCase(tenantAdmin.getStatus())) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.getWriter().write("{\"error\": \"Unauthorized - Organization is Inactive\"}");
+                        response.setContentType("application/json");
+                        return false;
+                    }
+                }
                 TenantContext.setCurrentTenant(user.getTenantId());
                 request.setAttribute("authenticatedRole", "USER");
                 request.setAttribute("authenticatedUserId", user.getId());

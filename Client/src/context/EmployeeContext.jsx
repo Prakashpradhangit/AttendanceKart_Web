@@ -8,6 +8,24 @@ export const EmployeeProvider = ({ children }) => {
   const [activeChat, setActiveChat] = useState(null); // 'team' or 'employee'
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [maxUsers, setMaxUsers] = useState(100);
+  const [departmentsList, setDepartmentsList] = useState(['Development', 'Design', 'HR', 'Marketing', 'Sales']);
+  const [employeePage, setEmployeePage] = useState(0);
+  const [employeePagination, setEmployeePagination] = useState({
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0
+  });
+  const employeePageRef = React.useRef(0);
+  const employeePageSizeRef = React.useRef(20);
+
+  React.useEffect(() => {
+    employeePageRef.current = employeePage;
+  }, [employeePage]);
+
+  React.useEffect(() => {
+    employeePageSizeRef.current = employeePagination.size;
+  }, [employeePagination.size]);
 
   const fetchMaxUsers = React.useCallback(async () => {
     try {
@@ -17,6 +35,16 @@ export const EmployeeProvider = ({ children }) => {
       });
       if (res.ok) {
         const data = await res.json();
+        if (data && data.departments) {
+          try {
+            const depts = JSON.parse(data.departments);
+            if (Array.isArray(depts)) {
+              setDepartmentsList(depts);
+            }
+          } catch (e) {
+            console.error('Failed to parse departments:', e);
+          }
+        }
         if (data && data.maxUsers !== undefined) {
           setMaxUsers(data.maxUsers);
         }
@@ -30,16 +58,28 @@ export const EmployeeProvider = ({ children }) => {
     fetchMaxUsers();
   }, [fetchMaxUsers]);
 
-  const fetchEmployees = React.useCallback(async () => {
+  const fetchEmployees = React.useCallback(async (options = {}) => {
     try {
+      const page = options.page ?? employeePageRef.current;
+      const size = options.size ?? employeePageSizeRef.current;
+      const search = options.search || '';
+      const department = options.department || '';
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/users', {
+      const params = new URLSearchParams({
+        page: String(page),
+        size: String(size)
+      });
+      if (search) params.set('search', search);
+      if (department && department !== 'All Departments') params.set('department', department);
+
+      const response = await fetch(`/api/users?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
+        const pageContent = Array.isArray(data) ? data : data.content || [];
         // Map backend User to frontend Employee structure
-        const mappedData = data
+        const mappedData = pageContent
           .filter(user => user.role !== 'ADMIN') // Exclude Admin accounts from employee details
           .map(user => ({
             id: user.id,
@@ -51,9 +91,20 @@ export const EmployeeProvider = ({ children }) => {
             role: user.designation,
             userRole: user.role,
             joiningDate: user.joiningDate,
-            status: 'Active' // We can assume active since no status field in User
+            profileImage: user.profileImage,
+            status: user.status || 'Active',
+            employmentType: user.employmentType || 'FULL_TIME'
           }));
         setEmployees(mappedData);
+        if (!Array.isArray(data)) {
+          setEmployeePage(data.number || 0);
+          setEmployeePagination({
+            page: data.number || 0,
+            size: data.size || size,
+            totalElements: data.totalElements || 0,
+            totalPages: data.totalPages || 0
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to fetch employees:', err);
@@ -84,7 +135,9 @@ export const EmployeeProvider = ({ children }) => {
         department: employee.department,
         designation: employee.role,
         role: 'EMPLOYEE', // default role
-        joiningDate: employee.joiningDate
+        joiningDate: employee.joiningDate,
+        emailVerificationToken: employee.emailVerificationToken,
+        employmentType: employee.employmentType || 'FULL_TIME'
       };
 
       const response = await fetch('/api/users', {
@@ -165,7 +218,9 @@ export const EmployeeProvider = ({ children }) => {
         department: updatedData.department,
         designation: updatedData.role,
         role: updatedData.userRole, // Send the enum role back
-        joiningDate: updatedData.joiningDate
+        joiningDate: updatedData.joiningDate,
+        status: updatedData.status || 'Active',
+        employmentType: updatedData.employmentType || 'FULL_TIME'
       };
 
       const response = await fetch(`/api/users/${id}`, {
@@ -210,8 +265,13 @@ export const EmployeeProvider = ({ children }) => {
   return (
     <EmployeeContext.Provider value={{ 
       employees, 
+      employeePage,
+      employeePagination,
+      setEmployeePage,
       maxUsers,
       fetchMaxUsers,
+      departmentsList,
+      setDepartmentsList,
       addEmployee, 
       addBulkEmployees,
       updateEmployee, 

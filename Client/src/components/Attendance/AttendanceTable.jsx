@@ -31,6 +31,8 @@ const getColorClass = (name) => {
 
 const statusStyles = {
   Present: 'bg-green-100 text-green-600',
+  'On Time': 'bg-green-100 text-green-600',
+  'On-Time': 'bg-green-100 text-green-600',
   Absent: 'bg-red-100 text-red-600',
   Late: 'bg-orange-100 text-orange-600',
 };

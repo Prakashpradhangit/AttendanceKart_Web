@@ -11,6 +11,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,6 +23,10 @@ import jakarta.persistence.Transient;
 @Entity
 @Getter
 @Setter
+@Table(indexes = {
+    @Index(name = "idx_admin_auth_token", columnList = "authToken"),
+    @Index(name = "idx_admin_status", columnList = "status")
+})
 public class Admin {
     
     @Id
@@ -35,6 +41,9 @@ public class Admin {
 
     @JsonProperty("organisation_name")
     private String Organisation_name;
+
+    @JsonProperty("organisation_address")
+    private String Organisation_address = "461 Sai Sobagu, 1st Floor Outer Ring Road Teachers Colony, Sector 6 HSR Layout Bangalore Karnataka 560034 India";
 
     @JsonProperty("short_form")
     private String shortForm;
@@ -60,6 +69,15 @@ public class Admin {
     private String defaultCheckInTime = "09:00";
     private String defaultCheckOutTime = "18:00";
     private int gracePeriod = 15;
+    private double shiftDuration = 9.0;
+
+    // Configurable Payroll Penalty Policies
+    private int lateCountThreshold = 3;
+    private double lateDeductionDays = 0.5;
+    private int lateMinutesHalfDayThreshold = 30;
+    private double earlyCheckoutHourThreshold = 1.0;
+    private double earlyCheckoutDeductionDays = 0.5;
+    private boolean autoPenaltyRulesEnabled = true;
 
     @JsonProperty("maxUsers")
     @JsonAlias("max_users")
@@ -79,4 +97,14 @@ public class Admin {
 
     @Column(columnDefinition = "TEXT")
     private String declaredHolidays = "[]";
+
+    @Column(columnDefinition = "TEXT")
+    private String departments = "[\"Development\", \"Design\", \"HR\", \"Marketing\", \"Sales\"]";
+
+    private int internPeriodMonths = 3;
+    private int probationPeriodMonths = 6;
+
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String emailVerificationToken;
 }

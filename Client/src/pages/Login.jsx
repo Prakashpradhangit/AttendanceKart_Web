@@ -35,20 +35,24 @@ const Login = () => {
 
       const data = await response.json();
 
-      if (response.ok && data.role === "ADMIN") {
-        // Prevent login if organization is inactive
-        if (data.organisation_status === "Inactive") {
-          setError("Your organization account is currently inactive. Please contact Super Admin.");
-          setLoading(false);
-          return;
+      if (response.ok) {
+        if (data.role === "ADMIN") {
+          // Prevent login if organization is inactive
+          if (data.organisation_status === "Inactive") {
+            setError("Your organization account is currently inactive. Please contact Super Admin.");
+            setLoading(false);
+            return;
+          }
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", data.role);
+          localStorage.setItem("isAuthenticated", "true");
+          localStorage.setItem("name", data.name || "");
+          navigate("/admin/dashboard");
+        } else {
+          setError("You are not authorized to login as an Admin.");
         }
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.role);
-        localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("name", data.name || "");
-        navigate("/admin/dashboard");
       } else {
-        setError(data.message || data.error || "Invalid credentials or unauthorized access.");
+        setError(data.error || "Invalid credentials or unauthorized access.");
       }
     } catch (err) {
       setError("Failed to connect to the server. Please try again.");

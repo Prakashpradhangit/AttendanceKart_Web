@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Building2, MoreVertical, ExternalLink, Edit2, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import OrganizationForm from '../components/OrganizationForm';
+import { useAlert } from '../context/AlertContext';
 
 const SuperAdminOrganizations = () => {
+  const { showConfirm } = useAlert();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,8 @@ const SuperAdminOrganizations = () => {
         subscription_year: mapDuration(newOrg.duration),
         starting_date: newOrg.startDate,
         status: newOrg.status || 'Active',
-        max_users: parseInt(newOrg.totalUsers) || 100
+        max_users: parseInt(newOrg.totalUsers) || 100,
+        emailVerificationToken: newOrg.emailVerificationToken
       };
 
       if (newOrg.orgPassword) {
@@ -122,7 +125,7 @@ const SuperAdminOrganizations = () => {
   };
 
   const handleDeleteOrganization = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this organization?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this organization?'))) return;
     
     try {
       const token = localStorage.getItem('token');

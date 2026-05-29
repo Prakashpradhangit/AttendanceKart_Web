@@ -68,6 +68,9 @@ public class AuthService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (password != null && password.equals(user.getPassword())) {
+                if ("Inactive".equalsIgnoreCase(user.getStatus())) {
+                    throw new RuntimeException("Your account is inactive. Please contact your administrator.");
+                }
                 if (user.getTenantId() != null) {
                     Admin tenantAdmin = adminRepository.findByTenantId(user.getTenantId()).orElse(null);
                     if (tenantAdmin != null && "Inactive".equalsIgnoreCase(tenantAdmin.getStatus())) {
@@ -142,6 +145,9 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByAuthToken(token);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+            if ("Inactive".equalsIgnoreCase(user.getStatus())) {
+                return null;
+            }
             return Map.of(
                     "role", "USER",
                     "token", token,
@@ -197,6 +203,7 @@ public class AuthService {
             profile.put("employeeCode", user.getEmployeeCode() != null ? user.getEmployeeCode() : "");
             profile.put("department", user.getDepartment() != null ? user.getDepartment() : "");
             profile.put("designation", user.getDesignation() != null ? user.getDesignation() : "");
+            profile.put("employmentType", user.getEmploymentType() != null ? user.getEmploymentType() : "FULL_TIME");
             profile.put("tenantId", user.getTenantId() != null ? user.getTenantId() : "");
             profile.put("joiningDate", jd != null ? jd.toString() : "");
             profile.put("phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : "");
@@ -211,6 +218,14 @@ public class AuthService {
             profile.put("bloodGroup", user.getBloodGroup() != null ? user.getBloodGroup() : "");
             profile.put("personalEmail", user.getPersonalEmail() != null ? user.getPersonalEmail() : "");
             profile.put("profileImage", user.getProfileImage() != null ? user.getProfileImage() : "");
+            
+            profile.put("panNumber", user.getPanNumber() != null ? user.getPanNumber() : "");
+            profile.put("panCard", user.getPanCard() != null ? user.getPanCard() : "");
+            profile.put("aadharNumber", user.getAadharNumber() != null ? user.getAadharNumber() : "");
+            profile.put("aadharCard", user.getAadharCard() != null ? user.getAadharCard() : "");
+            profile.put("accountNumber", user.getAccountNumber() != null ? user.getAccountNumber() : "");
+            profile.put("bankPassbook", user.getBankPassbook() != null ? user.getBankPassbook() : "");
+            profile.put("lastPayslip", user.getLastPayslip() != null ? user.getLastPayslip() : "");
             
             return profile;
         }
@@ -298,6 +313,31 @@ public class AuthService {
             // Profile Image
             if (updates.containsKey("profileImage")) {
                 user.setProfileImage((String) updates.get("profileImage"));
+            }
+            // PAN number & card
+            if (updates.containsKey("panNumber")) {
+                user.setPanNumber((String) updates.get("panNumber"));
+            }
+            if (updates.containsKey("panCard")) {
+                user.setPanCard((String) updates.get("panCard"));
+            }
+            // Aadhar number & card
+            if (updates.containsKey("aadharNumber")) {
+                user.setAadharNumber((String) updates.get("aadharNumber"));
+            }
+            if (updates.containsKey("aadharCard")) {
+                user.setAadharCard((String) updates.get("aadharCard"));
+            }
+            // Bank Account number & passbook
+            if (updates.containsKey("accountNumber")) {
+                user.setAccountNumber((String) updates.get("accountNumber"));
+            }
+            if (updates.containsKey("bankPassbook")) {
+                user.setBankPassbook((String) updates.get("bankPassbook"));
+            }
+            // Last Payslip
+            if (updates.containsKey("lastPayslip")) {
+                user.setLastPayslip((String) updates.get("lastPayslip"));
             }
             
             userRepository.save(user);

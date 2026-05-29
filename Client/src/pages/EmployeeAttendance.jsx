@@ -263,8 +263,12 @@ const EmployeeAttendance = () => {
                       </p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-green-50 text-green-600`}>
-                    Present
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+                    item.status === 'Late' || item.status === 'LATE'
+                      ? 'bg-orange-50 text-orange-600 border border-orange-100'
+                      : 'bg-green-50 text-green-600 border border-green-100'
+                  }`}>
+                    {item.status || 'Present'}
                   </span>
                 </div>
               ))}

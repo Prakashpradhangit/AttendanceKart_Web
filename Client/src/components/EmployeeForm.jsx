@@ -1,52 +1,127 @@
 import React, { useState, useEffect } from 'react';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEmployees } from '../context/EmployeeContext';
 
 const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
+  const { departmentsList } = useEmployees();
   const initialFormState = {
     empId: '',
     name: '',
     email: '',
     phone: '',
-    department: 'Development',
+    department: departmentsList[0] || 'Development',
     role: '',
     password: '',
-    joiningDate: new Date().toISOString().split('T')[0]
+    joiningDate: new Date().toISOString().split('T')[0],
+    status: 'Active',
+    employmentType: 'FULL_TIME'
   };
 
   const [formData, setFormData] = useState(initialData || initialFormState);
   const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setShowPassword(false);
+      setOtp('');
+      setVerificationToken('');
+      setOtpMessage('');
       if (initialData) {
         setFormData({
           ...initialData,
           empId: initialData.empId || initialData.id || '',
-          password: initialData.password || ''
+          password: initialData.password || '',
+          status: initialData.status || 'Active',
+          employmentType: initialData.employmentType || 'FULL_TIME'
         });
       } else {
         setFormData(initialFormState);
       }
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, departmentsList]);
+
+  const requestOtp = async () => {
+    if (!formData.email) {
+      setOtpMessage('Enter email first.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpMessage('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/email-otp/request', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.email, purpose: 'EMPLOYEE_REGISTRATION' })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setOtpMessage('OTP sent to employee email.');
+    } catch (err) {
+      setOtpMessage(err.message || 'Failed to send OTP.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!otp) {
+      setOtpMessage('Enter OTP first.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpMessage('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/email-otp/verify', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.email, purpose: 'EMPLOYEE_REGISTRATION', otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid OTP.');
+      setVerificationToken(data.verificationToken);
+      setOtpMessage('Email verified.');
+    } catch (err) {
+      setVerificationToken('');
+      setOtpMessage(err.message || 'Failed to verify OTP.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    if (!initialData && !verificationToken) {
+      setOtpMessage('Verify email OTP before adding employee.');
+      return;
+    }
+    onSubmit({ ...formData, emailVerificationToken: verificationToken });
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-black/50 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-md my-auto flex flex-col max-h-[90vh]"
       >
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h2 className="text-xl font-semibold text-gray-900">{initialData ? 'Edit Employee' : 'Add New Employee'}</h2>
@@ -55,7 +130,7 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           <div className="space-y-1">
             <label className="text-sm font-semibold text-gray-700">Password</label>
             <div className="relative">
@@ -99,7 +174,13 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                   initialData ? 'bg-gray-100 text-gray-500 cursor-not-allowed font-semibold' : 'bg-gray-50 focus:ring-2 focus:ring-primary/20'
                 }`}
                 value={formData.email}
-                onChange={(e) => !initialData && setFormData({...formData, email: e.target.value})}
+                onChange={(e) => {
+                  if (initialData) return;
+                  setFormData({...formData, email: e.target.value});
+                  setVerificationToken('');
+                  setOtp('');
+                  setOtpMessage('');
+                }}
                 placeholder="john@example.com"
                 disabled={!!initialData}
               />
@@ -125,11 +206,13 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                 value={formData.department}
                 onChange={(e) => setFormData({...formData, department: e.target.value})}
               >
-                <option>Development</option>
-                <option>Design</option>
-                <option>HR</option>
-                <option>Marketing</option>
-                <option>Sales</option>
+                {departmentsList.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+
+
+
+
               </select>
             </div>
             <div className="space-y-1">
@@ -146,6 +229,69 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
           </div>
 
           <div className="space-y-1">
+            <label className="text-sm font-semibold text-gray-700">Employment Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'FULL_TIME', label: 'Full Time' },
+                { value: 'INTERN', label: 'Intern' },
+                { value: 'PROBATION', label: 'Probation' }
+              ].map(type => {
+                const isSelected = formData.employmentType === type.value;
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setFormData({...formData, employmentType: type.value})}
+                    className={`py-3 rounded-xl border text-xs font-bold text-center transition-all duration-200 ${
+                      isSelected
+                        ? 'bg-indigo-600 border-transparent text-white shadow-sm'
+                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            </div>
+
+
+          {!initialData && (
+            <div className="space-y-2 rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
+              <label className="text-sm font-semibold text-gray-700">Email OTP Verification</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  className="min-w-0 flex-1 bg-white border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="6 digit OTP"
+                />
+                <button
+                  type="button"
+                  onClick={requestOtp}
+                  disabled={isSendingOtp || !!verificationToken}
+                  className="px-3 py-2 bg-white border border-blue-200 text-blue-600 rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  {isSendingOtp ? 'Sending' : 'Send'}
+                </button>
+                <button
+                  type="button"
+                  onClick={verifyOtp}
+                  disabled={isVerifyingOtp || !!verificationToken}
+                  className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  {verificationToken ? 'Verified' : isVerifyingOtp ? 'Checking' : 'Verify'}
+                </button>
+              </div>
+              {otpMessage && <p className="text-xs font-semibold text-gray-500">{otpMessage}</p>}
+            </div>
+          )}
+
+          <div className="space-y-1">
             <label className="text-sm font-semibold text-gray-700">Joining Date</label>
             <input 
               required
@@ -155,6 +301,20 @@ const EmployeeForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
               onChange={(e) => setFormData({...formData, joiningDate: e.target.value})}
             />
           </div>
+
+          {initialData && (
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-gray-700">Status</label>
+              <select 
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          )}
 
           <div className="pt-4 flex gap-3">
             <button 

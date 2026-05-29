@@ -13,8 +13,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.Email;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,7 +24,11 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table(name = "Employee") // Good practice to use plural for tables, avoiding reserved keywords like "user" in some DBs
+@Table(name = "Employee", indexes = {
+    @Index(name = "idx_employee_tenant_role_status", columnList = "tenantId, role, status"),
+    @Index(name = "idx_employee_tenant_code", columnList = "tenantId, employeeCode"),
+    @Index(name = "idx_employee_auth_token", columnList = "authToken")
+})
 public class User {
 
     @Id
@@ -49,6 +55,8 @@ public class User {
     private String department;
 
     private String designation;
+
+    private String employmentType = "FULL_TIME"; // INTERN, FULL_TIME, PROBATION
 
     private LocalDate joiningDate;
 
@@ -83,5 +91,45 @@ public class User {
     @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String profileImage;
+
+    private String panNumber;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String panCard;
+
+    private String aadharNumber;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String aadharCard;
+
+    private String accountNumber;
+
+    private String bankName;
+
+    private String ifscCode;
+
+    private String uanNumber;
+
+    private String pfNumber;
+
+    private String esiNumber;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String bankPassbook;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String lastPayslip;
+
+    private String status = "Active";
+
+    private Double basicSalary;
+
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String emailVerificationToken;
 
 }
