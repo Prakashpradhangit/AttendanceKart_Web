@@ -23,7 +23,7 @@ public class SuperAdmin {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
+    
     private String name;
 
     private String authToken;
