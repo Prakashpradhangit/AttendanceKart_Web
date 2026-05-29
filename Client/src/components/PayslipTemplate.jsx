@@ -1,11 +1,12 @@
 import React from 'react';
 
 const numberToWords = (num) => {
-  if (!num || isNaN(num)) return 'Zero';
+  let cleanNum = typeof num === 'string' ? num.replace(/,/g, '') : num;
+  if (!cleanNum || isNaN(cleanNum)) return 'Zero';
   const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
   const b = ['', '', 'Twenty','Thirty','Forty','Fifty', 'Sixty','Seventy','Eighty','Ninety'];
 
-  let numVal = Math.round(Number(num));
+  let numVal = Math.round(Number(cleanNum));
   if (numVal === 0) return 'Zero';
   if (numVal.toString().length > 9) return 'Overflow';
   
@@ -215,7 +216,7 @@ const PayslipTemplate = ({ data }) => {
             </div>
             
             <div className="mt-4 space-y-3.5 text-sm">
-              {deductions.filter(d => parseFloat(d.amount?.replace(/,/g, '') || 0) > 0).map((item, idx) => (
+              {deductions.filter(d => parseFloat(String(d.amount || 0).replace(/,/g, '')) > 0).map((item, idx) => (
                 <div key={idx} className="flex justify-between font-bold text-slate-700">
                   <span className="w-1/2 font-semibold text-slate-500">{item.name}</span>
                   <span className="w-1/4 text-right text-slate-800">{formatCurrency(item.amount)}</span>
@@ -223,7 +224,7 @@ const PayslipTemplate = ({ data }) => {
                 </div>
               ))}
               
-              {deductions.filter(d => parseFloat(d.amount?.replace(/,/g, '') || 0) > 0).length === 0 && (
+              {deductions.filter(d => parseFloat(String(d.amount || 0).replace(/,/g, '')) > 0).length === 0 && (
                 <div className="text-center py-6 text-xs font-semibold text-slate-400 italic">
                   No statutory or other deductions.
                 </div>

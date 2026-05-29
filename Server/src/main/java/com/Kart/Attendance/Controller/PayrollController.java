@@ -219,20 +219,39 @@ public class PayrollController {
         return ResponseEntity.ok(payrollService.getPendingRequests(tenantId));
     }
 
-    @PutMapping("/admin/requests/{id}/status")
-    public ResponseEntity<?> updateRequestStatus(
-            HttpServletRequest request,
-            @PathVariable Long id,
-            @RequestParam String status
-    ) {
+    // Payslip preview (HTML) for admin
+    @GetMapping(value = "/payslip/{requestId}/preview", produces = org.springframework.http.MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> previewPayslip(@PathVariable Long requestId, HttpServletRequest request) {
         if (!isAdmin(request)) {
-            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+            return ResponseEntity.status(403).body("Forbidden");
         }
         String tenantId = TenantContext.getCurrentTenant();
         try {
-            return ResponseEntity.ok(payrollService.updateRequestStatus(id, status, tenantId));
+            String html = payrollService.generatePayslipHtml(requestId, tenantId);
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                .body(html);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Payslip download as PDF file
+    @GetMapping(value = "/payslip/{payrollId}/download", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> downloadPayslip(@PathVariable Long payrollId, HttpServletRequest request) {
+        String tenantId = TenantContext.getCurrentTenant();
+        boolean isAdmin = isAdmin(request);
+        Long authenticatedUserId = (Long) request.getAttribute("authenticatedUserId");
+
+        try {
+            byte[] pdfBytes = payrollService.getPayslipFileForDownload(payrollId, tenantId, authenticatedUserId, isAdmin);
+            String filename = "payslip_" + payrollId + ".pdf";
+            return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+        } catch (Exception e) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
         }
     }
 

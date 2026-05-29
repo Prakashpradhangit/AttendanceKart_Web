@@ -305,10 +305,14 @@ const Payroll = () => {
   };
 
   const closeModal = () => {
-    setModalType(null);
-    setSelectedItem(null);
-    setStructureHistory([]);
-    setBulkCalculations([]);
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setModalType(null);
+      setModalStep('');
+      setSelectedItem(null);
+      setStructureHistory([]);
+      setBulkCalculations([]);
+    }, 200);
   };
 
   // Step 2 & 3 Wizard Calculations
@@ -647,6 +651,33 @@ const Payroll = () => {
     } catch (err) { console.error(err); }
   };
 
+  const handleDirectDownload = async (pay) => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/payroll/payslip/${pay.id}/download`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to download PDF');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Payslip_${pay.month.replace(' ', '_')}_${pay.empId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error(err);
+      alert('Error downloading payslip PDF');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleExportSubmit = () => {
     // Generate high compliance CSV register and download
     let headers = "Employee Name,Employee ID,Month,Present Days,LOP Days,Gross Earnings,Total Deductions,Net Salary,Payment Mode,UAN Number,Bank Name,Account Number,Status\n";
@@ -664,23 +695,6 @@ const Payroll = () => {
     document.body.removeChild(link);
     closeModal();
   };
-
-  const handlePrint = () => {
-    const payslipEl = document.getElementById('printable-payslip');
-    if (!payslipEl) return;
-    const clone = payslipEl.cloneNode(true);
-    const wrapper = document.createElement('div');
-    wrapper.id = 'print-wrapper';
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-    const cleanup = () => {
-      if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-    window.print();
-  };
-
   // Mapped lists & Filters
   const filteredPayrolls = payrollList.filter(p => {
     const matchesSearch = p.employeeName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -921,10 +935,11 @@ const Payroll = () => {
                         <td className="px-8 py-6">
                           {pay.status !== 'Pending Draft' ? (
                             <button 
-                              onClick={() => openModal('download', pay)}
-                              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-750 font-bold text-xs"
+                              onClick={() => handleDirectDownload(pay)}
+                              disabled={isLoading}
+                              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-750 font-bold text-xs disabled:opacity-50"
                             >
-                              <Download size={16} /> View & Download
+                              {isLoading ? <Loader2 className="animate-spin" size={16} /> : <><Download size={16} /> View & Download</>}
                             </button>
                           ) : (
                             <span className="text-gray-300 font-semibold tracking-widest">—</span>
@@ -1931,72 +1946,6 @@ const Payroll = () => {
               <div className="flex justify-end gap-3 pt-4">
                  <button onClick={closeModal} className="px-6 py-3 bg-gray-150 text-gray-500 rounded-xl text-xs font-bold shadow-sm transition-all">Cancel</button>
                  <button onClick={handleProcessAction} className="px-8 py-3 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-emerald-700 transition-all active:scale-95">Approve Request</button>
-              </div>
-            </div>
-          )}
-
-          {/* DOWNLOAD AND VIEW DETAILED COMPLIANT PAYSLIPS */}
-          {modalType === 'download' && (
-            <div className="space-y-6 font-sans">
-              <div id="printable-payslip" className="bg-gray-50 rounded-3xl p-6 md:p-10 border border-slate-200 text-left">
-                <PayslipTemplate 
-                  data={{
-                    orgName: orgDetails?.organisation_name || 'AttendanceKart Solutions Private Limited',
-                    orgAddress: orgDetails?.organisation_address || '461 Sai Sobagu, 1st Floor Outer Ring Road Teachers Colony, Sector 6 HSR Layout Bangalore Karnataka 560034 India',
-                    employeeName: selectedItem?.name,
-                    employeeId: selectedItem?.employeeId || selectedItem?.empId,
-                    designation: selectedItem?.designation || ' WordPress Developer Intern',
-                    department: selectedItem?.department || '',
-                    phoneNumber: selectedItem?.phoneNumber || '',
-                    doj: selectedItem?.doj ? new Date(selectedItem.doj).toLocaleDateString('en-IN') : '27/01/2025',
-                    month: selectedItem?.month?.split(' ')[0] || '',
-                    year: selectedItem?.month?.split(' ')[1] || '',
-                    payDate: selectedItem?.paymentDate ? new Date(selectedItem.paymentDate).toLocaleDateString('en-IN') : 'Not paid',
-                    earnings: [
-                      { name: 'Basic Salary', amount: selectedItem?.basicSalary },
-                      { name: 'House Rent Allowance (HRA)', amount: selectedItem?.hra },
-                      { name: 'Conveyance Allowance', amount: selectedItem?.conveyanceAllowance },
-                      { name: 'Medical Allowance', amount: selectedItem?.medicalAllowance },
-                      { name: 'Special Allowance', amount: selectedItem?.specialAllowance },
-                      { name: 'Other Allowances', amount: selectedItem?.otherAllowances },
-                      { name: 'Performance Bonus', amount: selectedItem?.performanceBonus },
-                      { name: 'Incentives', amount: selectedItem?.incentives },
-                      { name: 'Overtime Paid', amount: selectedItem?.overtime },
-                      { name: 'Other Earnings', amount: selectedItem?.otherEarnings }
-                    ].filter(e => (parseFloat(e.amount) || 0) > 0),
-                    deductions: [
-                      { name: 'Provident Fund (PF)', amount: selectedItem?.providentFund },
-                      { name: 'Professional Tax (PT)', amount: selectedItem?.professionalTax },
-                      { name: 'Income Tax (TDS)', amount: selectedItem?.incomeTax },
-                      { name: 'ESI Contribution', amount: selectedItem?.esi },
-                      { name: 'Insurance Deduction', amount: selectedItem?.insurance },
-                      { name: 'Advance Deduction', amount: selectedItem?.advanceDeduction },
-                      { name: 'Loan Deduction', amount: selectedItem?.loanDeduction },
-                      { name: 'Other Deductions', amount: selectedItem?.otherDeductions },
-                      { name: 'Attendance LOP Deduction', amount: selectedItem?.attendanceDeduction }
-                    ].filter(d => (parseFloat(d.amount) || 0) > 0),
-                    totalEarnings: selectedItem?.totalEarnings,
-                    totalDeductions: selectedItem?.totalDeductions,
-                    netSalary: selectedItem?.netSalary,
-                    totalDays: selectedItem?.totalDays || 30,
-                    presentDays: selectedItem?.presentDays || 30,
-                    paidDays: selectedItem?.paidDays || 30,
-                    lopDays: selectedItem?.lopDays || 0,
-                    weekOffs: selectedItem?.weekOffs || 4,
-                    holidays: selectedItem?.holidays || 1,
-                    uanNumber: selectedItem?.uanNumber || '',
-                    pfNumber: selectedItem?.pfNumber || '',
-                    esiNumber: selectedItem?.esiNumber || '',
-                    bankName: selectedItem?.bankName || '',
-                    ifscCode: selectedItem?.ifscCode || '',
-                    accountNumber: selectedItem?.accountNumber || ''
-                  }}
-                />
-              </div>
-
-              <div className="flex justify-center gap-4">
-                 <button onClick={handlePrint} className="flex items-center gap-2 px-8 py-3.5 bg-white border-2 border-gray-100 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm"><Printer size={20} /> Print / Export PDF</button>
-                 <button onClick={closeModal} className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold shadow-xl transition-all">Close</button>
               </div>
             </div>
           )}

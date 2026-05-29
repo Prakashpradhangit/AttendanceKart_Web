@@ -11,7 +11,8 @@ import {
   ArrowDown,
   X,
   ChevronDown,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -39,6 +40,7 @@ const EmployeeSalary = () => {
   const [reasonError, setReasonError] = React.useState('');
   const [selectedMonth, setSelectedMonth] = React.useState('');
   const [orgDetails, setOrgDetails] = React.useState(null);
+  const [isDownloading, setIsDownloading] = React.useState(false);
 
   const fetchMyData = async () => {
     try {
@@ -188,29 +190,36 @@ const EmployeeSalary = () => {
     }
   };
 
-  const handleDownloadPayslip = () => {
-    const payslipEl = document.getElementById('printable-payslip');
-    if (!payslipEl) return;
-
-    // Clone payslip content and inject as direct child of body
-    const clone = payslipEl.cloneNode(true);
-    clone.removeAttribute('id');
-
-    const wrapper = document.createElement('div');
-    wrapper.id = 'print-wrapper';
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
-    // Cleanup after print dialog closes
-    const cleanup = () => {
-      if (document.body.contains(wrapper)) {
-        document.body.removeChild(wrapper);
+  const handleDownloadPayslip = async () => {
+    if (!activePayroll) return;
+    
+    try {
+      setIsDownloading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/payroll/payslip/${activePayroll.id}/download`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to download PDF. You may not have access or the file is missing.');
       }
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-
-    window.print();
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Payslip_${activePayroll.month.replace(' ', '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Error downloading payslip PDF');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -665,10 +674,11 @@ const EmployeeSalary = () => {
               <div className="sticky top-0 right-0 p-6 flex justify-end gap-4 bg-white/80 backdrop-blur-md z-10 border-b border-gray-50">
                 <button 
                   onClick={handleDownloadPayslip}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-[#0061E0] text-white rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                  disabled={isDownloading}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#0061E0] text-white rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 disabled:opacity-50"
                 >
-                  <Download size={18} />
-                  Download PDF
+                  {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                  {isDownloading ? 'Downloading...' : 'Download PDF'}
                 </button>
                 <button 
                   onClick={() => setShowPayslip(false)}

@@ -95,6 +95,9 @@ public class Payroll {
     @Column(nullable = false)
     private String status; // "DRAFT", "PENDING", "PAID"
 
+    // PDF Storage
+    private String pdfFilePath;
+
     // Payment details
     private String paymentMethod;
     private String transactionId;

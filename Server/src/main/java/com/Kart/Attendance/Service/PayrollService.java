@@ -30,6 +30,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.Duration;
 import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -702,7 +706,18 @@ public class PayrollService {
         payroll.setEmployerEsi(Math.round(earnings * 0.0325));
         payroll.setCtc(earnings + payroll.getEmployerPf() + payroll.getEmployerEsi());
 
-        return payrollRepository.save(payroll);
+        Payroll saved = payrollRepository.save(payroll);
+        if (("PAID".equalsIgnoreCase(saved.getStatus()) || "PROCESSED".equalsIgnoreCase(saved.getStatus())) && saved.getPdfFilePath() == null) {
+            try {
+                byte[] pdfData = generatePdfFromData(calculateSuggestion(saved.getUserId(), saved.getMonth(), tenantId), saved.getMonth());
+                String path = savePdfToDisk(pdfData, saved.getId(), tenantId, saved.getMonth());
+                saved.setPdfFilePath(path);
+                saved = payrollRepository.save(saved);
+            } catch (Exception e) {
+                System.err.println("Failed to generate PDF for payroll " + saved.getId() + ": " + e.getMessage());
+            }
+        }
+        return saved;
     }
 
     @Transactional
@@ -781,7 +796,19 @@ public class PayrollService {
         existing.setEmployerEsi(Math.round(earnings * 0.0325));
         existing.setCtc(earnings + existing.getEmployerPf() + existing.getEmployerEsi());
 
-        return payrollRepository.save(existing);
+        Payroll saved = payrollRepository.save(existing);
+
+        if (("PAID".equalsIgnoreCase(saved.getStatus()) || "PROCESSED".equalsIgnoreCase(saved.getStatus())) && saved.getPdfFilePath() == null) {
+            try {
+                byte[] pdfData = generatePdfFromData(calculateSuggestion(saved.getUserId(), saved.getMonth(), tenantId), saved.getMonth());
+                String path = savePdfToDisk(pdfData, saved.getId(), tenantId, saved.getMonth());
+                saved.setPdfFilePath(path);
+                saved = payrollRepository.save(saved);
+            } catch (Exception e) {
+                System.err.println("Failed to generate PDF for payroll " + saved.getId() + ": " + e.getMessage());
+            }
+        }
+        return saved;
     }
 
     @Transactional
@@ -797,7 +824,19 @@ public class PayrollService {
             existing.setTransactionId(txId);
             existing.setPaymentDate(LocalDate.now());
         }
-        return payrollRepository.save(existing);
+        Payroll saved = payrollRepository.save(existing);
+        
+        if (("PAID".equalsIgnoreCase(saved.getStatus()) || "PROCESSED".equalsIgnoreCase(saved.getStatus())) && saved.getPdfFilePath() == null) {
+            try {
+                byte[] pdfData = generatePdfFromData(calculateSuggestion(saved.getUserId(), saved.getMonth(), tenantId), saved.getMonth());
+                String path = savePdfToDisk(pdfData, saved.getId(), tenantId, saved.getMonth());
+                saved.setPdfFilePath(path);
+                saved = payrollRepository.save(saved);
+            } catch (Exception e) {
+                System.err.println("Failed to generate PDF for payroll " + saved.getId() + ": " + e.getMessage());
+            }
+        }
+        return saved;
     }
 
     public List<Payroll> getAllPayrolls(String tenantId) {
@@ -843,6 +882,262 @@ public class PayrollService {
             throw new IllegalStateException("Unauthorized");
         }
         request.setStatus(status);
-        return payslipRequestRepository.save(request);
+        PayslipRequest savedRequest = payslipRequestRepository.save(request);
+        // Generate HTML payslip preview for the saved request
+        // The HTML generation is handled by a separate method
+        return savedRequest;
+    }
+
+    // Generates HTML payslip for a given request ID without a signature field
+    public String generatePayslipHtml(Long requestId, String tenantId) {
+        // Fetch the payslip request and verify tenant
+        PayslipRequest request = payslipRequestRepository.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Payslip request not found"));
+        if (!request.getTenantId().equals(tenantId)) {
+            throw new IllegalStateException("Unauthorized");
+        }
+        // Use employee ID and month to compute payroll details
+        Long userId = request.getUserId();
+        String month = request.getMonth();
+        Map<String, Object> data = calculateSuggestion(userId, month, tenantId);
+        // Build simple HTML payslip (single page, no signature)
+        StringBuilder html = new StringBuilder();
+        html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>Payslip</title>");
+        html.append("<style>")
+            .append("@page { size: A4; margin: 15mm; }")
+            .append("body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 0; color: #333; }")
+            .append(".container { width: 100%; max-width: 800px; margin: auto; }")
+            .append(".header { text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 20px; }")
+            .append(".header h1 { margin: 0; color: #1e293b; font-size: 24px; }")
+            .append(".header h2 { margin: 5px 0 0; color: #64748b; font-size: 16px; font-weight: normal; }")
+            .append(".emp-details { margin-bottom: 20px; width: 100%; }")
+            .append(".emp-details td { padding: 4px 8px; font-size: 13px; }")
+            .append(".emp-details td.label { font-weight: bold; color: #475569; width: 20%; }")
+            .append(".section { margin-bottom: 20px; }")
+            .append("table.salary-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 13px; }")
+            .append("table.salary-table th, table.salary-table td { border: 1px solid #e2e8f0; padding: 8px 12px; }")
+            .append("table.salary-table th { background-color: #f8fafc; text-align: left; font-weight: bold; color: #334155; }")
+            .append("table.salary-table tr.total td { font-weight: bold; background-color: #f1f5f9; color: #0f172a; }")
+            .append(".net-pay { text-align: right; margin-top: 20px; padding: 15px; background-color: #ecfdf5; border: 1px solid #d1fae5; border-radius: 8px; }")
+            .append(".net-pay h3 { margin: 0; color: #065f46; font-size: 20px; }")
+            .append(".footer { text-align: center; margin-top: 40px; font-size: 10px; color: #94a3b8; font-style: italic; }")
+            .append("</style></head><body>");
+        html.append("<div class=\"container\">");
+        
+        html.append("<div class=\"header\">");
+        html.append("<h1>AttendanceKart Solutions</h1>");
+        html.append("<h2>Payslip for the month of ").append(month).append("</h2>");
+        html.append("</div>");
+
+        html.append("<table class=\"emp-details\">");
+        html.append("<tr><td class=\"label\">Employee Name:</td><td>").append(data.get("employeeName")).append("</td>");
+        html.append("<td class=\"label\">Employee ID:</td><td>").append(data.get("employeeId")).append("</td></tr>");
+        html.append("<tr><td class=\"label\">Designation:</td><td>").append(data.getOrDefault("designation", "Staff")).append("</td>");
+        html.append("<td class=\"label\">Paid Days:</td><td>").append(data.get("paidDays")).append("</td></tr>");
+        html.append("</table>");
+
+        html.append("<div class=\"section\">");
+        // Earnings table
+        html.append("<table class=\"salary-table\"><tr><th style=\"width:70%\">Earnings</th><th style=\"width:30%; text-align:right\">Amount (INR)</th></tr>");
+        html.append("<tr><td>Basic Salary</td><td style=\"text-align:right\">").append(data.get("basicSalary")).append("</td></tr>");
+        html.append("<tr><td>House Rent Allowance (HRA)</td><td style=\"text-align:right\">").append(data.get("hra")).append("</td></tr>");
+        html.append("<tr><td>Dearness Allowance (DA)</td><td style=\"text-align:right\">").append(data.get("da")).append("</td></tr>");
+        html.append("<tr><td>Conveyance Allowance</td><td style=\"text-align:right\">").append(data.get("conveyanceAllowance")).append("</td></tr>");
+        html.append("<tr><td>Medical Allowance</td><td style=\"text-align:right\">").append(data.get("medicalAllowance")).append("</td></tr>");
+        html.append("<tr><td>Special Allowance</td><td style=\"text-align:right\">").append(data.get("specialAllowance")).append("</td></tr>");
+        html.append("<tr><td>Other Allowances</td><td style=\"text-align:right\">").append(data.get("otherAllowances")).append("</td></tr>");
+        html.append("<tr><td>Performance Bonus</td><td style=\"text-align:right\">").append(data.get("performanceBonus")).append("</td></tr>");
+        html.append("<tr><td>Incentives</td><td style=\"text-align:right\">").append(data.get("incentives")).append("</td></tr>");
+        html.append("<tr><td>Overtime</td><td style=\"text-align:right\">").append(data.get("overtime")).append("</td></tr>");
+        html.append("<tr class=\"total\"><td>Total Gross Earnings</td><td style=\"text-align:right\">").append(data.get("totalEarnings")).append("</td></tr>");
+        html.append("</table>");
+        
+        // Deductions table
+        html.append("<table class=\"salary-table\"><tr><th style=\"width:70%\">Deductions</th><th style=\"width:30%; text-align:right\">Amount (INR)</th></tr>");
+        html.append("<tr><td>Provident Fund (PF)</td><td style=\"text-align:right\">").append(data.get("providentFund")).append("</td></tr>");
+        html.append("<tr><td>Professional Tax (PT)</td><td style=\"text-align:right\">").append(data.get("professionalTax")).append("</td></tr>");
+        html.append("<tr><td>Income Tax (TDS)</td><td style=\"text-align:right\">").append(data.get("incomeTax")).append("</td></tr>");
+        html.append("<tr><td>ESI Contribution</td><td style=\"text-align:right\">").append(data.get("esi")).append("</td></tr>");
+        html.append("<tr><td>Insurance Deduction</td><td style=\"text-align:right\">").append(data.get("insurance")).append("</td></tr>");
+        html.append("<tr><td>Advance Deduction</td><td style=\"text-align:right\">").append(data.get("advanceDeduction")).append("</td></tr>");
+        html.append("<tr><td>Loan Deduction</td><td style=\"text-align:right\">").append(data.get("loanDeduction")).append("</td></tr>");
+        html.append("<tr><td>Other Deductions</td><td style=\"text-align:right\">").append(data.get("otherDeductions")).append("</td></tr>");
+        html.append("<tr class=\"total\"><td>Total Deductions</td><td style=\"text-align:right\">").append(data.get("totalDeductions")).append("</td></tr>");
+        html.append("</table>");
+        html.append("</div>");
+
+        html.append("<div class=\"net-pay\">");
+        html.append("<h3>Net Payable: INR ").append(data.get("netSalary")).append("</h3>");
+        html.append("</div>");
+        
+        html.append("<div class=\"footer\">");
+        html.append("<p>This is a computer-generated payslip and does not require a physical signature.</p>");
+        html.append("</div>");
+
+        html.append("</div></body></html>");
+        return html.toString();
+    }
+
+    public byte[] generatePayslipPdf(Long requestId, String tenantId) {
+        String xhtml = generatePayslipHtml(requestId, tenantId);
+        try (java.io.ByteArrayOutputStream os = new java.io.ByteArrayOutputStream()) {
+            com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder = new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
+            builder.useFastMode();
+            builder.withHtmlContent(xhtml, null);
+            builder.toStream(os);
+            builder.run();
+            return os.toByteArray();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error generating PDF: " + e.getMessage());
+        }
+    }
+
+    public byte[] getPayslipFileForDownload(Long payrollId, String tenantId, Long userId, boolean isAdmin) {
+        Payroll payroll = payrollRepository.findById(payrollId)
+                .orElseThrow(() -> new IllegalArgumentException("Payroll not found"));
+        if (!payroll.getTenantId().equals(tenantId)) {
+            throw new IllegalStateException("Unauthorized");
+        }
+        if (!isAdmin && !payroll.getUserId().equals(userId)) {
+            throw new IllegalStateException("You can only download your own payslip");
+        }
+        return generatePayslipPdfForPayroll(payrollId, tenantId);
+    }
+
+    public byte[] generatePayslipPdfForPayroll(Long payrollId, String tenantId) {
+        Payroll payroll = payrollRepository.findById(payrollId)
+                .orElseThrow(() -> new IllegalArgumentException("Payroll not found"));
+        if (!payroll.getTenantId().equals(tenantId)) {
+            throw new IllegalStateException("Unauthorized");
+        }
+        if (payroll.getPdfFilePath() != null) {
+            try {
+                Path path = Paths.get(payroll.getPdfFilePath());
+                if (Files.exists(path)) {
+                    return Files.readAllBytes(path);
+                }
+            } catch (IOException e) {
+                System.err.println("Could not read stored PDF: " + e.getMessage());
+            }
+        }
+        
+        Long userId = payroll.getUserId();
+        String month = payroll.getMonth();
+        Map<String, Object> data = calculateSuggestion(userId, month, tenantId);
+        
+        byte[] pdfData = generatePdfFromData(data, month);
+        
+        // Save it for future requests if it's processed
+        if ("PAID".equalsIgnoreCase(payroll.getStatus()) || "PROCESSED".equalsIgnoreCase(payroll.getStatus())) {
+            try {
+                String pathStr = savePdfToDisk(pdfData, payrollId, tenantId, month);
+                payroll.setPdfFilePath(pathStr);
+                payrollRepository.save(payroll);
+            } catch (Exception e) {
+                System.err.println("Failed to save PDF to disk: " + e.getMessage());
+            }
+        }
+        
+        return pdfData;
+    }
+    
+    private String savePdfToDisk(byte[] pdfData, Long payrollId, String tenantId, String month) throws IOException {
+        String safeMonth = month.replace(" ", "_");
+        Path uploadPath = Paths.get("uploads", "payslips", tenantId, safeMonth);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+        Path filePath = uploadPath.resolve("payslip_" + payrollId + ".pdf");
+        Files.write(filePath, pdfData);
+        return filePath.toString();
+    }
+    
+    private byte[] generatePdfFromData(Map<String, Object> data, String month) {
+        StringBuilder html = new StringBuilder();
+        html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>Payslip</title>");
+        html.append("<style>")
+            .append("@page { size: A4; margin: 15mm; }")
+            .append("body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 0; color: #333; }")
+            .append(".container { width: 100%; max-width: 800px; margin: auto; }")
+            .append(".header { text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 20px; }")
+            .append(".header h1 { margin: 0; color: #1e293b; font-size: 24px; }")
+            .append(".header h2 { margin: 5px 0 0; color: #64748b; font-size: 16px; font-weight: normal; }")
+            .append(".emp-details { margin-bottom: 20px; width: 100%; }")
+            .append(".emp-details td { padding: 4px 8px; font-size: 13px; }")
+            .append(".emp-details td.label { font-weight: bold; color: #475569; width: 20%; }")
+            .append(".section { margin-bottom: 20px; }")
+            .append("table.salary-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 13px; }")
+            .append("table.salary-table th, table.salary-table td { border: 1px solid #e2e8f0; padding: 8px 12px; }")
+            .append("table.salary-table th { background-color: #f8fafc; text-align: left; font-weight: bold; color: #334155; }")
+            .append("table.salary-table tr.total td { font-weight: bold; background-color: #f1f5f9; color: #0f172a; }")
+            .append(".net-pay { text-align: right; margin-top: 20px; padding: 15px; background-color: #ecfdf5; border: 1px solid #d1fae5; border-radius: 8px; }")
+            .append(".net-pay h3 { margin: 0; color: #065f46; font-size: 20px; }")
+            .append(".footer { text-align: center; margin-top: 40px; font-size: 10px; color: #94a3b8; font-style: italic; }")
+            .append("</style></head><body>");
+        html.append("<div class=\"container\">");
+        
+        html.append("<div class=\"header\">");
+        html.append("<h1>AttendanceKart Solutions</h1>");
+        html.append("<h2>Payslip for the month of ").append(month).append("</h2>");
+        html.append("</div>");
+
+        html.append("<table class=\"emp-details\">");
+        html.append("<tr><td class=\"label\">Employee Name:</td><td>").append(data.get("employeeName")).append("</td>");
+        html.append("<td class=\"label\">Employee ID:</td><td>").append(data.get("employeeId")).append("</td></tr>");
+        html.append("<tr><td class=\"label\">Designation:</td><td>").append(data.getOrDefault("designation", "Staff")).append("</td>");
+        html.append("<td class=\"label\">Paid Days:</td><td>").append(data.get("paidDays")).append("</td></tr>");
+        html.append("</table>");
+
+        html.append("<div class=\"section\">");
+        html.append("<table class=\"salary-table\"><tr><th style=\"width:70%\">Earnings</th><th style=\"width:30%; text-align:right\">Amount (INR)</th></tr>");
+        html.append("<tr><td>Basic Salary</td><td style=\"text-align:right\">").append(data.get("basicSalary")).append("</td></tr>");
+        html.append("<tr><td>House Rent Allowance (HRA)</td><td style=\"text-align:right\">").append(data.get("hra")).append("</td></tr>");
+        html.append("<tr><td>Dearness Allowance (DA)</td><td style=\"text-align:right\">").append(data.get("da")).append("</td></tr>");
+        html.append("<tr><td>Conveyance Allowance</td><td style=\"text-align:right\">").append(data.get("conveyanceAllowance")).append("</td></tr>");
+        html.append("<tr><td>Medical Allowance</td><td style=\"text-align:right\">").append(data.get("medicalAllowance")).append("</td></tr>");
+        html.append("<tr><td>Special Allowance</td><td style=\"text-align:right\">").append(data.get("specialAllowance")).append("</td></tr>");
+        html.append("<tr><td>Other Allowances</td><td style=\"text-align:right\">").append(data.get("otherAllowances")).append("</td></tr>");
+        html.append("<tr><td>Performance Bonus</td><td style=\"text-align:right\">").append(data.get("performanceBonus")).append("</td></tr>");
+        html.append("<tr><td>Incentives</td><td style=\"text-align:right\">").append(data.get("incentives")).append("</td></tr>");
+        html.append("<tr><td>Overtime</td><td style=\"text-align:right\">").append(data.get("overtime")).append("</td></tr>");
+        html.append("<tr class=\"total\"><td>Total Gross Earnings</td><td style=\"text-align:right\">").append(data.get("totalEarnings")).append("</td></tr>");
+        html.append("</table>");
+        
+        html.append("<table class=\"salary-table\"><tr><th style=\"width:70%\">Deductions</th><th style=\"width:30%; text-align:right\">Amount (INR)</th></tr>");
+        html.append("<tr><td>Provident Fund (PF)</td><td style=\"text-align:right\">").append(data.get("providentFund")).append("</td></tr>");
+        html.append("<tr><td>Professional Tax (PT)</td><td style=\"text-align:right\">").append(data.get("professionalTax")).append("</td></tr>");
+        html.append("<tr><td>Income Tax (TDS)</td><td style=\"text-align:right\">").append(data.get("incomeTax")).append("</td></tr>");
+        html.append("<tr><td>ESI Contribution</td><td style=\"text-align:right\">").append(data.get("esi")).append("</td></tr>");
+        html.append("<tr><td>Insurance Deduction</td><td style=\"text-align:right\">").append(data.get("insurance")).append("</td></tr>");
+        html.append("<tr><td>Advance Deduction</td><td style=\"text-align:right\">").append(data.get("advanceDeduction")).append("</td></tr>");
+        html.append("<tr><td>Loan Deduction</td><td style=\"text-align:right\">").append(data.get("loanDeduction")).append("</td></tr>");
+        html.append("<tr><td>Other Deductions</td><td style=\"text-align:right\">").append(data.get("otherDeductions")).append("</td></tr>");
+        html.append("<tr class=\"total\"><td>Total Deductions</td><td style=\"text-align:right\">").append(data.get("totalDeductions")).append("</td></tr>");
+        html.append("</table>");
+        html.append("</div>");
+
+        html.append("<div class=\"net-pay\">");
+        html.append("<h3>Net Payable: INR ").append(data.get("netSalary")).append("</h3>");
+        html.append("</div>");
+        
+        html.append("<div class=\"footer\">");
+        html.append("<p>This is a computer-generated payslip and does not require a physical signature.</p>");
+        html.append("</div>");
+
+        html.append("</div></body></html>");
+
+        String xhtml = html.toString();
+        try (java.io.ByteArrayOutputStream os = new java.io.ByteArrayOutputStream()) {
+            com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder = new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
+            builder.useFastMode();
+            builder.withHtmlContent(xhtml, null);
+            builder.toStream(os);
+            builder.run();
+            return os.toByteArray();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error generating PDF: " + e.getMessage());
+        }
     }
 }
