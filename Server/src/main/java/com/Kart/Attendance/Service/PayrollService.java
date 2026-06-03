@@ -592,13 +592,13 @@ public class PayrollService {
         result.put("accountNumber", account);
 
         result.put("month", month);
-        result.put("basicSalary", proratedBasic);
-        result.put("hra", proratedHra);
-        result.put("da", proratedDa);
-        result.put("conveyanceAllowance", proratedConveyance);
-        result.put("medicalAllowance", proratedMedical);
-        result.put("specialAllowance", proratedSpecial);
-        result.put("otherAllowances", proratedOtherAllowances);
+        result.put("basicSalary", basic);
+        result.put("hra", hra);
+        result.put("da", da);
+        result.put("conveyanceAllowance", conveyance);
+        result.put("medicalAllowance", medical);
+        result.put("specialAllowance", special);
+        result.put("otherAllowances", otherAllowances);
         result.put("performanceBonus", actualBonus);
         result.put("incentives", actualIncentives);
         result.put("overtime", computedOvertimePay);
@@ -638,9 +638,9 @@ public class PayrollService {
         result.put("tdsPercent", tdsPercent);
         result.put("profTax", computedPT);
 
-        result.put("totalEarnings", proratedGross);
-        result.put("totalDeductions", totalDeductions);
-        result.put("netSalary", netSalary);
+        result.put("totalEarnings", basic + hra + da + conveyance + medical + special + otherAllowances + actualBonus + actualIncentives + computedOvertimePay + proratedOtherEarnings);
+        result.put("totalDeductions", totalDeductions + basicAttendanceDeduction);
+        result.put("netSalary", (basic + hra + da + conveyance + medical + special + otherAllowances + actualBonus + actualIncentives + computedOvertimePay + proratedOtherEarnings) - (totalDeductions + basicAttendanceDeduction));
 
         result.put("employerPf", employerPf);
         result.put("employerEsi", employerEsi);
@@ -688,7 +688,7 @@ public class PayrollService {
         payroll.setAccountNumber(user.getAccountNumber());
 
         // Perform recalculation of totals for verification
-        double earnings = payroll.getBasicSalary() + payroll.getHra() + payroll.getConveyanceAllowance() +
+        double earnings = payroll.getBasicSalary() + payroll.getHra() + payroll.getDa() + payroll.getConveyanceAllowance() +
                 payroll.getMedicalAllowance() + payroll.getSpecialAllowance() + payroll.getOtherAllowances() +
                 payroll.getPerformanceBonus() + payroll.getIncentives() + payroll.getOvertime() + payroll.getOtherEarnings();
                 
@@ -709,7 +709,7 @@ public class PayrollService {
         Payroll saved = payrollRepository.save(payroll);
         if (("PAID".equalsIgnoreCase(saved.getStatus()) || "PROCESSED".equalsIgnoreCase(saved.getStatus())) && saved.getPdfFilePath() == null) {
             try {
-                byte[] pdfData = generatePdfFromData(calculateSuggestion(saved.getUserId(), saved.getMonth(), tenantId), saved.getMonth());
+                byte[] pdfData = generatePdfFromData(saved);
                 String path = savePdfToDisk(pdfData, saved.getId(), tenantId, saved.getMonth());
                 saved.setPdfFilePath(path);
                 saved = payrollRepository.save(saved);
@@ -780,7 +780,7 @@ public class PayrollService {
         existing.setAdjustedManually(details.isAdjustedManually());
         existing.setAuditLog(details.getAuditLog());
 
-        double earnings = details.getBasicSalary() + details.getHra() + details.getConveyanceAllowance() +
+        double earnings = details.getBasicSalary() + details.getHra() + details.getDa() + details.getConveyanceAllowance() +
                 details.getMedicalAllowance() + details.getSpecialAllowance() + details.getOtherAllowances() +
                 details.getPerformanceBonus() + details.getIncentives() + details.getOvertime() + details.getOtherEarnings();
                 
@@ -800,7 +800,7 @@ public class PayrollService {
 
         if (("PAID".equalsIgnoreCase(saved.getStatus()) || "PROCESSED".equalsIgnoreCase(saved.getStatus())) && saved.getPdfFilePath() == null) {
             try {
-                byte[] pdfData = generatePdfFromData(calculateSuggestion(saved.getUserId(), saved.getMonth(), tenantId), saved.getMonth());
+                byte[] pdfData = generatePdfFromData(saved);
                 String path = savePdfToDisk(pdfData, saved.getId(), tenantId, saved.getMonth());
                 saved.setPdfFilePath(path);
                 saved = payrollRepository.save(saved);
@@ -828,7 +828,7 @@ public class PayrollService {
         
         if (("PAID".equalsIgnoreCase(saved.getStatus()) || "PROCESSED".equalsIgnoreCase(saved.getStatus())) && saved.getPdfFilePath() == null) {
             try {
-                byte[] pdfData = generatePdfFromData(calculateSuggestion(saved.getUserId(), saved.getMonth(), tenantId), saved.getMonth());
+                byte[] pdfData = generatePdfFromData(saved);
                 String path = savePdfToDisk(pdfData, saved.getId(), tenantId, saved.getMonth());
                 saved.setPdfFilePath(path);
                 saved = payrollRepository.save(saved);
@@ -899,83 +899,11 @@ public class PayrollService {
         // Use employee ID and month to compute payroll details
         Long userId = request.getUserId();
         String month = request.getMonth();
-        Map<String, Object> data = calculateSuggestion(userId, month, tenantId);
-        // Build simple HTML payslip (single page, no signature)
-        StringBuilder html = new StringBuilder();
-        html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>Payslip</title>");
-        html.append("<style>")
-            .append("@page { size: A4; margin: 15mm; }")
-            .append("body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 0; color: #333; }")
-            .append(".container { width: 100%; max-width: 800px; margin: auto; }")
-            .append(".header { text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 20px; }")
-            .append(".header h1 { margin: 0; color: #1e293b; font-size: 24px; }")
-            .append(".header h2 { margin: 5px 0 0; color: #64748b; font-size: 16px; font-weight: normal; }")
-            .append(".emp-details { margin-bottom: 20px; width: 100%; }")
-            .append(".emp-details td { padding: 4px 8px; font-size: 13px; }")
-            .append(".emp-details td.label { font-weight: bold; color: #475569; width: 20%; }")
-            .append(".section { margin-bottom: 20px; }")
-            .append("table.salary-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 13px; }")
-            .append("table.salary-table th, table.salary-table td { border: 1px solid #e2e8f0; padding: 8px 12px; }")
-            .append("table.salary-table th { background-color: #f8fafc; text-align: left; font-weight: bold; color: #334155; }")
-            .append("table.salary-table tr.total td { font-weight: bold; background-color: #f1f5f9; color: #0f172a; }")
-            .append(".net-pay { text-align: right; margin-top: 20px; padding: 15px; background-color: #ecfdf5; border: 1px solid #d1fae5; border-radius: 8px; }")
-            .append(".net-pay h3 { margin: 0; color: #065f46; font-size: 20px; }")
-            .append(".footer { text-align: center; margin-top: 40px; font-size: 10px; color: #94a3b8; font-style: italic; }")
-            .append("</style></head><body>");
-        html.append("<div class=\"container\">");
         
-        html.append("<div class=\"header\">");
-        html.append("<h1>AttendanceKart Solutions</h1>");
-        html.append("<h2>Payslip for the month of ").append(month).append("</h2>");
-        html.append("</div>");
-
-        html.append("<table class=\"emp-details\">");
-        html.append("<tr><td class=\"label\">Employee Name:</td><td>").append(data.get("employeeName")).append("</td>");
-        html.append("<td class=\"label\">Employee ID:</td><td>").append(data.get("employeeId")).append("</td></tr>");
-        html.append("<tr><td class=\"label\">Designation:</td><td>").append(data.getOrDefault("designation", "Staff")).append("</td>");
-        html.append("<td class=\"label\">Paid Days:</td><td>").append(data.get("paidDays")).append("</td></tr>");
-        html.append("</table>");
-
-        html.append("<div class=\"section\">");
-        // Earnings table
-        html.append("<table class=\"salary-table\"><tr><th style=\"width:70%\">Earnings</th><th style=\"width:30%; text-align:right\">Amount (INR)</th></tr>");
-        html.append("<tr><td>Basic Salary</td><td style=\"text-align:right\">").append(data.get("basicSalary")).append("</td></tr>");
-        html.append("<tr><td>House Rent Allowance (HRA)</td><td style=\"text-align:right\">").append(data.get("hra")).append("</td></tr>");
-        html.append("<tr><td>Dearness Allowance (DA)</td><td style=\"text-align:right\">").append(data.get("da")).append("</td></tr>");
-        html.append("<tr><td>Conveyance Allowance</td><td style=\"text-align:right\">").append(data.get("conveyanceAllowance")).append("</td></tr>");
-        html.append("<tr><td>Medical Allowance</td><td style=\"text-align:right\">").append(data.get("medicalAllowance")).append("</td></tr>");
-        html.append("<tr><td>Special Allowance</td><td style=\"text-align:right\">").append(data.get("specialAllowance")).append("</td></tr>");
-        html.append("<tr><td>Other Allowances</td><td style=\"text-align:right\">").append(data.get("otherAllowances")).append("</td></tr>");
-        html.append("<tr><td>Performance Bonus</td><td style=\"text-align:right\">").append(data.get("performanceBonus")).append("</td></tr>");
-        html.append("<tr><td>Incentives</td><td style=\"text-align:right\">").append(data.get("incentives")).append("</td></tr>");
-        html.append("<tr><td>Overtime</td><td style=\"text-align:right\">").append(data.get("overtime")).append("</td></tr>");
-        html.append("<tr class=\"total\"><td>Total Gross Earnings</td><td style=\"text-align:right\">").append(data.get("totalEarnings")).append("</td></tr>");
-        html.append("</table>");
-        
-        // Deductions table
-        html.append("<table class=\"salary-table\"><tr><th style=\"width:70%\">Deductions</th><th style=\"width:30%; text-align:right\">Amount (INR)</th></tr>");
-        html.append("<tr><td>Provident Fund (PF)</td><td style=\"text-align:right\">").append(data.get("providentFund")).append("</td></tr>");
-        html.append("<tr><td>Professional Tax (PT)</td><td style=\"text-align:right\">").append(data.get("professionalTax")).append("</td></tr>");
-        html.append("<tr><td>Income Tax (TDS)</td><td style=\"text-align:right\">").append(data.get("incomeTax")).append("</td></tr>");
-        html.append("<tr><td>ESI Contribution</td><td style=\"text-align:right\">").append(data.get("esi")).append("</td></tr>");
-        html.append("<tr><td>Insurance Deduction</td><td style=\"text-align:right\">").append(data.get("insurance")).append("</td></tr>");
-        html.append("<tr><td>Advance Deduction</td><td style=\"text-align:right\">").append(data.get("advanceDeduction")).append("</td></tr>");
-        html.append("<tr><td>Loan Deduction</td><td style=\"text-align:right\">").append(data.get("loanDeduction")).append("</td></tr>");
-        html.append("<tr><td>Other Deductions</td><td style=\"text-align:right\">").append(data.get("otherDeductions")).append("</td></tr>");
-        html.append("<tr class=\"total\"><td>Total Deductions</td><td style=\"text-align:right\">").append(data.get("totalDeductions")).append("</td></tr>");
-        html.append("</table>");
-        html.append("</div>");
-
-        html.append("<div class=\"net-pay\">");
-        html.append("<h3>Net Payable: INR ").append(data.get("netSalary")).append("</h3>");
-        html.append("</div>");
-        
-        html.append("<div class=\"footer\">");
-        html.append("<p>This is a computer-generated payslip and does not require a physical signature.</p>");
-        html.append("</div>");
-
-        html.append("</div></body></html>");
-        return html.toString();
+        Payroll payroll = payrollRepository.findByUserIdAndTenantIdAndMonth(userId, tenantId, month)
+                .orElseThrow(() -> new IllegalArgumentException("Payroll has not been generated for this month yet"));
+                
+        return buildPayslipHtml(payroll);
     }
 
     public byte[] generatePayslipPdf(Long requestId, String tenantId) {
@@ -1022,16 +950,12 @@ public class PayrollService {
             }
         }
         
-        Long userId = payroll.getUserId();
-        String month = payroll.getMonth();
-        Map<String, Object> data = calculateSuggestion(userId, month, tenantId);
-        
-        byte[] pdfData = generatePdfFromData(data, month);
+        byte[] pdfData = generatePdfFromData(payroll);
         
         // Save it for future requests if it's processed
         if ("PAID".equalsIgnoreCase(payroll.getStatus()) || "PROCESSED".equalsIgnoreCase(payroll.getStatus())) {
             try {
-                String pathStr = savePdfToDisk(pdfData, payrollId, tenantId, month);
+                String pathStr = savePdfToDisk(pdfData, payrollId, tenantId, payroll.getMonth());
                 payroll.setPdfFilePath(pathStr);
                 payrollRepository.save(payroll);
             } catch (Exception e) {
@@ -1053,7 +977,22 @@ public class PayrollService {
         return filePath.toString();
     }
     
-    private byte[] generatePdfFromData(Map<String, Object> data, String month) {
+    private byte[] generatePdfFromData(Payroll payroll) {
+        String xhtml = buildPayslipHtml(payroll);
+        try (java.io.ByteArrayOutputStream os = new java.io.ByteArrayOutputStream()) {
+            com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder = new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
+            builder.useFastMode();
+            builder.withHtmlContent(xhtml, null);
+            builder.toStream(os);
+            builder.run();
+            return os.toByteArray();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error generating PDF: " + e.getMessage());
+        }
+    }
+    
+    private String buildPayslipHtml(Payroll payroll) {
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>Payslip</title>");
         html.append("<style>")
@@ -1079,46 +1018,46 @@ public class PayrollService {
         
         html.append("<div class=\"header\">");
         html.append("<h1>AttendanceKart Solutions</h1>");
-        html.append("<h2>Payslip for the month of ").append(month).append("</h2>");
+        html.append("<h2>Payslip for the month of ").append(payroll.getMonth()).append("</h2>");
         html.append("</div>");
 
         html.append("<table class=\"emp-details\">");
-        html.append("<tr><td class=\"label\">Employee Name:</td><td>").append(data.get("employeeName")).append("</td>");
-        html.append("<td class=\"label\">Employee ID:</td><td>").append(data.get("employeeId")).append("</td></tr>");
-        html.append("<tr><td class=\"label\">Designation:</td><td>").append(data.getOrDefault("designation", "Staff")).append("</td>");
-        html.append("<td class=\"label\">Paid Days:</td><td>").append(data.get("paidDays")).append("</td></tr>");
+        html.append("<tr><td class=\"label\">Employee Name:</td><td>").append(payroll.getEmployeeName() != null ? payroll.getEmployeeName() : "").append("</td>");
+        html.append("<td class=\"label\">Employee ID:</td><td>").append(payroll.getEmployeeId() != null ? payroll.getEmployeeId() : "").append("</td></tr>");
+        html.append("<tr><td class=\"label\">Designation:</td><td>").append(payroll.getDesignation() != null ? payroll.getDesignation() : "Staff").append("</td>");
+        html.append("<td class=\"label\">Paid Days:</td><td>").append(payroll.getPaidDays()).append("</td></tr>");
         html.append("</table>");
 
         html.append("<div class=\"section\">");
         html.append("<table class=\"salary-table\"><tr><th style=\"width:70%\">Earnings</th><th style=\"width:30%; text-align:right\">Amount (INR)</th></tr>");
-        html.append("<tr><td>Basic Salary</td><td style=\"text-align:right\">").append(data.get("basicSalary")).append("</td></tr>");
-        html.append("<tr><td>House Rent Allowance (HRA)</td><td style=\"text-align:right\">").append(data.get("hra")).append("</td></tr>");
-        html.append("<tr><td>Dearness Allowance (DA)</td><td style=\"text-align:right\">").append(data.get("da")).append("</td></tr>");
-        html.append("<tr><td>Conveyance Allowance</td><td style=\"text-align:right\">").append(data.get("conveyanceAllowance")).append("</td></tr>");
-        html.append("<tr><td>Medical Allowance</td><td style=\"text-align:right\">").append(data.get("medicalAllowance")).append("</td></tr>");
-        html.append("<tr><td>Special Allowance</td><td style=\"text-align:right\">").append(data.get("specialAllowance")).append("</td></tr>");
-        html.append("<tr><td>Other Allowances</td><td style=\"text-align:right\">").append(data.get("otherAllowances")).append("</td></tr>");
-        html.append("<tr><td>Performance Bonus</td><td style=\"text-align:right\">").append(data.get("performanceBonus")).append("</td></tr>");
-        html.append("<tr><td>Incentives</td><td style=\"text-align:right\">").append(data.get("incentives")).append("</td></tr>");
-        html.append("<tr><td>Overtime</td><td style=\"text-align:right\">").append(data.get("overtime")).append("</td></tr>");
-        html.append("<tr class=\"total\"><td>Total Gross Earnings</td><td style=\"text-align:right\">").append(data.get("totalEarnings")).append("</td></tr>");
+        html.append("<tr><td>Basic Salary</td><td style=\"text-align:right\">").append(payroll.getBasicSalary()).append("</td></tr>");
+        html.append("<tr><td>House Rent Allowance (HRA)</td><td style=\"text-align:right\">").append(payroll.getHra()).append("</td></tr>");
+        html.append("<tr><td>Dearness Allowance (DA)</td><td style=\"text-align:right\">").append(payroll.getDa()).append("</td></tr>");
+        html.append("<tr><td>Conveyance Allowance</td><td style=\"text-align:right\">").append(payroll.getConveyanceAllowance()).append("</td></tr>");
+        html.append("<tr><td>Medical Allowance</td><td style=\"text-align:right\">").append(payroll.getMedicalAllowance()).append("</td></tr>");
+        html.append("<tr><td>Special Allowance</td><td style=\"text-align:right\">").append(payroll.getSpecialAllowance()).append("</td></tr>");
+        html.append("<tr><td>Other Allowances</td><td style=\"text-align:right\">").append(payroll.getOtherAllowances()).append("</td></tr>");
+        html.append("<tr><td>Performance Bonus</td><td style=\"text-align:right\">").append(payroll.getPerformanceBonus()).append("</td></tr>");
+        html.append("<tr><td>Incentives</td><td style=\"text-align:right\">").append(payroll.getIncentives()).append("</td></tr>");
+        html.append("<tr><td>Overtime</td><td style=\"text-align:right\">").append(payroll.getOvertime()).append("</td></tr>");
+        html.append("<tr class=\"total\"><td>Total Gross Earnings</td><td style=\"text-align:right\">").append(payroll.getTotalEarnings()).append("</td></tr>");
         html.append("</table>");
         
         html.append("<table class=\"salary-table\"><tr><th style=\"width:70%\">Deductions</th><th style=\"width:30%; text-align:right\">Amount (INR)</th></tr>");
-        html.append("<tr><td>Provident Fund (PF)</td><td style=\"text-align:right\">").append(data.get("providentFund")).append("</td></tr>");
-        html.append("<tr><td>Professional Tax (PT)</td><td style=\"text-align:right\">").append(data.get("professionalTax")).append("</td></tr>");
-        html.append("<tr><td>Income Tax (TDS)</td><td style=\"text-align:right\">").append(data.get("incomeTax")).append("</td></tr>");
-        html.append("<tr><td>ESI Contribution</td><td style=\"text-align:right\">").append(data.get("esi")).append("</td></tr>");
-        html.append("<tr><td>Insurance Deduction</td><td style=\"text-align:right\">").append(data.get("insurance")).append("</td></tr>");
-        html.append("<tr><td>Advance Deduction</td><td style=\"text-align:right\">").append(data.get("advanceDeduction")).append("</td></tr>");
-        html.append("<tr><td>Loan Deduction</td><td style=\"text-align:right\">").append(data.get("loanDeduction")).append("</td></tr>");
-        html.append("<tr><td>Other Deductions</td><td style=\"text-align:right\">").append(data.get("otherDeductions")).append("</td></tr>");
-        html.append("<tr class=\"total\"><td>Total Deductions</td><td style=\"text-align:right\">").append(data.get("totalDeductions")).append("</td></tr>");
+        html.append("<tr><td>Provident Fund (PF)</td><td style=\"text-align:right\">").append(payroll.getProvidentFund()).append("</td></tr>");
+        html.append("<tr><td>Professional Tax (PT)</td><td style=\"text-align:right\">").append(payroll.getProfessionalTax()).append("</td></tr>");
+        html.append("<tr><td>Income Tax (TDS)</td><td style=\"text-align:right\">").append(payroll.getIncomeTax()).append("</td></tr>");
+        html.append("<tr><td>ESI Contribution</td><td style=\"text-align:right\">").append(payroll.getEsi()).append("</td></tr>");
+        html.append("<tr><td>Insurance Deduction</td><td style=\"text-align:right\">").append(payroll.getInsurance()).append("</td></tr>");
+        html.append("<tr><td>Advance Deduction</td><td style=\"text-align:right\">").append(payroll.getAdvanceDeduction()).append("</td></tr>");
+        html.append("<tr><td>Loan Deduction</td><td style=\"text-align:right\">").append(payroll.getLoanDeduction()).append("</td></tr>");
+        html.append("<tr><td>Other Deductions</td><td style=\"text-align:right\">").append(payroll.getOtherDeductions()).append("</td></tr>");
+        html.append("<tr class=\"total\"><td>Total Deductions</td><td style=\"text-align:right\">").append(payroll.getTotalDeductions()).append("</td></tr>");
         html.append("</table>");
         html.append("</div>");
 
         html.append("<div class=\"net-pay\">");
-        html.append("<h3>Net Payable: INR ").append(data.get("netSalary")).append("</h3>");
+        html.append("<h3>Net Payable: INR ").append(payroll.getNetSalary()).append("</h3>");
         html.append("</div>");
         
         html.append("<div class=\"footer\">");
@@ -1126,18 +1065,6 @@ public class PayrollService {
         html.append("</div>");
 
         html.append("</div></body></html>");
-
-        String xhtml = html.toString();
-        try (java.io.ByteArrayOutputStream os = new java.io.ByteArrayOutputStream()) {
-            com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder = new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
-            builder.useFastMode();
-            builder.withHtmlContent(xhtml, null);
-            builder.toStream(os);
-            builder.run();
-            return os.toByteArray();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error generating PDF: " + e.getMessage());
-        }
+        return html.toString();
     }
 }

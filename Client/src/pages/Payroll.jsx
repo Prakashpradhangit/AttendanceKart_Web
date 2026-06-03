@@ -185,7 +185,7 @@ const Payroll = () => {
   // Sync calculations for individual payroll screen
   const calculateTotal = (data = formData) => {
     const e = [
-      data.basicSalary, data.hra, data.conveyanceAllowance, data.medicalAllowance,
+      data.basicSalary, data.hra, data.da, data.conveyanceAllowance, data.medicalAllowance,
       data.specialAllowance, data.otherAllowances, data.performanceBonus, data.incentives,
       data.overtime, data.otherEarnings
     ].reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
@@ -198,7 +198,7 @@ const Payroll = () => {
 
   const getGrossEarnings = (data = formData) => {
     return [
-      data.basicSalary, data.hra, data.conveyanceAllowance, data.medicalAllowance,
+      data.basicSalary, data.hra, data.da, data.conveyanceAllowance, data.medicalAllowance,
       data.specialAllowance, data.otherAllowances, data.performanceBonus, data.incentives,
       data.overtime, data.otherEarnings
     ].reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
@@ -305,14 +305,11 @@ const Payroll = () => {
   };
 
   const closeModal = () => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setModalType(null);
-      setModalStep('');
-      setSelectedItem(null);
-      setStructureHistory([]);
-      setBulkCalculations([]);
-    }, 200);
+    setModalType(null);
+    setModalStep('');
+    setSelectedItem(null);
+    setStructureHistory([]);
+    setBulkCalculations([]);
   };
 
   // Step 2 & 3 Wizard Calculations
@@ -1530,6 +1527,7 @@ const Payroll = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Basic Salary (₹)" value={formData.basicSalary} onChange={(e) => setFormData({...formData, basicSalary: e.target.value})} />
                     <Field label="HRA (₹)" value={formData.hra} onChange={(e) => setFormData({...formData, hra: e.target.value})} />
+                    <Field label="DA (₹)" value={formData.da} onChange={(e) => setFormData({...formData, da: e.target.value})} />
                     <Field label="Conveyance Allow." value={formData.conveyanceAllowance} onChange={(e) => setFormData({...formData, conveyanceAllowance: e.target.value})} />
                     <Field label="Medical Allow." value={formData.medicalAllowance} onChange={(e) => setFormData({...formData, medicalAllowance: e.target.value})} />
                     <Field label="Special Allow." value={formData.specialAllowance} onChange={(e) => setFormData({...formData, specialAllowance: e.target.value})} />
@@ -1568,9 +1566,19 @@ const Payroll = () => {
               </div>
 
               <div className="bg-slate-900 text-white rounded-3xl p-5 flex justify-between items-center">
-                 <div>
-                   <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Adjusted Net Pay</p>
-                   <p className="text-2xl font-black">₹{fmt(calculateTotal())}</p>
+                 <div className="flex gap-8">
+                   <div>
+                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Gross Earnings</p>
+                     <p className="text-xl font-bold">₹{fmt(getGrossEarnings())}</p>
+                   </div>
+                   <div>
+                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Total Deductions</p>
+                     <p className="text-xl font-bold text-rose-400">₹{fmt(getTotalDeductions())}</p>
+                   </div>
+                   <div>
+                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">Adjusted Net Pay</p>
+                     <p className="text-2xl font-black text-emerald-400">₹{fmt(calculateTotal())}</p>
+                   </div>
                  </div>
                  <button 
                    onClick={handleSaveBulkOverride}

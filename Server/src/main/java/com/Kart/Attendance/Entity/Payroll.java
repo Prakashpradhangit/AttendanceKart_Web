@@ -45,6 +45,7 @@ public class Payroll {
     // Earnings
     private double basicSalary;
     private double hra;
+    private double da;
     private double conveyanceAllowance;
     private double medicalAllowance;
     private double specialAllowance;

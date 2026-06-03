@@ -61,6 +61,19 @@ const generateMonthData = () => {
 
 const data = generateMonthData();
 
+const getPast12Months = () => {
+  const options = [];
+  const today = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const monthName = d.toLocaleString('en-US', { month: 'long' });
+    const year = d.getFullYear();
+    options.push(`${monthName} ${year}`);
+  }
+  return options;
+};
+const MONTH_OPTIONS = getPast12Months();
+
 const EmployeeDashboard = () => {
   const { showAlert } = useAlert();
   const navigate = useNavigate();
@@ -69,7 +82,7 @@ const EmployeeDashboard = () => {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [isCheckedOut, setIsCheckedOut] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [selectedMonth, setSelectedMonth] = useState("May 2026");
+  const [selectedMonth, setSelectedMonth] = useState(MONTH_OPTIONS[0]);
   const [chartData, setChartData] = useState(data);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -651,12 +664,9 @@ const EmployeeDashboard = () => {
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="bg-white/40 border border-white/20 rounded-2xl text-[10px] font-black text-gray-500 px-4 py-2.5 outline-none cursor-pointer hover:bg-white/60 hover:shadow-sm transition-all uppercase tracking-widest"
                 >
-                  <option value="January 2026">January 2026</option>
-                  <option value="February 2026">February 2026</option>
-                  <option value="March 2026">March 2026</option>
-                  <option value="April 2026">April 2026</option>
-                  <option value="May 2026">May 2026</option>
-                  <option value="June 2026">June 2026</option>
+                  {MONTH_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
                 </select>
              </div>
 

@@ -16,12 +16,27 @@ import {
   Clock
 } from 'lucide-react';
 
+// Generate last 24 months as navigation targets
+const getPast24Months = () => {
+  const result = [];
+  const now = new Date();
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    result.push({ month: d.getMonth(), year: d.getFullYear() });
+  }
+  return result.reverse(); // oldest first
+};
+const ALL_MONTHS = getPast24Months();
+
 const EmployeeAttendance = () => {
-  const months = [
-    'January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026',
-    'July 2026', 'August 2026', 'September 2026', 'October 2026', 'November 2026', 'December 2026'
-  ];
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(new Date().getMonth());
+  const now = new Date();
+  // Start at current month index within ALL_MONTHS array
+  const initialIndex = ALL_MONTHS.findIndex(
+    (m) => m.month === now.getMonth() && m.year === now.getFullYear()
+  );
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(
+    initialIndex >= 0 ? initialIndex : ALL_MONTHS.length - 1
+  );
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [leaveRecords, setLeaveRecords] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -50,13 +65,14 @@ const EmployeeAttendance = () => {
     }
   };
 
-  const currentYear = 2026; // Keeping 2026 to match your existing logic
+  const currentYear = ALL_MONTHS[currentMonthIndex].year;
+  const currentMonthNum = ALL_MONTHS[currentMonthIndex].month;
 
   const fetchMonthData = React.useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const monthStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}`;
+      const monthStr = `${currentYear}-${String(currentMonthNum + 1).padStart(2, '0')}`;
       
       const [attRes, leaveRes] = await Promise.all([
         fetch(`/api/attendance/monthly?month=${monthStr}`, {
@@ -80,7 +96,7 @@ const EmployeeAttendance = () => {
           if (parts.length !== 3) return false;
           const leaveMonth = parseInt(parts[1], 10) - 1;
           const leaveYear = parseInt(parts[0], 10);
-          return leaveMonth === currentMonthIndex && leaveYear === currentYear;
+          return leaveMonth === currentMonthNum && leaveYear === currentYear;
         }));
       }
     } catch (err) {
@@ -88,7 +104,7 @@ const EmployeeAttendance = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentMonthIndex]);
+  }, [currentMonthIndex, currentMonthNum, currentYear]);
 
   React.useEffect(() => {
     fetchMonthData();
@@ -96,16 +112,20 @@ const EmployeeAttendance = () => {
   }, [fetchMonthData]);
 
   const handlePreviousMonth = () => {
-    setCurrentMonthIndex((prev) => (prev === 0 ? months.length - 1 : prev - 1));
+    setCurrentMonthIndex((prev) => Math.max(0, prev - 1));
   };
 
   const handleNextMonth = () => {
-    setCurrentMonthIndex((prev) => (prev === months.length - 1 ? 0 : prev + 1));
+    setCurrentMonthIndex((prev) => Math.min(ALL_MONTHS.length - 1, prev + 1));
   };
 
-  const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
-  const startDay = (new Date(currentYear, currentMonthIndex, 1).getDay() + 6) % 7; 
-  const prevMonthDays = new Date(currentYear, currentMonthIndex, 0).getDate();
+  const monthLabel = ALL_MONTHS[currentMonthIndex] 
+    ? new Date(currentYear, currentMonthNum, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })
+    : '';
+
+  const daysInMonth = new Date(currentYear, currentMonthNum + 1, 0).getDate();
+  const startDay = (new Date(currentYear, currentMonthNum, 1).getDay() + 6) % 7;
+  const prevMonthDays = new Date(currentYear, currentMonthNum, 0).getDate();
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-700 max-w-7xl mx-auto pb-10">
@@ -130,7 +150,7 @@ const EmployeeAttendance = () => {
           {/* Calendar Section */}
           <div className="bg-white rounded-[40px] p-8 shadow-sm border border-gray-50">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold text-gray-900">{months[currentMonthIndex]}</h3>
+              <h3 className="text-xl font-bold text-gray-900">{monthLabel}</h3>
               <div className="flex items-center gap-2">
                 <button 
                   onClick={handlePreviousMonth}
@@ -164,7 +184,7 @@ const EmployeeAttendance = () => {
               {/* Current Month Days */}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
-                const dateStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dateStr = `${currentYear}-${String(currentMonthNum + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 
                 const isPresent = attendanceRecords.some(r => r.attendanceDate === dateStr);
                 const isLeave = leaveRecords.some(l => {
